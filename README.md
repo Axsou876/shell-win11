@@ -28,9 +28,10 @@ Phase 3 turns the Step 1e hover foundation into a functional desktop shell:
   navigation and launches with `ShellExecuteExW`. Typed text is never executed
   as a command.
 - **Left bar dock**: only applications explicitly marked as favourites are shown
-  under the launcher/search button. Clicking an icon launches it; the star in the
-  launcher adds/removes it. Recent applications are no longer injected into the
-  bar automatically.
+  under the launcher/search button. The dock is hidden when there is no
+  favourite, so no empty grid/icon remains. Clicking an icon launches it; the
+  star in the launcher adds/removes it. Recent applications are not injected
+  into the bar automatically.
 - **Dashboard** (`F10`): real clock/system summary, GSMTC media session and
   controls, CPU/memory/GPU/network/storage counters with history charts, and an
   Open-Meteo weather tab with a city setup form. No placeholder values are
@@ -94,8 +95,9 @@ For a standalone folder, run `windeployqt` on that executable.
 - Click the Caelestia logo in the bar, the search icon or press `F1`: open the
   application launcher. Type to filter; `↑`/`↓` navigate, `Enter` launches, `Esc`
   or a click outside closes. The star toggles a favourite.
-- The left bar shows the favourite application dock. The search icon opens the
-  launcher. There is no separate calendar button in the bar.
+- The left bar shows the favourite application dock and hides it when empty.
+  The search icon opens the launcher. There is no separate calendar button or
+  empty application-grid icon in the bar.
 - `F10` or hover the top-center strip: Dashboard. Its tabs are Dashboard,
   Media, Performance and Weather.
 - `F9`: Control Centre (favourites, quick actions, audio, network, Bluetooth,
@@ -171,10 +173,11 @@ For a standalone folder, run `windeployqt` on that executable.
 - `PowerService`: lock, sleep, sign-out, restart and shutdown with the Windows
   shutdown privilege. The QML Power panel requires a second confirmation.
 - `BarFavorites.qml`: vertical favourite dock in the left bar, real cached icons,
-  launches through `Apps.launchById`. Only explicit favourites are shown; recent
-  applications are not added automatically. The bar also exposes the launcher
-  search button. A slow timer re-raises the AppBar above maximized/borderless
-  windows without changing its AppBar reservation.
+  launches through `Apps.launchById`. Only explicit favourites are shown; the
+  dock is fully hidden when empty and recent applications are not added
+  automatically. The bar also exposes the launcher search button. A slow timer
+  re-raises the AppBar above maximized/borderless windows without changing its
+  AppBar reservation.
 
 ### Known Windows differences
 

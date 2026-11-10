@@ -74,16 +74,16 @@ Item {
             }
         }
 
-        BarWorkspaces {
-            Layout.alignment: Qt.AlignHCenter
-            theme: root.theme
-        }
-
         BarFavorites {
             Layout.alignment: Qt.AlignHCenter
             theme: root.theme
             panelController: root.panelController
             screenName: root.screenName
+        }
+
+        BarWorkspaces {
+            Layout.alignment: Qt.AlignHCenter
+            theme: root.theme
         }
 
         Item {

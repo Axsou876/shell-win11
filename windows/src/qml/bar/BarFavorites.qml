@@ -14,10 +14,10 @@ Item {
     required property string screenName
 
     readonly property var items: Apps.favoriteApps
-    readonly property int shown: Math.min(items.length, 8)
 
     implicitWidth: 36
-    implicitHeight: 76
+    implicitHeight: items.length > 0 ? 76 : 0
+    visible: items.length > 0
 
     function iconUrl(path) {
         return path ? "file:///" + path.replace(/\\/g, "/") : "";
@@ -79,27 +79,6 @@ Item {
                         iconSize: 22
                         color: root.theme.onSurfaceVariantColour
                     }
-                }
-            }
-
-            Item {
-                width: 36
-                height: 36
-                visible: root.items.length === 0
-
-                StateLayer {
-                    anchors.fill: parent
-                    theme: root.theme
-                    radius: root.theme.roundingMedium
-                    onClicked: root.panelController.togglePanel("launcher", root.screenName, 0)
-                }
-
-                MaterialIcon {
-                    anchors.centerIn: parent
-                    theme: root.theme
-                    text: "apps"
-                    iconSize: 22
-                    color: root.theme.primary
                 }
             }
         }
