@@ -161,6 +161,12 @@ Partiel / non exécuté volontairement :
 - Notifications Release : état vide, création (`Notifications · 1`), carte
   complète, bouton `Another action` (fermeture), clic du milieu et balayage
   horizontal (`Notifications · 0`) vérifiés ; aucune erreur QML.
+- Nouveautés Release testées à 100 % (`GetDpiForWindow` = 96) ; à 125 %, les
+  captures de l’interface précédente restent valides, mais les deux nouveaux
+  panneaux n’ont pas été rejoués après un changement d’échelle système.
+- Non-régression Release à 100 % : AppBar 60 px réservé, fenêtre Notepad
+  maximisée à `(52,-8) 1876×1048` (débord 8 px normal), rail visible au-dessus ;
+  overlays fermés `noactivate=yes transparent=yes` ; aucune erreur QML.
 - CPU idle mesuré : 0,38 s sur 5 s / 8 cœurs ≈ 0,9 % ; working set ≈ 451 Mo.
 
 ## 5. Captures

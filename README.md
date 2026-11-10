@@ -116,10 +116,10 @@ For a standalone folder, run `windeployqt` on that executable.
 - The left bar shows the favourite application dock and hides it when empty.
   The search icon opens the launcher, the bell opens notifications. There is no
   separate calendar button or empty application-grid icon in the bar.
-- `F10` or hover the top-center strip: Dashboard. Its tabs are Dashboard,
-  Media, Performance and Workspaces.
-- `F9`: Control Centre (favourites, quick actions, audio, network, Bluetooth,
-  battery and power).
+- `F10` (shell focused) or hover the top-center strip: Dashboard. Its tabs are
+  Dashboard, Media, Performance and Workspaces.
+- `F9` (shell focused): Control Centre (favourites, quick actions, audio,
+  network, Bluetooth, battery and power).
 - Hover Audio, Network, Bluetooth or Battery in the bar: open the corresponding
   real panel after a 120 ms intent delay. Moving directly to another icon
   switches panels without an intermediate close.
@@ -132,6 +132,8 @@ For a standalone folder, run `windeployqt` on that executable.
   require a second confirmation.
 - `Esc`: closes the active surface through a global hotkey.
 - `F8`: toggle the light/dark palette. `Ctrl+Q`: quit and release the AppBar.
+  `F8`/`F9`/`F10` are Qt application shortcuts active while the shell overlay
+  has focus, not global hotkeys, so other applications keep those keys.
 
 ### Architecture
 
