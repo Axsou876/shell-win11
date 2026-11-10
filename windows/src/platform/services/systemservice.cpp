@@ -1,4 +1,4 @@
-﻿#include "systemservice.hpp"
+#include "systemservice.hpp"
 
 #include <QDebug>
 #include <QElapsedTimer>
@@ -257,7 +257,3 @@ void SystemService::appendHistory(QVariantList& history, qreal value)
     if (history.size() > kHistorySize)
         history.removeFirst();
 }
-
-
-
-

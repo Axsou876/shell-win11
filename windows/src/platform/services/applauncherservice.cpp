@@ -1,4 +1,4 @@
-﻿#include "applauncherservice.hpp"
+#include "applauncherservice.hpp"
 
 #include <QCoreApplication>
 #include <QCryptographicHash>
@@ -214,11 +214,10 @@ AppEntry resolveShortcut(const QString& path)
     return entry;
 }
 
-QList<AppEntry> scanShortcutDir(const QString& root, QHash<QString, AppEntry>* byName)
+void scanShortcutDir(const QString& root, QHash<QString, AppEntry>* byName)
 {
-    QList<AppEntry> result;
     if (root.isEmpty() || !QFileInfo::exists(root))
-        return result;
+        return;
 
     QDirIterator it(root, QStringList { QStringLiteral("*.lnk") }, QDir::Files,
         QDirIterator::Subdirectories);
@@ -241,10 +240,6 @@ QList<AppEntry> scanShortcutDir(const QString& root, QHash<QString, AppEntry>* b
         // with the same visible name.
         (*byName)[entry.name.toLower()] = entry;
     }
-
-    for (const auto& entry : std::as_const(*byName))
-        result.append(entry);
-    return result;
 }
 
 QList<AppEntry> scanStartMenu()
@@ -845,4 +840,3 @@ bool AppLauncherService::launchByName(const QString& name, QString* errorMessage
     launchEntry(*found);
     return true;
 }
-

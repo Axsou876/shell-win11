@@ -12,23 +12,37 @@
 
 https://github.com/user-attachments/assets/0840f496-575c-4ca6-83a8-87bb01a85c5f
 
-## Caelestia Shell for Windows 11 — Phase 2.6 / Step 1e
+## Caelestia Shell for Windows 11 — Phase 3 / Desktop Shell
 
 This repository also contains a native Windows 11 port of the shell composition
 (`windows/`). The Linux/Quickshell installation below is unchanged.
 
 ### Status
 
-Step 1e stabilises the hover layer introduced in Step 1d. Bar popouts, the
-top-center Dashboard strip, direct popout-to-popout switching and focus
-preservation are kept. The pointer halo is now centralised on Win32 raw mouse
-input, pending hover targets no longer schedule a premature close, and hover
-opens no longer activate the overlay after an explicit panel. It still builds on
-the Step 1c visual foundation: full-screen blob frame, integrated 60 px bar,
-430 px Sidebar, 854 px Dashboard, fused popouts, light/dark themes, spring
-deformation, border sink and content deformation. No Wi-Fi, Bluetooth, audio,
-battery, notification, weather or media service is implemented yet; the popout
-contents remain neutral.
+Phase 3 turns the Step 1e hover foundation into a functional desktop shell:
+
+- **Launcher** (click the Caelestia logo or `F1`): discovers Start Menu shortcuts
+  and registered Windows/UWP applications through `shell:AppsFolder`, extracts
+  real shell icons into a cache, supports case-insensitive fuzzy search,
+  favourites, recent/frequency ordering, keyboard navigation and launches with
+  `ShellExecuteExW`. Typed text is never executed as a command.
+- **Dashboard** (`F10`): real clock/system summary, GSMTC media session and
+  controls, CPU/memory/GPU/network/storage counters with history charts, and an
+  Open-Meteo weather tab with a city setup form. No placeholder values are
+  shown; unavailable counters display `N/D`.
+- **Control Centre** (`F9`): favourites, quick actions, real volume, network,
+  Bluetooth and battery summaries, and session actions.
+- **Bar popouts**: real Audio (`IAudioEndpointVolume`), Network (WLAN/IPHelper),
+  Bluetooth (`Windows.Devices.Radios`) and Battery (`GetSystemPowerStatus`)
+  panels. Power opens a confirmation flow before lock/sleep/sign-out/restart/
+  shutdown.
+- **Motion**: SDF blob surface, spring deformation, panel slide/reveal,
+  launcher result staggering, dashboard tab slide and icon hover/active states.
+- The Windows AppBar, click-through overlays, focus rules, D3D11 path,
+  multi-screen/DPI behaviour and `F8`/`F9`/`F10`/`Esc` from Step 1e are kept.
+
+Still not implemented: shell notification centre, audio device selection,
+Bluetooth device list/pairing UI, HDR/high-contrast and touch/pen input.
 
 ### Build
 
@@ -42,31 +56,54 @@ cmake -S windows -B windows\build -G Ninja -DCMAKE_BUILD_TYPE=Debug ^
 cmake --build windows\build
 ```
 
+Release:
+
+```bat
+cmake -S windows -B windows\build-release -G Ninja -DCMAKE_BUILD_TYPE=Release ^
+  -DCMAKE_PREFIX_PATH=C:\Users\<user>\Qt\6.9.3\msvc2022_64
+cmake --build windows\build-release
+```
+
+### Diagnostics
+
+The executable also exposes headless checks that use the same services as the
+UI. Stop a running shell first if only one instance is desired.
+
+```bat
+caelestia-shell.exe --list-apps
+caelestia-shell.exe --launch-app "Firefox"
+caelestia-shell.exe --dump-system
+caelestia-shell.exe --weather Paris
+caelestia-shell.exe --dump-media
+caelestia-shell.exe --media-toggle
+```
+
+`--launch-app` accepts only an application name discovered by the scanner; it
+never executes free text.
+
 Run `windows\build\bin\caelestia-shell.exe` with the Qt bin directory on `PATH`.
 For a standalone folder, run `windeployqt` on that executable.
 
-### Controls (Step 1e)
+### Controls (Phase 3)
 
+- Click the Caelestia logo in the bar or press `F1`: open the application
+  launcher. Type to filter; `↑`/`↓` navigate, `Enter` launches, `Esc` or a click
+  outside closes. The star toggles a favourite.
+- `F10` or hover the top-center strip: Dashboard. Its tabs are Dashboard,
+  Media, Performance and Weather.
+- `F9`: Control Centre (favourites, quick actions, audio, network, Bluetooth,
+  battery and power).
 - Hover Audio, Network, Bluetooth or Battery in the bar: open the corresponding
-  popout after a 120 ms intent delay. Moving directly to another icon switches
-  panels without an intermediate close, including a fast sweep.
+  real panel after a 120 ms intent delay. Moving directly to another icon
+  switches panels without an intermediate close.
 - Move from the icon into the popout: it stays open. The 25 px halo covers the
-  content, its child buttons and the bar-to-panel gap. Leaving both the bar and
-  the panel closes it after a 220 ms grace delay.
-- Hover the top-center 10 px strip above the Dashboard: open the Dashboard
-  (original `dashboard.showOnHover` behavior). Hovering the strip of the other
-  monitor switches the Dashboard directly. Moving out of the Dashboard halo
-  closes it.
+  content, child buttons and the bar-to-panel gap. Leaving both the bar and the
+  panel closes it after a 220 ms grace delay.
 - Click a status icon: open the same panel explicitly and focus the overlay for
-  keyboard input. Clicking inside a hover panel still operates its controls, but
-  hover panels stay `NOACTIVATE` so they never steal the user's focus.
-- `Esc`: closes the active surface through a global hotkey even when the user's
-  app keeps keyboard focus.
-- `F9`: Sidebar (the original shell uses a shortcut/drag; `showOnHover` is false
-  by default in Caelestia).
-- `F10` / `F8`: diagnostic previews for the Dashboard and theme; not required
-  for the hover interactions.
-- `Ctrl+Q`: quit and release the AppBar.
+  keyboard input. Hover panels stay `NOACTIVATE`; the user's app keeps focus.
+- The power button opens a confirmation flow before any session action.
+- `Esc`: closes the active surface through a global hotkey.
+- `F8`: toggle the light/dark palette. `Ctrl+Q`: quit and release the AppBar.
 
 ### Architecture
 
@@ -107,6 +144,25 @@ For a standalone folder, run `windeployqt` on that executable.
 - Popout widths use the original tokens: network/audio/Bluetooth 320 px, battery
   250 px.
 - Light and dark M3 palettes; the theme follows the Windows app mode at startup.
+- `AppLauncherService`: Start Menu `.lnk` files (`FOLDERID_Programs` and
+  `FOLDERID_CommonPrograms`) plus registered applications (`FOLDERID_AppsFolder`,
+  `PKEY_AppUserModel_ID`). `IShellLinkW` resolves target/arguments; shell icons
+  are cached as PNG; search is local and case-insensitive/fuzzy; launching runs
+  on a worker through `ShellExecuteExW`; favourites and usage counters live in
+  `QSettings`.
+- `SystemService`: `GetSystemTimes`, `GlobalMemoryStatusEx`, `GetIfTable2`,
+  `GetDiskFreeSpaceExW`, DXGI video memory and PDH `GPU Engine` counters. GPU
+  usage is marked unavailable when the PDH counter is absent.
+- `MediaService`: Windows GSMTC via C++/WinRT, polled off the GUI thread;
+  metadata, artwork cache and real play/pause/next/previous commands.
+- `WeatherService`: Open-Meteo geocoding and forecast, no API key, city stored
+  in `QSettings`; network errors and missing configuration are explicit.
+- `AudioService`: Core Audio default render endpoint + `IAudioEndpointVolume`
+  callbacks and setters. `NetworkService`: WLAN API/IPHelper with change
+  notifications. `BluetoothService`: WinRT Radio state, events and set-state.
+  `BatteryService`: `GetSystemPowerStatus` plus `WM_POWERBROADCAST`.
+- `PowerService`: lock, sleep, sign-out, restart and shutdown with the Windows
+  shutdown privilege. The QML Power panel requires a second confirmation.
 
 ### Known Windows differences
 
@@ -117,9 +173,18 @@ For a standalone folder, run `windeployqt` on that executable.
   the full symmetric 2x2 matrix and its content transform.
 - Hover delays (120 ms open / 220 ms close) are a Windows adaptation; the Linux
   shell reacts immediately on pointer movement.
-- Caelestia's Sidebar has `sidebar.showOnHover = false` by default, so the port
-  keeps the shortcut (`F9`) and does not invent a hover trigger. The right-edge
-  drag behavior is not implemented in this step.
+- Caelestia's Sidebar is a notification dock; the Windows port uses the same
+  430 px surface as a Control Centre with real services. Windows toast capture is
+  not implemented yet.
+- Bluetooth adapter state and on/off are real; pairing/device lists remain in
+  Windows Settings. Audio supports the default output endpoint (volume/mute);
+  selecting another output/input device remains in Windows Settings.
+- GSMTC only exposes players that publish a Windows media session. Apps without
+  GSMTC support keep their own controls.
+- Weather needs network access and a configured city; Open-Meteo is the only
+  provider wired in this phase.
+- Some registered UWP applications do not expose an icon through the shell
+  image factory; the launcher falls back to a generic application icon.
 - The original tray hover popout is not reproduced: the Windows port keeps the
   native Windows tray menu validated in earlier phases.
 - One panel is active at a time. Hovering a bar icon while an explicit Sidebar or

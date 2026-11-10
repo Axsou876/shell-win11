@@ -6,3 +6,4 @@ build/
 logs
 backups/
 windows/caelestia-*.png
+build-release/

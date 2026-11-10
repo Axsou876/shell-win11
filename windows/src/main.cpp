@@ -230,6 +230,56 @@ int main(int argc, char* argv[])
         return loop.exec();
     }
 
+    if (arguments.contains(QStringLiteral("--dump-status"))) {
+        AudioService audio;
+        NetworkService network;
+        BluetoothService bluetooth;
+        BatteryService battery;
+        QEventLoop loop;
+        QTimer::singleShot(2500, &loop, [&]() {
+            QTextStream out(stdout);
+            out << "AUDIO present=" << audio.present() << " known=" << audio.known()
+                << " volume=" << audio.volume() << " muted=" << audio.muted()
+                << " device=" << audio.deviceName() << '\n'
+                << "NETWORK type=" << network.connectionType()
+                << " connected=" << network.connected() << " ssid=" << network.wifiSsid()
+                << " signal=" << network.wifiSignal()
+                << " ethernet=" << network.ethernetName() << '\n'
+                << "BLUETOOTH present=" << bluetooth.present()
+                << " enabled=" << bluetooth.enabled() << " known=" << bluetooth.known() << '\n'
+                << "BATTERY present=" << battery.present() << " known=" << battery.known()
+                << " level=" << battery.level() << " charging=" << battery.charging()
+                << " onAc=" << battery.onAc()
+                << " minutes=" << battery.minutesRemaining() << '\n';
+            out.flush();
+            loop.exit(0);
+        });
+        return loop.exec();
+    }
+
+    if (arguments.contains(QStringLiteral("--audio-mute-test"))) {
+        AudioService audio;
+        QEventLoop loop;
+        QTimer::singleShot(1000, &loop, [&]() {
+            QTextStream out(stdout);
+            out << "BEFORE muted=" << audio.muted() << " volume=" << audio.volume() << '\n';
+            audio.toggleMute();
+            QTimer::singleShot(900, &loop, [&]() {
+                QTextStream out2(stdout);
+                out2 << "TOGGLED muted=" << audio.muted() << '\n';
+                audio.toggleMute();
+                QTimer::singleShot(900, &loop, [&]() {
+                    QTextStream out3(stdout);
+                    out3 << "RESTORED muted=" << audio.muted()
+                         << " volume=" << audio.volume() << '\n';
+                    out3.flush();
+                    loop.exit(0);
+                });
+            });
+        });
+        return loop.exec();
+    }
+
     // A second launch must not create another AppBar or tray icon. The named
     // mutex is released by the OS even if the first instance crashes.
     const HANDLE instanceMutex = CreateMutexW(nullptr, FALSE, L"Local\\CaelestiaShellWindows");

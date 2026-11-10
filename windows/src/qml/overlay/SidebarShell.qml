@@ -166,6 +166,8 @@ Item {
                         width: parent.width
                         theme: root.theme
                         icon: "apps"
+                        iconSource: modelData.icon
+                            ? "file:///" + modelData.icon.replace(/\\/g, "/") : ""
                         title: modelData.name
                         onClicked: Apps.launchById(modelData.id)
                     }

@@ -7,6 +7,7 @@ Item {
     required property var theme
 
     property string icon: ""
+    property string iconSource: ""
     property string title: ""
     property string subtitle: ""
     property string trailingText: ""
@@ -55,12 +56,22 @@ Item {
         spacing: root.theme.spacingMedium
 
         MaterialIcon {
-            visible: root.icon !== ""
+            visible: root.icon !== "" && root.iconSource === ""
             anchors.verticalCenter: parent.verticalCenter
             theme: root.theme
             text: root.icon
             iconSize: 22
             color: root.selected ? root.theme.onSecondaryContainerColour : root.theme.onSurfaceVariantColour
+        }
+
+        Image {
+            visible: root.iconSource !== ""
+            anchors.verticalCenter: parent.verticalCenter
+            width: 24
+            height: 24
+            source: root.iconSource
+            asynchronous: true
+            fillMode: Image.PreserveAspectFit
         }
 
         Column {
