@@ -120,6 +120,11 @@ private:
     void handleScreensChanged();
     void handleScreenRemoved(QScreen* screen);
 
+    // Windows taskbar auto-hide while the shell owns the desktop. The
+    // previous AppBar state is restored on exit so the user's setting survives.
+    void hideTaskbar();
+    void restoreTaskbar();
+
     void startActiveWindowTracking();
     void stopActiveWindowTracking();
     void updateActiveWindow(quintptr hwnd, bool refreshIcon);
@@ -146,6 +151,10 @@ private:
 
     quintptr m_rawInputHwnd = 0;
     quintptr m_escapeHotkeyHwnd = 0;
+
+    bool m_taskbarHidden = false;
+    bool m_taskbarWasVisible = false;
+    quint32 m_taskbarState = 0;
 
     bool m_activeWindowTracking = false;
     quintptr m_activeWindowHwnd = 0;

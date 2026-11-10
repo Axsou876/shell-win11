@@ -176,6 +176,12 @@ Window {
         onActivated: overlay.theme.dark = !overlay.theme.dark
     }
 
+    Shortcut {
+        sequence: "Ctrl+Q"
+        enabled: overlay.interactive
+        onActivated: Qt.quit()
+    }
+
     Connections {
         target: overlay.controller
 

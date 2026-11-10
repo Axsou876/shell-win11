@@ -55,6 +55,24 @@ bool isShellWindowClass(const QString& name)
         || name == QStringLiteral("Windows.UI.Core.CoreWindow");
 }
 
+QList<HWND> taskbarWindows()
+{
+    QList<HWND> result;
+    EnumWindows(
+        [](HWND hwnd, LPARAM lParam) -> BOOL {
+            wchar_t name[64] = {};
+            if (GetClassNameW(hwnd, name, 64) <= 0)
+                return TRUE;
+            if (wcscmp(name, L"Shell_TrayWnd") != 0
+                && wcscmp(name, L"Shell_SecondaryTrayWnd") != 0)
+                return TRUE;
+            reinterpret_cast<QList<HWND>*>(lParam)->append(hwnd);
+            return TRUE;
+        },
+        reinterpret_cast<LPARAM>(&result));
+    return result;
+}
+
 QString readRegistryString(const QString& path, const QString& key)
 {
     const QSettings settings(path, QSettings::NativeFormat);
@@ -112,11 +130,20 @@ Platform::Platform(QObject* parent)
 
     refresh();
 
+    // The shell replaces the Windows taskbar; auto-hide expands each monitor's
+    // work area so the shell can fill it. The previous state is restored when
+    // the shell quits.
+    hideTaskbar();
+    QTimer::singleShot(1200, this, &Platform::refreshAppBar);
+
     m_refreshTimer.setInterval(1500);
     connect(&m_refreshTimer, &QTimer::timeout, this, &Platform::refresh);
     m_refreshTimer.start();
 
-    connect(qApp, &QCoreApplication::aboutToQuit, this, [this]() { unregisterAppBar(); });
+    connect(qApp, &QCoreApplication::aboutToQuit, this, [this]() {
+        restoreTaskbar();
+        unregisterAppBar();
+    });
     connect(qApp, &QCoreApplication::aboutToQuit, this, &Platform::stopActiveWindowTracking);
     if (auto* gui = qobject_cast<QGuiApplication*>(QCoreApplication::instance())) {
         connect(gui, &QGuiApplication::screenAdded, this, &Platform::handleScreensChanged);
@@ -132,6 +159,7 @@ Platform::Platform(QObject* parent)
 
 Platform::~Platform()
 {
+    restoreTaskbar();
     unregisterAppBar();
     stopActiveWindowTracking();
     if (qApp)
@@ -254,6 +282,53 @@ void Platform::setRhiBackend(const QString& backend)
 
     m_rhiBackend = backend;
     emit rhiBackendChanged();
+}
+
+void Platform::hideTaskbar()
+{
+    if (m_taskbarHidden)
+        return;
+
+    const QList<HWND> bars = taskbarWindows();
+    if (bars.isEmpty())
+        return;
+
+    APPBARDATA abd = {};
+    abd.cbSize = sizeof(APPBARDATA);
+    abd.hWnd = bars.first();
+    m_taskbarState = static_cast<quint32>(SHAppBarMessage(ABM_GETSTATE, &abd));
+    m_taskbarWasVisible = IsWindowVisible(bars.first());
+
+    for (HWND bar : bars) {
+        abd.hWnd = bar;
+        abd.lParam = static_cast<LPARAM>(ABS_AUTOHIDE);
+        SHAppBarMessage(ABM_SETSTATE, &abd);
+        // Auto-hide alone still reveals the taskbar when the pointer reaches
+        // the bottom edge. Hide the window as well; the work area is already
+        // expanded by the auto-hide state.
+        ShowWindow(bar, SW_HIDE);
+    }
+
+    m_taskbarHidden = true;
+}
+
+void Platform::restoreTaskbar()
+{
+    if (!m_taskbarHidden)
+        return;
+
+    const QList<HWND> bars = taskbarWindows();
+    APPBARDATA abd = {};
+    abd.cbSize = sizeof(APPBARDATA);
+    for (HWND bar : bars) {
+        if (m_taskbarWasVisible)
+            ShowWindow(bar, SW_SHOW);
+        abd.hWnd = bar;
+        abd.lParam = static_cast<LPARAM>(m_taskbarState);
+        SHAppBarMessage(ABM_SETSTATE, &abd);
+    }
+
+    m_taskbarHidden = false;
 }
 
 bool Platform::registerLeftAppBar(QWindow* window, int logicalWidth)

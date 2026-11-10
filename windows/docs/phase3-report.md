@@ -55,6 +55,7 @@ sa fermeture passe par Échap, le clic extérieur ou le lancement réussi.
 | Workspaces | `EnumWindows`, `IVirtualDesktopManager`, `DwmGetWindowAttribute`, `SetForegroundWindow` |
 | Météo | Open-Meteo Geocoding + Forecast (HTTPS, sans clé API) |
 | Session | `LockWorkStation`, `SetSuspendState`, `ExitWindowsEx`, privilège `SeShutdownPrivilege` |
+| Barre des tâches | `SHAppBarMessage(ABM_GETSTATE/ABM_SETSTATE)` (`ABS_AUTOHIDE`), `EnumWindows`, `ShowWindow(SW_HIDE/SW_SHOW)` |
 
 Aucun texte saisi n’est exécuté : le launcher ne lance que des entrées découvertes
 et appelle `ShellExecuteExW` sur leur `.lnk` ou `shell:AppsFolder\<AUMID>`.
@@ -94,6 +95,11 @@ Terminé et testé :
   d’origine.
 - Rehausse périodique de l’AppBar au-dessus des fenêtres maximisées/borderless ;
   animation verticale des panneaux sans dépassement sous la barre des tâches.
+- Barre des tâches Windows masquée pendant l’exécution : état `ABS_AUTOHIDE`
+  posé via `SHAppBarMessage`, fenêtres `Shell_TrayWnd`/`Shell_SecondaryTrayWnd`
+  cachées, zone de travail étendue à l’écran complet. Le shell remplit alors
+  toute la hauteur ; l’état précédent et la zone de travail sont restaurés à la
+  fermeture propre.
 
 Partiel / non exécuté volontairement :
 
@@ -172,6 +178,12 @@ Partiel / non exécuté volontairement :
 - Icônes d’applications Release : Firefox reste coloré dans l’icône de fenêtre
   active en mode blanc et sombre (recoloration au thème supprimée) ; captures
   `firefox-icon-light.png`, `firefox-icon-dark.png`.
+- Barre des tâches Release : `Shell_TrayWnd` masquée, `ABM_GETSTATE` = 1
+  (auto-hide), zone de travail `60,0 1920×1080`, barre et overlay sur 1080 px,
+  aucun retour de la barre au survol du bas de l’écran. Après fermeture propre
+  (`WM_QUIT`) : processus arrêté, barre visible, état 0, zone de travail
+  `0,0 1920×1032`. `Ctrl+Q` depuis le launcher : même restauration propre.
+  Captures `taskbar-hidden-full.png`, `taskbar-final-hidden.png`.
 - Nouveautés Release testées à 100 % (`GetDpiForWindow` = 96) ; à 125 %, les
   captures de l’interface précédente restent valides, mais les deux nouveaux
   panneaux n’ont pas été rejoués après un changement d’échelle système.
@@ -202,7 +214,8 @@ Partiel / non exécuté volontairement :
   `release-notif-swiped.png`, `release-notif-middle.png`,
   `release-notif-action.png`, `mono-dashboard.png`, `mono-launcher.png`,
   `mono-launcher-light2.png`, `mono-notifications.png`, `mono-bar.png`,
-  `firefox-icon-light.png`, `firefox-icon-dark.png`
+  `firefox-icon-light.png`, `firefox-icon-dark.png`,
+  `taskbar-hidden-full.png`, `taskbar-final-hidden.png`
 
 Logs : `C:\Users\axsou\AppData\Local\Temp\opencode\phase3-final-ui.err.log`,
 `phase3-nonreg.err.log`, `phase3-rapid.err.log`.
@@ -215,6 +228,9 @@ Logs : `C:\Users\axsou\AppData\Local\Temp\opencode\phase3-final-ui.err.log`,
 - Pas de liste/appairage Bluetooth ni de choix du profil d’alimentation dans le
   shell (les paramètres Windows restent la référence).
 - Les actions Power destructives n’ont pas été exécutées en test.
+- Si le shell est tué de force, la barre des tâches peut rester masquée ; il
+  faut redémarrer Explorer (ou relancer/fermer proprement le shell) pour la
+  retrouver. Une fermeture normale restaure l’état et la zone de travail.
 - Météo dépend d’Open-Meteo et d’une connexion réseau ; une seule ville.
 - Certaines applications UWP n’exposent pas d’icône via le shell ; icône
   générique de secours.

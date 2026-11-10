@@ -53,6 +53,11 @@ Phase 3 turns the Step 1e hover foundation into a functional desktop shell:
   `SystemParametersInfoW(SPI_SETDESKWALLPAPER)`.
 - **Control Centre** (`F9`): favourites, quick actions, real volume, network,
   Bluetooth and battery summaries, and session actions.
+- **Windows taskbar**: hidden while the shell runs. Its auto-hide state expands
+  the work area to the full monitor, so the bar and frame reach the screen
+  edges. The previous taskbar state and work area are restored on a clean quit
+  (open a panel/launcher and press `Ctrl+Q`); after a forced kill, restart
+  Explorer to bring the taskbar back.
 - **Bar popouts**: real Audio (`IAudioEndpointVolume`), Network (WLAN/IPHelper),
   Bluetooth (`Windows.Devices.Radios`) and Battery (`GetSystemPowerStatus`)
   panels. Power opens the right-edge session menu.
@@ -131,14 +136,18 @@ For a standalone folder, run `windeployqt` on that executable.
 - The power button opens the right-edge session menu; shutdown/restart/sign-out
   require a second confirmation.
 - `Esc`: closes the active surface through a global hotkey.
-- `F8`: toggle the light/dark palette. `Ctrl+Q`: quit and release the AppBar.
+- `F8`: toggle the light/dark palette. `Ctrl+Q` (open a panel or the launcher
+  first): quit, release the AppBar and restore the Windows taskbar.
   `F8`/`F9`/`F10` are Qt application shortcuts active while the shell overlay
   has focus, not global hotkeys, so other applications keep those keys.
 
 ### Architecture
 
-- One always-visible overlay per monitor, full monitor width and Windows work
-  area height, placed below the AppBar windows.
+- One always-visible overlay per monitor, full monitor width and height. The
+  `Platform` constructor sets the Windows taskbar to `ABS_AUTOHIDE` and hides
+  its `Shell_TrayWnd`/`Shell_SecondaryTrayWnd` windows; `ABM_GETSTATE` is saved
+  and restored on quit. The expanded work area lets the overlay and AppBar fill
+  the monitor instead of stopping at the taskbar.
 - `WS_EX_TRANSPARENT` + `WS_EX_NOACTIVATE` while closed: clicks pass through to
   other processes and the overlay never steals focus.
 - Hover opens keep `WS_EX_TRANSPARENT` off but keep `WS_EX_NOACTIVATE`; the user's
@@ -219,7 +228,10 @@ For a standalone folder, run `windeployqt` on that executable.
 
 ### Known Windows differences
 
-- The frame surrounds the Windows work area; the taskbar remains outside it.
+- The Windows taskbar is hidden while the shell runs and the frame fills the
+  full monitor. On a clean quit the previous taskbar visibility/auto-hide state
+  and work area are restored. A forced kill can leave the taskbar hidden until
+  Explorer is restarted.
 - Fullscreen hiding, HDR/high contrast, touch/pen input and wallpaper-generated
   (Matugen) palettes are not implemented yet.
 - The spring deformation is axis-aligned; detached/diagonal popouts would need
