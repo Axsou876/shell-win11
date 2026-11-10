@@ -18,13 +18,16 @@ windows/src/
   platform/services/bluetoothservice.*   Windows.Devices.Radios + set-state
   platform/services/batteryservice.*     GetSystemPowerStatus + événements
   platform/services/powerservice.*       verrouillage/veille/session
+  platform/services/userservice.*        nom, photo de compte, version Windows
+  platform/services/windowsservice.*     fenêtres du bureau actuel (Workspaces)
   qml/overlay/LauncherShell.qml          panneau launcher
   qml/overlay/DashboardShell.qml         onglets + slide horizontal
-  qml/overlay/DashboardHome/Media/Performance/Weather.qml
+  qml/overlay/DashboardHome/Media/Performance/Workspaces.qml
+  qml/overlay/PowerMenu.qml              menu vertical droit + confirmation
   qml/overlay/SidebarShell.qml           Control Centre F9
   qml/bar/BarFavorites.qml               dock de favoris dans la barre
-  qml/popouts/AudioPanel/NetworkPanel/BluetoothPanel/BatteryPanel/PowerPanel.qml
-  qml/components/DashCard/Sparkline/Meter/PanelHeader.qml
+  qml/popouts/AudioPanel/NetworkPanel/BluetoothPanel/BatteryPanel.qml
+  qml/components/DashCard/Sparkline/Meter/RingGauge/DashboardCalendar/PanelHeader.qml
   src/shaders/blob.*                     panneau launcher ajouté au SDF
 ```
 
@@ -42,7 +45,9 @@ sa fermeture passe par Échap, le clic extérieur ou le lancement réussi.
 | Bluetooth | `Windows.Devices.Radios` (C++/WinRT), `Radio.SetStateAsync` |
 | Batterie | `GetSystemPowerStatus`, `WM_POWERBROADCAST` |
 | Performance | `GetSystemTimes`, `GlobalMemoryStatusEx`, `GetIfTable2`, `GetDiskFreeSpaceExW`, DXGI `IDXGIAdapter3::QueryVideoMemoryInfo`, PDH `GPU Engine` |
-| Média | GSMTC `GlobalSystemMediaTransportControlsSessionManager`, `TryGetMediaPropertiesAsync`, `TryPlayAsync`/`TryPauseAsync`/`TrySkipNextAsync`/`TrySkipPreviousAsync` |
+| Média | GSMTC `GlobalSystemMediaTransportControlsSessionManager`, `TryGetMediaPropertiesAsync`, timeline position/duration, `TryPlayAsync`/`TryPauseAsync`/`TrySkipNextAsync`/`TrySkipPreviousAsync` |
+| Profil | `GetUserNameW`, `NetUserGetInfo`, `FOLDERID_AccountPictures`, `QSysInfo` |
+| Workspaces | `EnumWindows`, `IVirtualDesktopManager`, `DwmGetWindowAttribute`, `SetForegroundWindow` |
 | Météo | Open-Meteo Geocoding + Forecast (HTTPS, sans clé API) |
 | Session | `LockWorkStation`, `SetSuspendState`, `ExitWindowsEx`, privilège `SeShutdownPrivilege` |
 
@@ -62,10 +67,13 @@ Terminé et testé :
   huit icônes réelles, zone défilante), clic pour lancer. Le dock est **masqué
   quand il est vide** (plus d’icône grille), les applications récentes ne sont
   plus ajoutées automatiquement et le bouton calendrier a été retiré.
-- Dashboard 4 onglets avec données réelles ; Media GSMTC ; Performance
-  CPU/RAM/GPU/réseau/disque avec historiques ; Weather Open-Meteo configurable.
-- Panneaux Audio/Réseau/Bluetooth/Batterie réels ; Control Centre F9 ; Power
-  avec confirmation.
+- Dashboard 4 onglets **Dashboard / Media / Performance / Workspaces** avec
+  données réelles : météo, profil Windows (photo de compte, version, uptime),
+  calendrier, média, anneaux CPU/GPU/mémoire et fenêtres du bureau actuel.
+  Media GSMTC avec progression réelle ; Performance en anneaux ; Workspaces
+  liste et active les fenêtres réelles.
+- Panneaux Audio/Réseau/Bluetooth/Batterie réels ; Control Centre F9 ; menu
+  d’alimentation vertical à droite avec photo de compte et confirmation.
 - Animations de panneaux, launcher, onglets et icônes ; SDF/spring conservés.
 - Rehausse périodique de l’AppBar au-dessus des fenêtres maximisées/borderless ;
   animation verticale des panneaux sans dépassement sous la barre des tâches.
@@ -97,9 +105,16 @@ Partiel / non exécuté volontairement :
   réelles, clic de lancement vérifié ; capture `clean-bar3.png`. Le bouton
   calendrier et les récents automatiques ont été retirés.
 - Barre au-dessus d’une fenêtre Notepad maximisée : logo toujours visible.
-- Dashboard : 4 onglets capturés ; Media affiche la session Spotify réelle ;
-  Performance affiche CPU/RAM/GPU/réseau/disque ; Weather affiche Paris.
-- Météo sans ville : formulaire de configuration capturé, puis `Paris` restauré.
+- Profil : `User.displayName`, `Windows 11 Version 26H2`, hôte `DESKTOP-ALEOSMB`,
+  photo de compte générique Windows (`user.bmp`, aucune photo personnelle dans
+  AccountPictures). Fenêtres : 6 fenêtres réelles listées via `--dump-windows`
+  (Discord, Firefox, Spotify, Terminal, Explorer).
+- Dashboard : 4 onglets capturés (Dashboard/Media/Performance/Workspaces) ;
+  Media affiche la session Spotify réelle avec progression ; Performance affiche
+  les anneaux CPU/GPU/mémoire ; Workspaces liste les fenêtres réelles.
+- Menu Power : ouvert à droite, carte de confirmation affichée après clic sur
+  Arrêter ; annulation par Échap ; aucune action destructive exécutée.
+- Météo : carte Paris sur le Dashboard (Open-Meteo), configuration conservée.
 - Media : session Spotify (`Kalash`, Booba) et Media Player
   (`caelestia-test-tone`) détectées ; pause/reprise vérifiées ; artwork en cache.
 - Statut : audio `Haut-parleurs (SkillKorp SKP_H21)`, volume 100, mute testé et
@@ -123,13 +138,18 @@ Partiel / non exécuté volontairement :
   `--dump-media`, `--launch-app` : mêmes services, mêmes valeurs réelles.
 - UI Release : launcher Firefox capturé ; `calc` + Entrée a lancé
   `CalculatorApp` ; Dashboard 4 onglets ; Audio/Réseau/Batterie ; F9 ;
-  Power ; dock de la barre ; aucune erreur QML.
+  menu Power ; dock de la barre ; aucune erreur QML.
+- L’onglet Workspaces liste les fenêtres du **bureau virtuel actuel** et permet
+  de les activer ; il n’affiche pas encore de miniatures de tous les bureaux.
 - CPU idle mesuré : 0,38 s sur 5 s / 8 cœurs ≈ 0,9 % ; working set ≈ 451 Mo.
 
 ## 5. Captures
 
 `windows/build/phase3-captures/` :
 
+- `redesign-dashboard.png`, `redesign-media.png`,
+  `redesign-performance.png`, `redesign-workspaces.png`,
+  `redesign-power.png`, `redesign-power-confirm.png`
 - `final-launcher-firefox.png`, `final-bar-dock.png`, `bar-dock.png`
 - `final-dashboard-home.png`, `final-dashboard-media.png`,
   `final-dashboard-performance.png`, `final-dashboard-weather.png`
@@ -151,6 +171,11 @@ Logs : `C:\Users\axsou\AppData\Local\Temp\opencode\phase3-final-ui.err.log`,
 - Météo dépend d’Open-Meteo et d’une connexion réseau ; une seule ville.
 - Certaines applications UWP n’exposent pas d’icône via le shell ; icône
   générique de secours.
+- Les températures CPU/GPU ne sont pas exposées par une API Windows fiable ici ;
+  les anneaux affichent l’utilisation et la mémoire réelles, pas des degrés
+  inventés.
+- La photo de profil affichée est celle de Windows si elle existe, sinon la
+  photo générique du système (`user.bmp`).
 - HDR, contraste élevé, tactile/stylet et masquage fullscreen non traités.
 - Le warning QSG préexistant sur la géométrie des fenêtres AppBar subsiste.
 

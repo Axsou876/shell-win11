@@ -23,6 +23,7 @@ Item {
         && controller.currentPanel !== "sidebar"
         && controller.currentPanel !== "dashboard"
         && controller.currentPanel !== "launcher"
+        && controller.currentPanel !== "power"
         && !controller.closing
 
     readonly property var panelItem: loader.item
@@ -115,8 +116,6 @@ Item {
             return bluetoothPanel;
         case "battery":
             return batteryPanel;
-        case "power":
-            return powerPanel;
         default:
             return foundationComponent;
         }
@@ -153,15 +152,6 @@ Item {
         id: batteryPanel
 
         BatteryPanel {
-            theme: host.theme
-            controller: host.controller
-        }
-    }
-
-    Component {
-        id: powerPanel
-
-        PowerPanel {
             theme: host.theme
             controller: host.controller
         }

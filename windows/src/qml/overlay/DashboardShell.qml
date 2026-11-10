@@ -26,7 +26,7 @@ Item {
         { icon: "dashboard", label: "Dashboard" },
         { icon: "queue_music", label: "Media" },
         { icon: "speed", label: "Performance" },
-        { icon: "cloud", label: "Weather" }
+        { icon: "apps", label: "Workspaces" }
     ]
 
     MouseArea {
@@ -179,7 +179,7 @@ Item {
                 Loader {
                     width: view.width
                     height: view.height
-                    sourceComponent: weatherComponent
+                    sourceComponent: workspaceComponent
                     asynchronous: false
                 }
             }
@@ -211,9 +211,9 @@ Item {
     }
 
     Component {
-        id: weatherComponent
+        id: workspaceComponent
 
-        DashboardWeather {
+        DashboardWorkspaces {
             theme: root.theme
         }
     }

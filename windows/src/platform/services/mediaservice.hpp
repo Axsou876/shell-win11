@@ -21,6 +21,8 @@ class MediaService final : public QObject {
     Q_PROPERTY(QString album READ album NOTIFY changed)
     Q_PROPERTY(QString sourceApp READ sourceApp NOTIFY changed)
     Q_PROPERTY(QString artworkPath READ artworkPath NOTIFY changed)
+    Q_PROPERTY(qint64 positionMs READ positionMs NOTIFY changed)
+    Q_PROPERTY(qint64 durationMs READ durationMs NOTIFY changed)
     Q_PROPERTY(bool canPlayPause READ canPlayPause NOTIFY changed)
     Q_PROPERTY(bool canNext READ canNext NOTIFY changed)
     Q_PROPERTY(bool canPrevious READ canPrevious NOTIFY changed)
@@ -37,6 +39,8 @@ public:
     [[nodiscard]] QString album() const { return m_album; }
     [[nodiscard]] QString sourceApp() const { return m_sourceApp; }
     [[nodiscard]] QString artworkPath() const { return m_artworkPath; }
+    [[nodiscard]] qint64 positionMs() const { return m_positionMs; }
+    [[nodiscard]] qint64 durationMs() const { return m_durationMs; }
     [[nodiscard]] bool canPlayPause() const { return m_canPlayPause; }
     [[nodiscard]] bool canNext() const { return m_canNext; }
     [[nodiscard]] bool canPrevious() const { return m_canPrevious; }
@@ -72,6 +76,8 @@ private:
     QString m_album;
     QString m_sourceApp;
     QString m_artworkPath;
+    qint64 m_positionMs = 0;
+    qint64 m_durationMs = 0;
     bool m_canPlayPause = false;
     bool m_canNext = false;
     bool m_canPrevious = false;

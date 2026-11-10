@@ -280,6 +280,24 @@ Window {
         deformOriginX: surface.popoutDeformOriginX
     }
 
+    PowerMenu {
+        x: overlay.width - width - 24
+        y: (overlay.height - height) / 2
+        visible: overlay.controller.currentPanel === "power"
+            && overlay.controller.currentScreenName === overlay.screenName
+            && !overlay.controller.closing
+        opacity: visible ? 1 : 0
+        theme: overlay.theme
+        controller: overlay.controller
+        z: 20
+
+        Behavior on opacity {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
+    }
+
     onScreenDataChanged: Qt.callLater(() => {
         overlay.syncInput();
         Platform.raiseAppBars();

@@ -1,4 +1,4 @@
-﻿#include "platform/platform.hpp"
+#include "platform/platform.hpp"
 #include "platform/services/applauncherservice.hpp"
 #include "platform/services/audioservice.hpp"
 #include "platform/services/batteryservice.hpp"
@@ -8,7 +8,9 @@
 #include "platform/services/powerservice.hpp"
 #include "platform/services/systemservice.hpp"
 #include "platform/services/trayservice.hpp"
+#include "platform/services/userservice.hpp"
 #include "platform/services/weatherservice.hpp"
+#include "platform/services/windowsservice.hpp"
 
 #include <QDir>
 #include <QEventLoop>
@@ -230,6 +232,33 @@ int main(int argc, char* argv[])
         return loop.exec();
     }
 
+    if (arguments.contains(QStringLiteral("--dump-user"))) {
+        UserService user;
+        QTextStream out(stdout);
+        out << "USER name=" << user.displayName() << " login=" << user.userName()
+            << " avatar=" << user.avatarPath() << " version=" << user.windowsVersion()
+            << " host=" << user.hostName() << '\n';
+        out.flush();
+        return 0;
+    }
+
+    if (arguments.contains(QStringLiteral("--dump-windows"))) {
+        WindowService windows;
+        QEventLoop loop;
+        QTimer::singleShot(1200, &loop, [&]() {
+            QTextStream out(stdout);
+            out << "WINDOWS count=" << windows.count() << '\n';
+            for (const QVariant& entry : windows.windows()) {
+                const QVariantMap item = entry.toMap();
+                out << item.value(QStringLiteral("app")).toString() << " | "
+                    << item.value(QStringLiteral("title")).toString() << '\n';
+            }
+            out.flush();
+            loop.exit(0);
+        });
+        return loop.exec();
+    }
+
     if (arguments.contains(QStringLiteral("--dump-status"))) {
         AudioService audio;
         NetworkService network;
@@ -301,6 +330,8 @@ int main(int argc, char* argv[])
     SystemService system;
     WeatherService weather;
     PowerService power;
+    UserService user;
+    WindowService windows;
     TrayService tray;
 
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Platform", &platform);
@@ -313,6 +344,8 @@ int main(int argc, char* argv[])
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "System", &system);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Weather", &weather);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Power", &power);
+    qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "User", &user);
+    qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "AppWindows", &windows);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Tray", &tray);
 
     QQmlApplicationEngine engine;
@@ -381,7 +414,3 @@ int main(int argc, char* argv[])
         CloseHandle(instanceMutex);
     return exitCode;
 }
-
-
-
-

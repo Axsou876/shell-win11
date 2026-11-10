@@ -27,6 +27,8 @@ struct MediaService::Snapshot {
     bool canPlayPause = false;
     bool canNext = false;
     bool canPrevious = false;
+    qint64 positionMs = 0;
+    qint64 durationMs = 0;
 };
 
 namespace {
@@ -157,6 +159,14 @@ void MediaService::run()
                 snapshot.canNext = controls && controls.IsNextEnabled();
                 snapshot.canPrevious = controls && controls.IsPreviousEnabled();
 
+                const auto timeline = session.GetTimelineProperties();
+                const auto position = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    timeline.Position() - timeline.StartTime());
+                const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    timeline.EndTime() - timeline.StartTime());
+                snapshot.positionMs = qMax<qint64>(0, position.count());
+                snapshot.durationMs = qMax<qint64>(0, duration.count());
+
                 const QString key = snapshot.title + QChar(0x1f) + snapshot.artist
                     + QChar(0x1f) + snapshot.album + QChar(0x1f) + snapshot.sourceApp;
                 if (!key.isEmpty() && key != lastKey) {
@@ -199,6 +209,8 @@ void MediaService::run()
                 || snapshot.canPlayPause != lastPublished.canPlayPause
                 || snapshot.canNext != lastPublished.canNext
                 || snapshot.canPrevious != lastPublished.canPrevious
+                || snapshot.positionMs != lastPublished.positionMs
+                || snapshot.durationMs != lastPublished.durationMs
                 || snapshot.artworkChanged || m_refresh.exchange(false);
 
             if (changed) {
@@ -242,6 +254,8 @@ void MediaService::applySnapshot(const Snapshot& snapshot)
     m_canPlayPause = snapshot.canPlayPause;
     m_canNext = snapshot.canNext;
     m_canPrevious = snapshot.canPrevious;
+    m_positionMs = snapshot.positionMs;
+    m_durationMs = snapshot.durationMs;
     m_error.clear();
 
     if (snapshot.artworkChanged) {

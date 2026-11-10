@@ -32,16 +32,21 @@ Phase 3 turns the Step 1e hover foundation into a functional desktop shell:
   favourite, so no empty grid/icon remains. Clicking an icon launches it; the
   star in the launcher adds/removes it. Recent applications are not injected
   into the bar automatically.
-- **Dashboard** (`F10`): real clock/system summary, GSMTC media session and
-  controls, CPU/memory/GPU/network/storage counters with history charts, and an
-  Open-Meteo weather tab with a city setup form. No placeholder values are
-  shown; unavailable counters display `N/D`.
+- **Dashboard** (`F10`): Dashboard / Media / Performance / Workspaces tabs.
+  Dashboard has a real weather card, Windows account profile picture/name,
+  Windows version, hostname, uptime, calendar, media mini-player and live
+  CPU/RAM/GPU/disk/network. Media has GSMTC artwork, title/artist/album,
+  position/duration and controls. Performance uses circular live gauges.
+  Workspaces lists the current desktop's windows and focuses them on click.
+  No placeholder values are shown; unavailable counters display `N/D`.
+- **Power menu**: a vertical floating menu on the right edge with the Windows
+  account picture, sign-out, shutdown, settings and restart. Destructive actions
+  require a second confirmation; Windows shutdown privilege is used.
 - **Control Centre** (`F9`): favourites, quick actions, real volume, network,
   Bluetooth and battery summaries, and session actions.
 - **Bar popouts**: real Audio (`IAudioEndpointVolume`), Network (WLAN/IPHelper),
   Bluetooth (`Windows.Devices.Radios`) and Battery (`GetSystemPowerStatus`)
-  panels. Power opens a confirmation flow before lock/sleep/sign-out/restart/
-  shutdown.
+  panels. Power opens the right-edge session menu.
 - **Motion**: SDF blob surface, spring deformation, panel slide/reveal,
   launcher result staggering, dashboard tab slide and icon hover/active states.
 - The Windows AppBar, click-through overlays, focus rules, D3D11 path,
@@ -99,7 +104,7 @@ For a standalone folder, run `windeployqt` on that executable.
   The search icon opens the launcher. There is no separate calendar button or
   empty application-grid icon in the bar.
 - `F10` or hover the top-center strip: Dashboard. Its tabs are Dashboard,
-  Media, Performance and Weather.
+  Media, Performance and Workspaces.
 - `F9`: Control Centre (favourites, quick actions, audio, network, Bluetooth,
   battery and power).
 - Hover Audio, Network, Bluetooth or Battery in the bar: open the corresponding
@@ -110,7 +115,8 @@ For a standalone folder, run `windeployqt` on that executable.
   panel closes it after a 220 ms grace delay.
 - Click a status icon: open the same panel explicitly and focus the overlay for
   keyboard input. Hover panels stay `NOACTIVATE`; the user's app keeps focus.
-- The power button opens a confirmation flow before any session action.
+- The power button opens the right-edge session menu; shutdown/restart/sign-out
+  require a second confirmation.
 - `Esc`: closes the active surface through a global hotkey.
 - `F8`: toggle the light/dark palette. `Ctrl+Q`: quit and release the AppBar.
 
@@ -171,7 +177,13 @@ For a standalone folder, run `windeployqt` on that executable.
   notifications. `BluetoothService`: WinRT Radio state, events and set-state.
   `BatteryService`: `GetSystemPowerStatus` plus `WM_POWERBROADCAST`.
 - `PowerService`: lock, sleep, sign-out, restart and shutdown with the Windows
-  shutdown privilege. The QML Power panel requires a second confirmation.
+  shutdown privilege. `PowerMenu.qml` is the right-edge vertical session menu;
+  destructive actions require a second confirmation.
+- `UserService`: Windows account display name, avatar from AccountPictures (or
+  the system generic picture), Windows version and hostname.
+- `WindowService`: current-desktop top-level windows via `EnumWindows` and
+  `IVirtualDesktopManager`; the Workspaces tab activates a window through
+  `SetForegroundWindow`.
 - `BarFavorites.qml`: vertical favourite dock in the left bar, real cached icons,
   launches through `Apps.launchById`. Only explicit favourites are shown; the
   dock is fully hidden when empty and recent applications are not added
@@ -196,6 +208,10 @@ For a standalone folder, run `windeployqt` on that executable.
   selecting another output/input device remains in Windows Settings.
 - GSMTC only exposes players that publish a Windows media session. Apps without
   GSMTC support keep their own controls.
+- CPU/GPU temperature is not exposed by a reliable Windows API here; the
+  Performance gauges show real usage/memory rather than invented temperatures.
+- The dashboard profile uses the Windows account picture when one exists;
+  otherwise it falls back to the system generic account picture.
 - Weather needs network access and a configured city; Open-Meteo is the only
   provider wired in this phase.
 - Some registered UWP applications do not expose an icon through the shell

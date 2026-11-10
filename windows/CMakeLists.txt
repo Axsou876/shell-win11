@@ -32,8 +32,12 @@ qt_add_executable(caelestia-shell
     src/platform/services/systemservice.hpp
     src/platform/services/trayservice.cpp
     src/platform/services/trayservice.hpp
+    src/platform/services/userservice.cpp
+    src/platform/services/userservice.hpp
     src/platform/services/weatherservice.cpp
     src/platform/services/weatherservice.hpp
+    src/platform/services/windowsservice.cpp
+    src/platform/services/windowsservice.hpp
 )
 
 target_link_libraries(caelestia-shell PRIVATE
@@ -60,6 +64,7 @@ target_link_libraries(caelestia-shell PRIVATE
     dxgi
     powrprof
     advapi32
+    netapi32
 )
 
 target_compile_definitions(caelestia-shell PRIVATE
@@ -116,6 +121,8 @@ qt_add_qml_module(caelestia-shell
         src/qml/components/DashCard.qml
         src/qml/components/Sparkline.qml
         src/qml/components/Meter.qml
+        src/qml/components/RingGauge.qml
+        src/qml/components/DashboardCalendar.qml
         src/qml/components/PanelHeader.qml
         src/qml/bar/BarWorkspaces.qml
         src/qml/bar/BarFavorites.qml
@@ -132,8 +139,9 @@ qt_add_qml_module(caelestia-shell
         src/qml/overlay/DashboardHome.qml
         src/qml/overlay/DashboardMedia.qml
         src/qml/overlay/DashboardPerformance.qml
-        src/qml/overlay/DashboardWeather.qml
+        src/qml/overlay/DashboardWorkspaces.qml
         src/qml/overlay/LauncherShell.qml
+        src/qml/overlay/PowerMenu.qml
         src/qml/overlay/PanelHost.qml
         src/qml/overlay/FoundationProbe.qml
         src/qml/popouts/PopoutFrame.qml
@@ -141,7 +149,6 @@ qt_add_qml_module(caelestia-shell
         src/qml/popouts/NetworkPanel.qml
         src/qml/popouts/BluetoothPanel.qml
         src/qml/popouts/BatteryPanel.qml
-        src/qml/popouts/PowerPanel.qml
     SOURCES
         third_party/m3shapes/src/core/Cubic.cpp
         third_party/m3shapes/src/core/Cubic.hpp
