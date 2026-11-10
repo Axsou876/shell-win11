@@ -24,6 +24,7 @@ Item {
         && controller.currentPanel !== "dashboard"
         && controller.currentPanel !== "launcher"
         && controller.currentPanel !== "power"
+        && controller.currentPanel !== "notifications"
         && !controller.closing
 
     readonly property var panelItem: loader.item

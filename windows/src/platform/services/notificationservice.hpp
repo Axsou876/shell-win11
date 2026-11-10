@@ -1,0 +1,47 @@
+#pragma once
+
+#include <QList>
+#include <QObject>
+#include <QStringList>
+#include <QVariantList>
+
+// Shell notification inbox. External Windows toast capture is not available to
+// an unpackaged application without additional permissions; this service owns
+// shell notifications and exposes test notifications for the reference flow
+// (long text, actions, middle-click/swipe dismissal).
+class NotificationService final : public QObject {
+    Q_OBJECT
+
+    Q_PROPERTY(QVariantList notifications READ notifications NOTIFY changed)
+    Q_PROPERTY(int count READ count NOTIFY changed)
+
+public:
+    explicit NotificationService(QObject* parent = nullptr);
+
+    [[nodiscard]] QVariantList notifications() const;
+    [[nodiscard]] int count() const { return m_items.size(); }
+
+    Q_INVOKABLE void addNotification(const QString& app, const QString& title,
+        const QString& body, const QStringList& actions = {});
+    Q_INVOKABLE void addTestNotification();
+    Q_INVOKABLE void dismiss(int id);
+    Q_INVOKABLE void invokeAction(int id, const QString& action);
+    Q_INVOKABLE void clear();
+
+signals:
+    void changed();
+    void actionInvoked(const QString& action);
+
+private:
+    struct Item {
+        int id = 0;
+        QString app;
+        QString title;
+        QString body;
+        QString time;
+        QStringList actions;
+    };
+
+    QList<Item> m_items;
+    int m_nextId = 1;
+};

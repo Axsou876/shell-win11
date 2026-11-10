@@ -234,12 +234,25 @@ Window {
         width: surface.sidebarW
         height: surface.sidebarHeight
         opacity: surface.sidebarOpacity
-        visible: surface.sidebarVisible
+        visible: surface.sidebarVisible && overlay.controller.currentPanel !== "notifications"
         deformScaleX: surface.sidebarScaleX
         deformScaleY: surface.sidebarScaleY
         theme: overlay.theme
         controller: overlay.controller
         screenName: overlay.screenName
+    }
+
+    NotificationsShell {
+        x: surface.sidebarX
+        y: surface.sidebarY
+        width: surface.sidebarW
+        height: surface.sidebarHeight
+        opacity: surface.sidebarOpacity
+        visible: surface.sidebarVisible && overlay.controller.currentPanel === "notifications"
+        deformScaleX: surface.sidebarScaleX
+        deformScaleY: surface.sidebarScaleY
+        theme: overlay.theme
+        controller: overlay.controller
     }
 
     DashboardShell {

@@ -19,8 +19,11 @@ windows/src/
   platform/services/batteryservice.*     GetSystemPowerStatus + événements
   platform/services/powerservice.*       verrouillage/veille/session
   platform/services/userservice.*        nom, photo de compte, version Windows
+  platform/services/wallpaperservice.*   fonds d’écran réels + changement Windows
+  platform/services/notificationservice.* boîte de notifications du shell
   platform/services/windowsservice.*     fenêtres du bureau actuel (Workspaces)
-  qml/overlay/LauncherShell.qml          panneau launcher
+  qml/overlay/LauncherShell.qml          panneau launcher (applications / >wal)
+  qml/overlay/NotificationsShell.qml     panneau notifications + actions
   qml/overlay/DashboardShell.qml         onglets + slide horizontal
   qml/overlay/DashboardHome/Media/Performance/Workspaces.qml
   qml/overlay/PowerMenu.qml              menu vertical droit + confirmation
@@ -47,6 +50,8 @@ sa fermeture passe par Échap, le clic extérieur ou le lancement réussi.
 | Performance | `GetSystemTimes`, `GlobalMemoryStatusEx`, `GetIfTable2`, `GetDiskFreeSpaceExW`, DXGI `IDXGIAdapter3::QueryVideoMemoryInfo`, PDH `GPU Engine` |
 | Média | GSMTC `GlobalSystemMediaTransportControlsSessionManager`, `TryGetMediaPropertiesAsync`, timeline position/duration, `TryPlayAsync`/`TryPauseAsync`/`TrySkipNextAsync`/`TrySkipPreviousAsync` |
 | Profil | `GetUserNameW`, `NetUserGetInfo`, `FOLDERID_AccountPictures`, `QSysInfo` |
+| Fond d’écran | `SystemParametersInfoW(SPI_SETDESKWALLPAPER)`, `QStandardPaths::PicturesLocation`, dossiers Themes/Web de Windows |
+| Notifications | boîte interne au shell (`NotificationService`) : titre, application, corps, heure, actions |
 | Workspaces | `EnumWindows`, `IVirtualDesktopManager`, `DwmGetWindowAttribute`, `SetForegroundWindow` |
 | Météo | Open-Meteo Geocoding + Forecast (HTTPS, sans clé API) |
 | Session | `LockWorkStation`, `SetSuspendState`, `ExitWindowsEx`, privilège `SeShutdownPrivilege` |
@@ -74,6 +79,13 @@ Terminé et testé :
   liste et active les fenêtres réelles.
 - Panneaux Audio/Réseau/Bluetooth/Batterie réels ; Control Centre F9 ; menu
   d’alimentation vertical à droite avec photo de compte et confirmation.
+- Launcher `>wal` : 94 fonds d’écran réels trouvés dans Pictures/Themes/Web,
+  vignettes, filtre par nom ou dossier, fond actif coché, application réelle au
+  bureau Windows par `SystemParametersInfoW`.
+- Panneau Notifications : cartes avec application/heure/titre/corps, bouton
+  d’action, croix, clic du milieu et balayage horizontal pour fermer ; état vide
+  avec bouton de notification de test. Les notifications restent internes au
+  shell (pas de capture des toasts d’autres applications).
 - Animations de panneaux, launcher, onglets et icônes ; SDF/spring conservés.
 - Rehausse périodique de l’AppBar au-dessus des fenêtres maximisées/borderless ;
   animation verticale des panneaux sans dépassement sous la barre des tâches.
@@ -85,9 +97,11 @@ Partiel / non exécuté volontairement :
   exécutées pendant les tests pour ne pas interrompre la session.
 - Le toggle Bluetooth est câblé ; il n’a pas été actionné pour ne pas déconnecter
   les appareils de l’utilisateur.
-- Notifications toast Windows non implémentées (le F9 est un Control Centre).
-- Sélection d’un autre périphérique audio et liste/appairage Bluetooth encore
-  dans les paramètres Windows.
+- Capture des toasts Windows d’autres applications non implémentée : un build
+  Win32 non empaqueté n’obtient pas de façon fiable l’accès au listener de
+  toasts. Le panneau Notifications est une boîte interne au shell.
+- Sélection d’un autre périphérique audio, liste/appairage Bluetooth et profil
+  d’alimentation Windows encore dans les paramètres Windows.
 
 ## 4. Tests réellement exécutés
 
@@ -141,6 +155,12 @@ Partiel / non exécuté volontairement :
   menu Power ; dock de la barre ; aucune erreur QML.
 - L’onglet Workspaces liste les fenêtres du **bureau virtuel actuel** et permet
   de les activer ; il n’affiche pas encore de miniatures de tous les bureaux.
+- Launcher `>wal` Release : `94 fonds d’écran`, vignettes et filtre vérifiés ;
+  `Entrée` a appliqué une image réelle au bureau Windows (valeur WallPaper du
+  registre changée et capture du bureau), puis le fond d’origine a été restauré.
+- Notifications Release : état vide, création (`Notifications · 1`), carte
+  complète, bouton `Another action` (fermeture), clic du milieu et balayage
+  horizontal (`Notifications · 0`) vérifiés ; aucune erreur QML.
 - CPU idle mesuré : 0,38 s sur 5 s / 8 cœurs ≈ 0,9 % ; working set ≈ 451 Mo.
 
 ## 5. Captures
@@ -158,15 +178,22 @@ Partiel / non exécuté volontairement :
   `final-panel-battery.png`, `final-power.png`, `panel-bluetooth.png`
 - `full-battery-fixed.png`, `bar-over-maximized.png`
 - `final-sidebar.png`, `sidebar-favorite.png`
+- `wallpaper-launcher.png`, `wallpaper-applied.png`, `notifications-panel2.png`,
+  `notifications-added.png`, `notifications-added2.png`
+- `windows/build-release/smoke/` : `release-wallpaper.png`,
+  `release-notif-empty.png`, `release-notif-created.png`,
+  `release-notif-swiped.png`, `release-notif-action.png`
 
 Logs : `C:\Users\axsou\AppData\Local\Temp\opencode\phase3-final-ui.err.log`,
 `phase3-nonreg.err.log`, `phase3-rapid.err.log`.
 
 ## 6. Limites restantes
 
-- Pas de centre de notifications Windows.
+- Pas de capture des notifications toast d’autres applications ; la boîte de
+  notifications est interne au shell (avec notification de test).
 - Pas de sélection du périphérique audio (endpoint par défaut seulement).
-- Pas de liste/appairage Bluetooth dans le shell.
+- Pas de liste/appairage Bluetooth ni de choix du profil d’alimentation dans le
+  shell (les paramètres Windows restent la référence).
 - Les actions Power destructives n’ont pas été exécutées en test.
 - Météo dépend d’Open-Meteo et d’une connexion réseau ; une seule ville.
 - Certaines applications UWP n’exposent pas d’icône via le shell ; icône

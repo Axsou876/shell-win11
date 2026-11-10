@@ -25,13 +25,38 @@ Item {
         origin.y: root.height / 2
     }
 
+    readonly property string query: searchInput.text.trim().toLowerCase()
+    readonly property bool wallpaperMode: query.startsWith(">wal")
+    readonly property var wallpaperItems: {
+        const needle = wallpaperMode ? query.substring(4).trim() : "";
+        const all = Wallpaper.wallpapers;
+        if (!needle)
+            return all;
+        return all.filter(item => item.name.toLowerCase().includes(needle)
+            || item.folder.toLowerCase().includes(needle));
+    }
+
     function iconUrl(path) {
         if (!path)
             return "";
         return "file:///" + path.replace(/\\/g, "/");
     }
 
+    function activeList() {
+        return wallpaperMode ? wallpaperList : list;
+    }
+
     function launchCurrent() {
+        if (wallpaperMode) {
+            const rows = wallpaperItems;
+            if (rows.length === 0)
+                return;
+            const row = Math.max(0, Math.min(wallpaperList.currentIndex, rows.length - 1));
+            if (Wallpaper.apply(rows[row].path))
+                root.controller.closePanel();
+            return;
+        }
+
         if (Apps.resultCount <= 0)
             return;
         const row = Math.max(0, Math.min(list.currentIndex, Apps.resultCount - 1));
@@ -120,7 +145,9 @@ Item {
                     theme: root.theme
                     role: "labelSmall"
                     color: root.theme.onSurfaceVariantColour
-                    text: Apps.scanning ? "Recherche…" : Apps.totalCount + " applications"
+                    text: root.wallpaperMode
+                        ? root.wallpaperItems.length + " fonds d’écran"
+                        : (Apps.scanning ? "Recherche…" : Apps.totalCount + " applications")
                 }
             }
 
@@ -182,18 +209,24 @@ Item {
                 focus: true
                 clip: true
 
-                onTextChanged: Apps.setQuery(text)
+                onTextChanged: {
+                    Apps.setQuery(text);
+                    list.currentIndex = 0;
+                    wallpaperList.currentIndex = 0;
+                }
                 onAccepted: root.launchCurrent()
 
                 Keys.onUpPressed: {
-                    if (Apps.resultCount > 0)
-                        list.decrementCurrentIndex();
+                    const target = root.activeList();
+                    if (target.count > 0)
+                        target.decrementCurrentIndex();
                     event.accepted = true;
                 }
 
                 Keys.onDownPressed: {
-                    if (Apps.resultCount > 0)
-                        list.incrementCurrentIndex();
+                    const target = root.activeList();
+                    if (target.count > 0)
+                        target.incrementCurrentIndex();
                     event.accepted = true;
                 }
 
@@ -206,7 +239,7 @@ Item {
                     anchors.fill: parent
                     verticalAlignment: Text.AlignVCenter
                     visible: searchInput.text.length === 0
-                    text: "Rechercher une application…"
+                    text: "Rechercher une application… ou >wal"
                     color: root.theme.onSurfaceVariantColour
                     opacity: 0.7
                     font.family: root.theme.bodyFont
@@ -241,6 +274,7 @@ Item {
                 id: list
 
                 anchors.fill: parent
+                visible: !root.wallpaperMode
                 model: Apps.searchModel
                 clip: true
                 spacing: 2
@@ -383,15 +417,121 @@ Item {
                 }
             }
 
+            ListView {
+                id: wallpaperList
+
+                anchors.fill: parent
+                visible: root.wallpaperMode
+                model: root.wallpaperItems
+                clip: true
+                spacing: 2
+                currentIndex: root.wallpaperItems.length > 0 ? 0 : -1
+                boundsBehavior: Flickable.StopAtBounds
+
+                delegate: Item {
+                    id: wallpaperDelegate
+
+                    required property int index
+                    required property var modelData
+
+                    width: wallpaperList.width
+                    height: 64
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: root.theme.roundingMedium
+                        color: wallpaperList.currentIndex === wallpaperDelegate.index
+                            ? root.theme.secondaryContainer
+                            : (wallpaperHover.hovered
+                                ? root.theme.layer(root.theme.onSurfaceColour, 0.06)
+                                : "transparent")
+                    }
+
+                    MouseArea {
+                        id: wallpaperHover
+
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            wallpaperList.currentIndex = wallpaperDelegate.index;
+                            root.launchCurrent();
+                        }
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.leftMargin: root.theme.paddingMedium
+                            anchors.rightMargin: root.theme.paddingSmall
+                            spacing: root.theme.spacingMedium
+
+                            Rectangle {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 58
+                                height: 38
+                                radius: root.theme.roundingSmall
+                                color: root.theme.surfaceContainerHigh
+                                clip: true
+
+                                Image {
+                                    anchors.fill: parent
+                                    source: "file:///" + wallpaperDelegate.modelData.path.replace(/\\/g, "/")
+                                    fillMode: Image.PreserveAspectCrop
+                                    asynchronous: true
+                                }
+                            }
+
+                            Column {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: parent.width - 58 - currentMark.width
+                                    - root.theme.spacingMedium * 3
+                                spacing: 1
+
+                                StyledText {
+                                    width: parent.width
+                                    theme: root.theme
+                                    role: "bodyMedium"
+                                    weight: Font.Medium
+                                    elide: Text.ElideRight
+                                    text: wallpaperDelegate.modelData.name
+                                }
+
+                                StyledText {
+                                    width: parent.width
+                                    theme: root.theme
+                                    role: "labelSmall"
+                                    color: root.theme.onSurfaceVariantColour
+                                    elide: Text.ElideRight
+                                    text: wallpaperDelegate.modelData.folder
+                                }
+                            }
+
+                            MaterialIcon {
+                                id: currentMark
+
+                                anchors.verticalCenter: parent.verticalCenter
+                                theme: root.theme
+                                text: Wallpaper.currentPath
+                                    === wallpaperDelegate.modelData.path ? "check_circle" : ""
+                                iconSize: 18
+                                color: root.theme.primary
+                            }
+                        }
+                    }
+                }
+            }
+
             Column {
                 anchors.centerIn: parent
                 spacing: root.theme.spacingSmall
-                visible: Apps.resultCount === 0
+                visible: root.wallpaperMode
+                    ? root.wallpaperItems.length === 0
+                    : Apps.resultCount === 0
 
                 MaterialIcon {
                     anchors.horizontalCenter: parent.horizontalCenter
                     theme: root.theme
-                    text: Apps.scanning ? "hourglass_top" : "search_off"
+                    text: root.wallpaperMode ? "wallpaper"
+                        : (Apps.scanning ? "hourglass_top" : "search_off")
                     iconSize: 34
                     color: root.theme.onSurfaceVariantColour
                     opacity: 0.75
@@ -402,8 +542,9 @@ Item {
                     theme: root.theme
                     role: "bodyMedium"
                     color: root.theme.onSurfaceVariantColour
-                    text: Apps.scanning ? "Chargement des applications…"
-                        : "Aucune application trouvée"
+                    text: root.wallpaperMode ? "Aucun fond d’écran trouvé"
+                        : (Apps.scanning ? "Chargement des applications…"
+                            : "Aucune application trouvée")
                 }
             }
         }

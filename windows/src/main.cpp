@@ -5,10 +5,12 @@
 #include "platform/services/bluetoothservice.hpp"
 #include "platform/services/mediaservice.hpp"
 #include "platform/services/networkservice.hpp"
+#include "platform/services/notificationservice.hpp"
 #include "platform/services/powerservice.hpp"
 #include "platform/services/systemservice.hpp"
 #include "platform/services/trayservice.hpp"
 #include "platform/services/userservice.hpp"
+#include "platform/services/wallpaperservice.hpp"
 #include "platform/services/weatherservice.hpp"
 #include "platform/services/windowsservice.hpp"
 
@@ -327,10 +329,12 @@ int main(int argc, char* argv[])
     BluetoothService bluetooth;
     AudioService audio;
     MediaService media;
+    NotificationService notifications;
     SystemService system;
     WeatherService weather;
     PowerService power;
     UserService user;
+    WallpaperService wallpaper;
     WindowService windows;
     TrayService tray;
 
@@ -341,10 +345,12 @@ int main(int argc, char* argv[])
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Bluetooth", &bluetooth);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Audio", &audio);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Media", &media);
+    qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Notification", &notifications);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "System", &system);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Weather", &weather);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Power", &power);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "User", &user);
+    qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Wallpaper", &wallpaper);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "AppWindows", &windows);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Tray", &tray);
 

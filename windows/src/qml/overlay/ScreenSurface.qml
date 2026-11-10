@@ -31,7 +31,8 @@ Item {
     readonly property int sidebarW: theme.sidebarWidth
     readonly property int dashboardW: theme.dashboardWidth
 
-    readonly property bool sidebarActive: controller.currentPanel === "sidebar"
+    readonly property bool sidebarActive: (controller.currentPanel === "sidebar"
+        || controller.currentPanel === "notifications")
         && controller.currentScreenName === screenName && !controller.closing
     readonly property bool dashboardActive: controller.currentPanel === "dashboard"
         && controller.currentScreenName === screenName && !controller.closing

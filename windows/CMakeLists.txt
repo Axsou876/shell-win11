@@ -26,6 +26,8 @@ qt_add_executable(caelestia-shell
     src/platform/services/mediaservice.hpp
     src/platform/services/networkservice.cpp
     src/platform/services/networkservice.hpp
+    src/platform/services/notificationservice.cpp
+    src/platform/services/notificationservice.hpp
     src/platform/services/powerservice.cpp
     src/platform/services/powerservice.hpp
     src/platform/services/systemservice.cpp
@@ -34,6 +36,8 @@ qt_add_executable(caelestia-shell
     src/platform/services/trayservice.hpp
     src/platform/services/userservice.cpp
     src/platform/services/userservice.hpp
+    src/platform/services/wallpaperservice.cpp
+    src/platform/services/wallpaperservice.hpp
     src/platform/services/weatherservice.cpp
     src/platform/services/weatherservice.hpp
     src/platform/services/windowsservice.cpp
@@ -141,6 +145,7 @@ qt_add_qml_module(caelestia-shell
         src/qml/overlay/DashboardPerformance.qml
         src/qml/overlay/DashboardWorkspaces.qml
         src/qml/overlay/LauncherShell.qml
+        src/qml/overlay/NotificationsShell.qml
         src/qml/overlay/PowerMenu.qml
         src/qml/overlay/PanelHost.qml
         src/qml/overlay/FoundationProbe.qml

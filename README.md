@@ -42,6 +42,15 @@ Phase 3 turns the Step 1e hover foundation into a functional desktop shell:
 - **Power menu**: a vertical floating menu on the right edge with the Windows
   account picture, sign-out, shutdown, settings and restart. Destructive actions
   require a second confirmation; Windows shutdown privilege is used.
+- **Notifications** (bell button in the bar): a shell notification inbox with
+  app/time/title/body, action buttons, close button, middle-click and horizontal
+  swipe dismissal. A test notification is available from the empty state. This
+  inbox is shell-owned; capturing Windows toasts from other applications is not
+  available to an unpackaged Win32 build.
+- **Wallpapers** (`>wal` in the launcher): scans real Pictures, Windows themes and
+  Web wallpaper folders, shows thumbnails, filters as you type, marks the active
+  wallpaper and applies the selection to the real Windows desktop through
+  `SystemParametersInfoW(SPI_SETDESKWALLPAPER)`.
 - **Control Centre** (`F9`): favourites, quick actions, real volume, network,
   Bluetooth and battery summaries, and session actions.
 - **Bar popouts**: real Audio (`IAudioEndpointVolume`), Network (WLAN/IPHelper),
@@ -52,8 +61,9 @@ Phase 3 turns the Step 1e hover foundation into a functional desktop shell:
 - The Windows AppBar, click-through overlays, focus rules, D3D11 path,
   multi-screen/DPI behaviour and `F8`/`F9`/`F10`/`Esc` from Step 1e are kept.
 
-Still not implemented: shell notification centre, audio device selection,
-Bluetooth device list/pairing UI, HDR/high-contrast and touch/pen input.
+Still not implemented: capture of Windows toasts from other applications,
+audio device selection, Bluetooth device list/pairing UI, power-profile
+selection, HDR/high-contrast and touch/pen input.
 
 ### Build
 
@@ -100,9 +110,12 @@ For a standalone folder, run `windeployqt` on that executable.
 - Click the Caelestia logo in the bar, the search icon or press `F1`: open the
   application launcher. Type to filter; `↑`/`↓` navigate, `Enter` launches, `Esc`
   or a click outside closes. The star toggles a favourite.
+- Type `>wal` in the launcher to switch to the wallpaper picker. `↑`/`↓`
+  navigate, `Enter` applies the selected wallpaper to the desktop and closes the
+  launcher, `Esc` closes it. Typing after `>wal` filters by name or folder.
 - The left bar shows the favourite application dock and hides it when empty.
-  The search icon opens the launcher. There is no separate calendar button or
-  empty application-grid icon in the bar.
+  The search icon opens the launcher, the bell opens notifications. There is no
+  separate calendar button or empty application-grid icon in the bar.
 - `F10` or hover the top-center strip: Dashboard. Its tabs are Dashboard,
   Media, Performance and Workspaces.
 - `F9`: Control Centre (favourites, quick actions, audio, network, Bluetooth,
@@ -179,6 +192,13 @@ For a standalone folder, run `windeployqt` on that executable.
 - `PowerService`: lock, sleep, sign-out, restart and shutdown with the Windows
   shutdown privilege. `PowerMenu.qml` is the right-edge vertical session menu;
   destructive actions require a second confirmation.
+- `WallpaperService`: scans real wallpaper folders and applies the selection
+  with `SystemParametersInfoW(SPI_SETDESKWALLPAPER)`; the selected path is kept
+  in `QSettings`. `LauncherShell.qml` switches to its wallpaper list when the
+  query starts with `>wal`.
+- `NotificationService`: shell-owned notification inbox (title, app, body, time,
+  actions); `NotificationsShell.qml` renders the cards, applies actions and
+  dismisses with the close button, middle-click or a horizontal swipe.
 - `UserService`: Windows account display name, avatar from AccountPictures (or
   the system generic picture), Windows version and hostname.
 - `WindowService`: current-desktop top-level windows via `EnumWindows` and
@@ -201,11 +221,15 @@ For a standalone folder, run `windeployqt` on that executable.
 - Hover delays (120 ms open / 220 ms close) are a Windows adaptation; the Linux
   shell reacts immediately on pointer movement.
 - Caelestia's Sidebar is a notification dock; the Windows port uses the same
-  430 px surface as a Control Centre with real services. Windows toast capture is
-  not implemented yet.
+  430 px surface as a Control Centre with real services and adds a separate
+  Notifications panel. Windows toasts from other applications are not captured:
+  an unpackaged Win32 build does not reliably get toast-listener access, so the
+  inbox only shows notifications created by the shell (including its test
+  notification).
 - Bluetooth adapter state and on/off are real; pairing/device lists remain in
   Windows Settings. Audio supports the default output endpoint (volume/mute);
-  selecting another output/input device remains in Windows Settings.
+  selecting another output/input device remains in Windows Settings. Battery
+  data is real; the Windows power overlay/profile is not switched by the shell.
 - GSMTC only exposes players that publish a Windows media session. Apps without
   GSMTC support keep their own controls.
 - CPU/GPU temperature is not exposed by a reliable Windows API here; the
