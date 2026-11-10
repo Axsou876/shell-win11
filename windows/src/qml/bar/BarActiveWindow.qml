@@ -1,5 +1,4 @@
 ﻿import QtQuick
-import QtQuick.Effects
 import Caelestia.Platform 1.0
 import ".."
 import "../components"
@@ -36,11 +35,6 @@ Item {
             fillMode: Image.PreserveAspectFit
             smooth: true
             visible: source !== ""
-            layer.enabled: true
-            layer.effect: MultiEffect {
-                colorization: 1
-                colorizationColor: root.theme.primary
-            }
         }
     }
 

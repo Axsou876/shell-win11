@@ -89,10 +89,9 @@ Terminé et testé :
 - Animations de panneaux, launcher, onglets et icônes ; SDF/spring conservés.
 - Thème monochrome strict : surfaces noires pures en mode sombre, blanches pures
   en mode clair, accents et conteneurs en gris neutres, aucune teinte colorée.
-  Le logo Caelestia conserve deux tons (couleur primaire + variante de surface)
-  pour ne pas devenir une silhouette noire ou blanche plate.
-  Les icônes d’applications, les pochettes média et la photo de compte gardent
-  leurs couleurs d’origine.
+  Les icônes d’applications, y compris l’icône de la fenêtre active dans la
+  barre, les pochettes média et la photo de compte gardent leurs couleurs
+  d’origine.
 - Rehausse périodique de l’AppBar au-dessus des fenêtres maximisées/borderless ;
   animation verticale des panneaux sans dépassement sous la barre des tâches.
 
@@ -170,9 +169,9 @@ Partiel / non exécuté volontairement :
 - Thème monochrome Release : launcher sombre `#000000`, launcher clair
   `#fefefe/#ffffff`, notifications `#0a0a0a`, barre `#000000`, texte
   `#ffffff/#000000` ; aucune couleur d’accent dans le thème (pixels neutres).
-- Logo Caelestia Release : deux tons vérifiés dans les deux thèmes (blanc `#ffffff`
-  + gris `#b3b3b3` en sombre, noir `#000000` + gris `#474747` en clair), au lieu
-  d’une silhouette monochrome plate ; captures `logo2-dark.png`, `logo2-light.png`.
+- Icônes d’applications Release : Firefox reste coloré dans l’icône de fenêtre
+  active en mode blanc et sombre (recoloration au thème supprimée) ; captures
+  `firefox-icon-light.png`, `firefox-icon-dark.png`.
 - Nouveautés Release testées à 100 % (`GetDpiForWindow` = 96) ; à 125 %, les
   captures de l’interface précédente restent valides, mais les deux nouveaux
   panneaux n’ont pas été rejoués après un changement d’échelle système.
@@ -203,7 +202,7 @@ Partiel / non exécuté volontairement :
   `release-notif-swiped.png`, `release-notif-middle.png`,
   `release-notif-action.png`, `mono-dashboard.png`, `mono-launcher.png`,
   `mono-launcher-light2.png`, `mono-notifications.png`, `mono-bar.png`,
-  `logo2-dark.png`, `logo2-light.png`
+  `firefox-icon-light.png`, `firefox-icon-dark.png`
 
 Logs : `C:\Users\axsou\AppData\Local\Temp\opencode\phase3-final-ui.err.log`,
 `phase3-nonreg.err.log`, `phase3-rapid.err.log`.

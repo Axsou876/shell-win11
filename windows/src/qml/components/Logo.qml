@@ -6,10 +6,8 @@ Item {
 
     required property var theme
 
-    // Keep the two-tone mark readable in the monochrome themes: the top and
-    // bottom paths must not collapse to the same black or white.
     property color topColour: theme.primary
-    property color bottomColour: theme.onSurfaceVariantColour
+    property color bottomColour: theme.onSurfaceColour
 
     readonly property real designWidth: 128
     readonly property real designHeight: 90.38

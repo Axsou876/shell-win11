@@ -174,11 +174,10 @@ For a standalone folder, run `windeployqt` on that executable.
 - Popout widths use the original tokens: network/audio/Bluetooth 320 px, battery
   250 px.
 - Strict monochrome palettes: pure black surfaces in dark mode, pure white in
-  light mode, neutral greys for hierarchy and no coloured accent. The Caelestia
-  mark keeps its two-tone rendering (primary + on-surface variant) so it does
-  not collapse into a flat black or white silhouette. The theme follows the
-  Windows app mode at startup; `F8` toggles it. Application icons, media artwork
-  and the account picture keep their own colours.
+  light mode, neutral greys for hierarchy and no coloured accent. The theme
+  follows the Windows app mode at startup; `F8` toggles it. Application icons
+  (including the active-window icon in the bar), media artwork and the account
+  picture keep their own colours.
 - `AppLauncherService`: Start Menu `.lnk` files (`FOLDERID_Programs` and
   `FOLDERID_CommonPrograms`) plus registered applications (`FOLDERID_AppsFolder`,
   `PKEY_AppUserModel_ID`). `IShellLinkW` resolves target/arguments; shell icons
