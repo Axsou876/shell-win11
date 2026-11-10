@@ -22,7 +22,7 @@ windows/src/
   qml/overlay/DashboardShell.qml         onglets + slide horizontal
   qml/overlay/DashboardHome/Media/Performance/Weather.qml
   qml/overlay/SidebarShell.qml           Control Centre F9
-  qml/bar/BarFavorites.qml               dock favoris/récents dans la barre
+  qml/bar/BarFavorites.qml               dock de favoris dans la barre
   qml/popouts/AudioPanel/NetworkPanel/BluetoothPanel/BatteryPanel/PowerPanel.qml
   qml/components/DashCard/Sparkline/Meter/PanelHeader.qml
   src/shaders/blob.*                     panneau launcher ajouté au SDF
@@ -58,9 +58,10 @@ Terminé et testé :
   lancement réel.
 - 213 applications découvertes : Firefox, Discord, Brave, Steam, Bloc-notes,
   Calculatrice, Paramètres, etc.
-- Dock vertical dans la barre : favoris puis applications récentes
-  (dédupliqués, jusqu’à huit icônes réelles, zone défilante), clic pour lancer.
-  Boutons recherche et calendrier/Dashboard.
+- Dock vertical dans la barre : **favoris uniquement** (dédupliqués, jusqu’à
+  huit icônes réelles, zone défilante), clic pour lancer. Les applications
+  récentes ne sont plus ajoutées automatiquement ; le bouton calendrier a été
+  retiré.
 - Dashboard 4 onglets avec données réelles ; Media GSMTC ; Performance
   CPU/RAM/GPU/réseau/disque avec historiques ; Weather Open-Meteo configurable.
 - Panneaux Audio/Réseau/Bluetooth/Batterie réels ; Control Centre F9 ; Power
@@ -92,8 +93,9 @@ Partiel / non exécuté volontairement :
   fermeture.
 - Favori : clic étoile → `launcher/favorites` contient l’ID de Calculatrice ;
   F9 affiche le favori ; état restauré après test.
-- Dock : icônes récentes/favorites réelles dans la barre ; capture
-  `final-bar-dock.png`.
+- Dock : favoris uniquement, icônes réelles, clic de lancement vérifié ;
+  capture `clean-bar.png`. Le bouton calendrier et les récents automatiques ont
+  été retirés.
 - Barre au-dessus d’une fenêtre Notepad maximisée : logo toujours visible.
 - Dashboard : 4 onglets capturés ; Media affiche la session Spotify réelle ;
   Performance affiche CPU/RAM/GPU/réseau/disque ; Weather affiche Paris.

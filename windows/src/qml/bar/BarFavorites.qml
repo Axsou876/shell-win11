@@ -13,19 +13,7 @@ Item {
     required property var panelController
     required property string screenName
 
-    readonly property var items: {
-        const result = [];
-        const seen = ({});
-        const all = Apps.favoriteApps.concat(Apps.recentApps);
-        for (let i = 0; i < all.length && result.length < 8; ++i) {
-            const app = all[i];
-            if (!app || seen[app.id])
-                continue;
-            seen[app.id] = true;
-            result.push(app);
-        }
-        return result;
-    }
+    readonly property var items: Apps.favoriteApps
     readonly property int shown: Math.min(items.length, 8)
 
     implicitWidth: 36
