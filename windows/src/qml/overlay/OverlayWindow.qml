@@ -55,26 +55,62 @@ Window {
     }
 
     // The original Dashboard trigger is the top 10 px strip above the
-    // centered dashboard (not the whole screen edge). The closed overlay is
-    // click-through, so raw mouse input from Platform feeds this check.
-    function checkDashboardHover(pos) {
+    // centered dashboard. The closed overlay is click-through, so raw mouse
+    // input feeds this check. While a hover panel is open, the same signal
+    // maintains a 25 px halo around the panel (content, buttons and the
+    // bar-to-panel transition).
+    function checkHover(pos) {
         if (!screenData)
             return;
 
-        const localX = pos.x - screenRect.x;
-        const localY = pos.y - screenRect.y;
-        const inZone = localY >= 0 && localY <= overlay.theme.borderThickness
-            && localX >= surface.dashboardX - overlay.theme.borderRounding
-            && localX <= surface.dashboardX + surface.dashboardW + overlay.theme.borderRounding;
+        const x = pos.x - screenRect.x;
+        const y = pos.y - screenRect.y;
+        const r = overlay.theme.borderRounding;
+        const inBar = x >= 0 && x < overlay.theme.barRailWidth
+            && y >= 0 && y <= overlay.workHeight;
 
-        if (overlay.controller.currentPanel === "") {
+        // The Dashboard strip also switches an already-open hover Dashboard
+        // to the other screen. Other panels keep the original rule: the strip
+        // only opens the Dashboard when nothing is open.
+        const dashboardElsewhere = overlay.controller.currentPanel === "dashboard"
+            && overlay.controller.currentScreenName !== overlay.screenName;
+        if (overlay.controller.currentPanel === "" || dashboardElsewhere) {
+            const inZone = y >= 0 && y <= overlay.theme.borderThickness
+                && x >= surface.dashboardX - r
+                && x <= surface.dashboardX + surface.dashboardW + r;
             if (inZone) {
                 overlay.controller.hoverTrigger("dashboard", overlay.screenName, 0);
             } else if (overlay.controller.hoverPanel === "dashboard"
                     && overlay.controller.hoverScreenName === overlay.screenName) {
                 overlay.controller.cancelHover();
+            } else if (!inBar) {
+                overlay.controller.cancelPendingBarHover(overlay.screenName);
             }
+            return;
         }
+
+        if (overlay.controller.currentScreenName !== overlay.screenName
+                || overlay.controller.openReason !== "hover")
+            return;
+
+        const panel = overlay.controller.currentPanel;
+        if (panel === "sidebar")
+            return;
+
+        let inPanel = false;
+        if (panel === "dashboard") {
+            inPanel = x >= surface.dashboardX - r
+                && x <= surface.dashboardX + surface.dashboardW + r
+                && y >= surface.dashboardY - r
+                && y <= surface.dashboardY + overlay.theme.dashboardHeight + r;
+        } else {
+            inPanel = x >= host.frameX - r
+                && x <= host.frameX + host.frameWidth + r
+                && y >= host.frameY - r
+                && y <= host.frameY + host.frameHeight + r
+                || inBar;
+        }
+        overlay.controller.panelHover(inPanel);
     }
 
     Component.onCompleted: Qt.callLater(() => {
@@ -150,7 +186,7 @@ Window {
         target: Platform
 
         function onGlobalMouseMoved(position) {
-            overlay.checkDashboardHover(position);
+            overlay.checkHover(position);
         }
 
         function onEscapePressed() {
@@ -208,11 +244,6 @@ Window {
         deformScaleX: surface.dashboardScaleX
         deformScaleY: surface.dashboardScaleY
         theme: overlay.theme
-
-        onHoverActiveChanged: {
-            if (overlay.controller.currentPanel === "dashboard")
-                overlay.controller.panelHover(hoverActive);
-        }
     }
 
     PanelHost {
@@ -226,12 +257,6 @@ Window {
         deformScaleX: surface.popoutScaleX
         deformScaleY: surface.popoutScaleY
         deformOriginX: surface.popoutDeformOriginX
-
-        onHoverActiveChanged: {
-            const panel = overlay.controller.currentPanel;
-            if (host.frameVisible && panel !== "" && panel !== "dashboard" && panel !== "sidebar")
-                overlay.controller.panelHover(hoverActive);
-        }
     }
 
     onScreenDataChanged: Qt.callLater(() => {

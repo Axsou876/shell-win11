@@ -151,7 +151,6 @@ Rectangle {
         cursorShape: Qt.PointingHandCursor
 
         onPositionChanged: mouse => root.triggerAt(mouse.x, mouse.y, "hover")
-        onExited: root.panelController.hoverBarExit(root.screenName)
         onClicked: mouse => root.triggerAt(mouse.x, mouse.y, "explicit")
     }
 }

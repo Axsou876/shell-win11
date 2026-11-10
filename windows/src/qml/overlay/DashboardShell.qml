@@ -21,8 +21,6 @@ Item {
         origin.y: root.height / 2
     }
 
-    property bool hoverActive: hoverHalo.containsMouse
-
     property int activeTab: 0
     readonly property var tabs: [
         { icon: "dashboard", label: "Dashboard" },
@@ -34,17 +32,6 @@ Item {
     MouseArea {
         anchors.fill: parent
         onClicked: {}
-    }
-
-    // Caelestia's top panel hover includes the border rounding around the
-    // panel. The halo also covers the 10 px top strip once the panel is open.
-    MouseArea {
-        id: hoverHalo
-
-        anchors.fill: parent
-        anchors.margins: -root.theme.borderRounding
-        acceptedButtons: Qt.NoButton
-        hoverEnabled: true
     }
 
     Column {

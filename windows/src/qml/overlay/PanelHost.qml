@@ -35,7 +35,6 @@ Item {
     readonly property real frameWidth: frame.width
     readonly property real frameHeight: frame.height
     readonly property bool frameVisible: frame.width > 0.5
-    readonly property bool hoverActive: frame.hoverActive
 
     function sync() {
         if (shown) {

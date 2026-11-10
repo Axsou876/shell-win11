@@ -15,7 +15,6 @@ Item {
     property real deformScaleX: 1
     property real deformScaleY: 1
     property real deformOriginX: width / 2
-    readonly property bool hoverActive: hoverHalo.containsMouse || panelHover.containsMouse
 
     transform: Scale {
         xScale: root.deformScaleX
@@ -47,24 +46,11 @@ Item {
     }
 
     // Clicks on empty panel space must not fall through to the backdrop.
+    // The hover halo lives in OverlayWindow and is driven by raw mouse input,
+    // so it also covers child buttons without stealing their clicks.
     MouseArea {
-        id: panelHover
-
         anchors.fill: parent
-        hoverEnabled: true
         onClicked: {}
-    }
-
-    // The original popout hover area includes a border-rounding halo. It
-    // covers the gap between the bar icon and the panel and the rounded
-    // corners, without stealing clicks.
-    MouseArea {
-        id: hoverHalo
-
-        anchors.fill: parent
-        anchors.margins: -root.theme.borderRounding
-        acceptedButtons: Qt.NoButton
-        hoverEnabled: true
     }
 
     Item {

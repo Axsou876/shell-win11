@@ -619,22 +619,12 @@ bool Platform::nativeEventFilter(const QByteArray& eventType, void* message, qin
     if (!msg)
         return false;
 
-    if (m_rawInputHwnd && msg->hwnd == reinterpret_cast<HWND>(m_rawInputHwnd)
-        && msg->message == WM_INPUT) {
-        // Only the top strip is used for the closed-Dashboard hover. Do not
-        // wake the QML layer for every mouse move on the desktop.
+    if (msg->message == WM_INPUT && m_rawInputHwnd
+        && msg->hwnd == reinterpret_cast<HWND>(m_rawInputHwnd)) {
+        // The closed overlay is click-through, so raw mouse input drives the
+        // Dashboard strip and the open-panel halo.
         const QPoint pos = QCursor::pos();
-        bool nearTop = false;
-        for (QScreen* screen : QGuiApplication::screens()) {
-            const QRect g = screen->geometry();
-            if (pos.x() >= g.left() && pos.x() < g.right()
-                && pos.y() >= g.top() && pos.y() <= g.top() + 24) {
-                nearTop = true;
-                break;
-            }
-        }
-        if (nearTop)
-            emit globalMouseMoved(pos);
+        emit globalMouseMoved(pos);
     }
 
     if (msg->message == WM_HOTKEY && msg->wParam == kEscapeHotkeyId) {

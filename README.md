@@ -12,20 +12,23 @@
 
 https://github.com/user-attachments/assets/0840f496-575c-4ca6-83a8-87bb01a85c5f
 
-## Caelestia Shell for Windows 11 — Phase 2.6 / Step 1d
+## Caelestia Shell for Windows 11 — Phase 2.6 / Step 1e
 
 This repository also contains a native Windows 11 port of the shell composition
 (`windows/`). The Linux/Quickshell installation below is unchanged.
 
 ### Status
 
-Step 1d adds the original hover interactions: per-icon bar popouts, direct
-popout-to-popout transitions, the top-center Dashboard hover strip, hover grace
-zones and focus preservation. It still builds on the Step 1c visual foundation:
-full-screen blob frame, integrated 60 px bar, 430 px Sidebar, 854 px Dashboard,
-fused popouts, light/dark themes, spring deformation, border sink and content
-deformation. No Wi-Fi, Bluetooth, audio, battery, notification, weather or media
-service is implemented yet; the popout contents remain neutral.
+Step 1e stabilises the hover layer introduced in Step 1d. Bar popouts, the
+top-center Dashboard strip, direct popout-to-popout switching and focus
+preservation are kept. The pointer halo is now centralised on Win32 raw mouse
+input, pending hover targets no longer schedule a premature close, and hover
+opens no longer activate the overlay after an explicit panel. It still builds on
+the Step 1c visual foundation: full-screen blob frame, integrated 60 px bar,
+430 px Sidebar, 854 px Dashboard, fused popouts, light/dark themes, spring
+deformation, border sink and content deformation. No Wi-Fi, Bluetooth, audio,
+battery, notification, weather or media service is implemented yet; the popout
+contents remain neutral.
 
 ### Build
 
@@ -42,15 +45,17 @@ cmake --build windows\build
 Run `windows\build\bin\caelestia-shell.exe` with the Qt bin directory on `PATH`.
 For a standalone folder, run `windeployqt` on that executable.
 
-### Controls (Step 1d)
+### Controls (Step 1e)
 
 - Hover Audio, Network, Bluetooth or Battery in the bar: open the corresponding
   popout after a 120 ms intent delay. Moving directly to another icon switches
-  panels without a full close.
-- Move from the icon into the popout: it stays open. Leaving both the bar and
+  panels without an intermediate close, including a fast sweep.
+- Move from the icon into the popout: it stays open. The 25 px halo covers the
+  content, its child buttons and the bar-to-panel gap. Leaving both the bar and
   the panel closes it after a 220 ms grace delay.
 - Hover the top-center 10 px strip above the Dashboard: open the Dashboard
-  (original `dashboard.showOnHover` behavior). Moving out of the Dashboard halo
+  (original `dashboard.showOnHover` behavior). Hovering the strip of the other
+  monitor switches the Dashboard directly. Moving out of the Dashboard halo
   closes it.
 - Click a status icon: open the same panel explicitly and focus the overlay for
   keyboard input. Clicking inside a hover panel still operates its controls, but
@@ -73,11 +78,18 @@ For a standalone folder, run `windeployqt` on that executable.
   app keeps keyboard focus. Explicit clicks/F9/F10 clear both styles and activate
   the overlay for keyboard input. AppBars are re-raised above it.
 - `PanelController.qml` owns the central hover state: 120 ms open delay, 220 ms
-  close grace, per-icon target, cancellation and direct panel switching.
+  close grace, per-icon target, cancellation and direct panel switching. A
+  pending target blocks the close timer, so a switch never closes the old surface
+  first. `openReason` and `currentScreenName` are updated before `currentPanel`,
+  so `interactiveChanged` already knows a hover open and never clears
+  `WS_EX_NOACTIVATE`.
 - `BarStatusIcons.qml` maps the pointer to the real icon under the cursor and
-  sends its name, screen and anchor.
-- `PopoutFrame`/`DashboardShell` expose a 25 px hover halo, so moving from a
-  trigger into the panel or its rounded margin never closes it.
+  sends its name, screen and anchor. Leaving is handled centrally, not by the
+  bar's `onExited` (which Qt synthesises when the panel is stacked above it).
+- The 25 px hover halo lives in `OverlayWindow.checkHover`: every raw mouse move
+  is compared with the active panel's expanded rectangle, the bar rail and the
+  Dashboard trigger. Child buttons therefore stay inside the halo without
+  stealing their clicks.
 - The closed, click-through overlay is fed by Win32 raw mouse input
   (`RIDEV_INPUTSINK` on the AppBar) to detect the top-center Dashboard strip
   without polling or blocking clicks. This path responds to real/absolute mouse
@@ -117,7 +129,9 @@ For a standalone folder, run `windeployqt` on that executable.
   field in a hover panel needs an explicit click/F9/F10 before it gets keyboard
   focus.
 - Raw-input Dashboard hover responds to real or absolute injected mouse input;
-  `SetCursorPos` alone does not generate Win32 raw input.
+  `SetCursorPos` alone does not generate Win32 raw input, and a relative
+  `SendInput` immediately after a cursor warp may be coalesced. Automated tests
+  should use absolute `SendInput`.
 - Performance measurements are indicative (QML frame meter + GPU Engine
   counters), not a dedicated profiler. The global MultiEffect shadow remains the
   main per-frame cost.

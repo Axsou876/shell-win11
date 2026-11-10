@@ -48,9 +48,12 @@ QtObject {
             return;
         }
 
-        currentPanel = name;
-        currentScreenName = screenName;
+        // Set the reason before the screen: a cross-screen switch triggers
+        // interactiveChanged, whose syncInput must already know this is a
+        // hover (otherwise it would make the overlay focusable and activate).
         openReason = requestedReason;
+        currentScreenName = screenName;
+        currentPanel = name;
         console.log("PANEL_OPEN", name, screenName, Math.round(screenY), requestedReason);
         panelOpened(name);
     }
@@ -131,31 +134,31 @@ QtObject {
         hoverPanel = "";
     }
 
-    // The pointer left the bar/trigger. If a hover panel is already open,
-    // close it after the grace delay unless the pointer reached the panel.
-    function hoverBarExit(screenName) {
-        if (hoverPanel !== "" && hoverScreenName === screenName)
+    // The pointer is outside the dashboard trigger while no panel is open.
+    // Cancel a pending bar hover so leaving before the intent delay does not
+    // open a panel behind the pointer.
+    function cancelPendingBarHover(screenName) {
+        if (hoverPanel !== "" && hoverPanel !== "dashboard"
+                && hoverScreenName === screenName)
             cancelHover();
-
-        if (currentPanel !== "" && currentScreenName === screenName
-                && openReason === "hover" && !pointerInPanel)
-            hoverCloseTimer.restart();
     }
 
-    // Called by the popout/dashboard hover halo. Entering cancels an in-flight
-    // close; leaving starts the grace delay.
+    // Called by the raw-input halo. Entering cancels an in-flight close;
+    // leaving starts the grace delay.
     function panelHover(entered) {
         pointerInPanel = entered;
 
         if (entered) {
             hoverCloseTimer.stop();
-        } else if (currentPanel !== "" && openReason === "hover") {
+        } else if (currentPanel !== "" && openReason === "hover"
+                && hoverPanel === "") {
             hoverCloseTimer.restart();
         }
     }
 
     function commitHoverClose() {
-        if (currentPanel !== "" && openReason === "hover" && !pointerInPanel)
+        if (currentPanel !== "" && openReason === "hover"
+                && !pointerInPanel && hoverPanel === "")
             closePanel();
     }
 
