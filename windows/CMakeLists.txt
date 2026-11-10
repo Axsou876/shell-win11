@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
-find_package(Qt6 6.9 REQUIRED COMPONENTS Core Gui Qml Quick ShaderTools QuickEffects Svg)
+find_package(Qt6 6.9 REQUIRED COMPONENTS Core Gui Qml Quick ShaderTools QuickEffects Svg Network Concurrent)
 qt_standard_project_setup(REQUIRES 6.9)
 
 qt_add_executable(caelestia-shell
@@ -16,14 +16,24 @@ qt_add_executable(caelestia-shell
     src/platform/platform.hpp
     src/platform/services/audioservice.cpp
     src/platform/services/audioservice.hpp
+    src/platform/services/applauncherservice.cpp
+    src/platform/services/applauncherservice.hpp
     src/platform/services/batteryservice.cpp
     src/platform/services/batteryservice.hpp
     src/platform/services/bluetoothservice.cpp
     src/platform/services/bluetoothservice.hpp
+    src/platform/services/mediaservice.cpp
+    src/platform/services/mediaservice.hpp
     src/platform/services/networkservice.cpp
     src/platform/services/networkservice.hpp
+    src/platform/services/powerservice.cpp
+    src/platform/services/powerservice.hpp
+    src/platform/services/systemservice.cpp
+    src/platform/services/systemservice.hpp
     src/platform/services/trayservice.cpp
     src/platform/services/trayservice.hpp
+    src/platform/services/weatherservice.cpp
+    src/platform/services/weatherservice.hpp
 )
 
 target_link_libraries(caelestia-shell PRIVATE
@@ -33,6 +43,8 @@ target_link_libraries(caelestia-shell PRIVATE
     Qt6::Quick
     Qt6::QuickEffects
     Qt6::Svg
+    Qt6::Network
+    Qt6::Concurrent
     dwmapi
     shell32
     user32
@@ -44,6 +56,10 @@ target_link_libraries(caelestia-shell PRIVATE
     propsys
     shcore
     windowsapp
+    pdh
+    dxgi
+    powrprof
+    advapi32
 )
 
 target_compile_definitions(caelestia-shell PRIVATE
@@ -51,6 +67,7 @@ target_compile_definitions(caelestia-shell PRIVATE
     WIN32_LEAN_AND_MEAN
     WINVER=0x0A00
     _WIN32_WINNT=0x0A00
+    NTDDI_VERSION=0x0A000000
 )
 
 # C++/WinRT headers (Windows.Devices.Radios) are shipped in the Windows SDK
@@ -96,6 +113,10 @@ qt_add_qml_module(caelestia-shell
         src/qml/components/M3Slider.qml
         src/qml/components/M3Button.qml
         src/qml/components/M3ListItem.qml
+        src/qml/components/DashCard.qml
+        src/qml/components/Sparkline.qml
+        src/qml/components/Meter.qml
+        src/qml/components/PanelHeader.qml
         src/qml/bar/BarWorkspaces.qml
         src/qml/bar/BarActiveWindow.qml
         src/qml/bar/BarTray.qml
@@ -107,9 +128,19 @@ qt_add_qml_module(caelestia-shell
         src/qml/overlay/SpringDeform.qml
         src/qml/overlay/SidebarShell.qml
         src/qml/overlay/DashboardShell.qml
+        src/qml/overlay/DashboardHome.qml
+        src/qml/overlay/DashboardMedia.qml
+        src/qml/overlay/DashboardPerformance.qml
+        src/qml/overlay/DashboardWeather.qml
+        src/qml/overlay/LauncherShell.qml
         src/qml/overlay/PanelHost.qml
         src/qml/overlay/FoundationProbe.qml
         src/qml/popouts/PopoutFrame.qml
+        src/qml/popouts/AudioPanel.qml
+        src/qml/popouts/NetworkPanel.qml
+        src/qml/popouts/BluetoothPanel.qml
+        src/qml/popouts/BatteryPanel.qml
+        src/qml/popouts/PowerPanel.qml
     SOURCES
         third_party/m3shapes/src/core/Cubic.cpp
         third_party/m3shapes/src/core/Cubic.hpp

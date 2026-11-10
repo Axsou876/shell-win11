@@ -1,17 +1,26 @@
 ﻿#include "platform/platform.hpp"
+#include "platform/services/applauncherservice.hpp"
 #include "platform/services/audioservice.hpp"
 #include "platform/services/batteryservice.hpp"
 #include "platform/services/bluetoothservice.hpp"
+#include "platform/services/mediaservice.hpp"
 #include "platform/services/networkservice.hpp"
+#include "platform/services/powerservice.hpp"
+#include "platform/services/systemservice.hpp"
 #include "platform/services/trayservice.hpp"
+#include "platform/services/weatherservice.hpp"
 
 #include <QDir>
+#include <QEventLoop>
 #include <QGuiApplication>
 #include <QImage>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
 #include <QSGRendererInterface>
+#include <QTextStream>
 #include <QTimer>
+
+#include <cstdio>
 
 #include <qqml.h>
 
@@ -54,6 +63,173 @@ int main(int argc, char* argv[])
     app.setApplicationName(QStringLiteral("Caelestia Shell Windows"));
     app.setApplicationVersion(QStringLiteral("0.2.5"));
 
+    // Headless launcher diagnostics. They use the same scanner as the UI and
+    // can only launch entries discovered in the Start Menu, never free text.
+    const QStringList arguments = app.arguments();
+    const bool listApps = arguments.contains(QStringLiteral("--list-apps"));
+    const int launchIndex = arguments.indexOf(QStringLiteral("--launch-app"));
+    if (listApps || launchIndex >= 0) {
+        AppLauncherService cliApps;
+        QEventLoop loop;
+        QTimer timeout;
+        timeout.setSingleShot(true);
+        QObject::connect(&timeout, &QTimer::timeout, &loop, [&loop]() {
+            qWarning("Launcher diagnostic: timeout");
+            loop.exit(3);
+        });
+
+        QObject::connect(&cliApps, &AppLauncherService::readyChanged, &loop, [&]() {
+            if (!cliApps.ready())
+                return;
+            if (listApps) {
+                QTextStream out(stdout);
+                out << "TOTAL " << cliApps.totalCount() << '\n';
+                for (const QString& name : cliApps.knownAppNames())
+                    out << name << '\n';
+                out.flush();
+                loop.exit(0);
+                return;
+            }
+
+            const QString wanted = launchIndex + 1 < arguments.size()
+                ? arguments.at(launchIndex + 1) : QString();
+            QString error;
+            if (!cliApps.launchByName(wanted, &error)) {
+                QTextStream out(stdout);
+                out << "FAIL " << error << '\n';
+                out.flush();
+                loop.exit(2);
+            }
+        });
+        QObject::connect(&cliApps, &AppLauncherService::launchSucceeded, &loop,
+            [&loop](const QString&, const QString& name) {
+                QTextStream out(stdout);
+                out << "OK " << name << '\n';
+                out.flush();
+                loop.exit(0);
+            });
+        QObject::connect(&cliApps, &AppLauncherService::launchFailed, &loop,
+            [&loop](const QString&, const QString& message) {
+                QTextStream out(stdout);
+                out << "FAIL " << message << '\n';
+                out.flush();
+                loop.exit(2);
+            });
+
+        timeout.start(15000);
+        QTimer::singleShot(0, &loop, [&]() {
+            if (!cliApps.ready())
+                return;
+            if (listApps) {
+                QTextStream out(stdout);
+                out << "TOTAL " << cliApps.totalCount() << '\n';
+                for (const QString& name : cliApps.knownAppNames())
+                    out << name << '\n';
+                out.flush();
+                loop.exit(0);
+                return;
+            }
+            const QString wanted = launchIndex + 1 < arguments.size()
+                ? arguments.at(launchIndex + 1) : QString();
+            QString error;
+            if (!cliApps.launchByName(wanted, &error)) {
+                QTextStream out(stdout);
+                out << "FAIL " << error << '\n';
+                out.flush();
+                loop.exit(2);
+            }
+        });
+        const int cliExit = loop.exec();
+        return cliExit;
+    }
+
+    if (arguments.contains(QStringLiteral("--dump-system"))) {
+        SystemService system;
+        QEventLoop loop;
+        QTimer::singleShot(2500, &loop, [&]() {
+            QTextStream out(stdout);
+            out << "CPU=" << QString::number(system.cpuUsage(), 'f', 1)
+                << " MEM=" << QString::number(system.memoryUsedGb(), 'f', 1) << "/"
+                << QString::number(system.memoryTotalGb(), 'f', 1) << "GB ("
+                << QString::number(system.memoryPercent(), 'f', 1) << "%)\n"
+                << "GPU=" << system.gpuName() << " usage=" << QString::number(system.gpuUsage(), 'f', 1)
+                << " mem=" << QString::number(system.gpuMemoryUsedMb(), 'f', 0) << "/"
+                << QString::number(system.gpuMemoryTotalMb(), 'f', 0) << "MB\n"
+                << "NET down=" << QString::number(system.networkDownKbps(), 'f', 1)
+                << "kbps up=" << QString::number(system.networkUpKbps(), 'f', 1) << "kbps\n"
+                << "DISK=" << QString::number(system.diskUsedGb(), 'f', 1) << "/"
+                << QString::number(system.diskTotalGb(), 'f', 1) << "GB ("
+                << QString::number(system.diskPercent(), 'f', 1) << "%)\n"
+                << "UPTIME=" << system.uptimeSeconds() << "s\n";
+            out.flush();
+            loop.exit(0);
+        });
+        QTimer::singleShot(6000, &loop, [&loop]() { loop.exit(4); });
+        return loop.exec();
+    }
+
+    const int weatherIndex = arguments.indexOf(QStringLiteral("--weather"));
+    if (weatherIndex >= 0) {
+        WeatherService weather;
+        QEventLoop loop;
+        if (weatherIndex + 1 < arguments.size())
+            weather.setCity(arguments.at(weatherIndex + 1));
+        else
+            weather.refresh();
+        const auto report = [&]() {
+            if (weather.loading())
+                return;
+            QTextStream out(stdout);
+            if (!weather.available()) {
+                out << "WEATHER unavailable: " << weather.error() << '\n';
+                out.flush();
+                loop.exit(2);
+                return;
+            }
+            out << "CITY=" << weather.city() << " TEMP=" << weather.temperature()
+                << " DESC=" << weather.description() << " ICON=" << weather.icon()
+                << " HUM=" << weather.humidity() << " WIND=" << weather.wind()
+                << " SUN=" << weather.sunrise() << "/" << weather.sunset()
+                << " FORECAST=" << weather.forecast().size() << '\n';
+            out.flush();
+            loop.exit(0);
+        };
+        QObject::connect(&weather, &WeatherService::changed, &loop, report);
+        QTimer::singleShot(0, &loop, report);
+        QTimer::singleShot(20000, &loop, [&loop]() { loop.exit(4); });
+        return loop.exec();
+    }
+
+    if (arguments.contains(QStringLiteral("--dump-media"))) {
+        MediaService media;
+        QEventLoop loop;
+        QTimer::singleShot(3000, &loop, [&]() {
+            QTextStream out(stdout);
+            out << "MEDIA available=" << media.available() << " playing=" << media.playing()
+                << " title=" << media.title() << " artist=" << media.artist()
+                << " source=" << media.sourceApp() << " artwork=" << media.artworkPath()
+                << " error=" << media.error() << '\n';
+            out.flush();
+            loop.exit(0);
+        });
+        return loop.exec();
+    }
+
+    if (arguments.contains(QStringLiteral("--media-toggle"))) {
+        MediaService media;
+        QEventLoop loop;
+        QTimer::singleShot(2000, &loop, [&]() { media.playPause(); });
+        QTimer::singleShot(4000, &loop, [&]() {
+            QTextStream out(stdout);
+            out << "MEDIA available=" << media.available() << " playing=" << media.playing()
+                << " title=" << media.title() << '\n';
+            out.flush();
+            loop.exit(0);
+        });
+        QTimer::singleShot(9000, &loop, [&loop]() { loop.exit(4); });
+        return loop.exec();
+    }
+
     // A second launch must not create another AppBar or tray icon. The named
     // mutex is released by the OS even if the first instance crashes.
     const HANDLE instanceMutex = CreateMutexW(nullptr, FALSE, L"Local\\CaelestiaShellWindows");
@@ -66,17 +242,27 @@ int main(int argc, char* argv[])
         qWarning("Caelestia single-instance mutex could not be created; continuing unprotected");
 
     Platform platform;
+    AppLauncherService apps;
     BatteryService battery;
     NetworkService network;
     BluetoothService bluetooth;
     AudioService audio;
+    MediaService media;
+    SystemService system;
+    WeatherService weather;
+    PowerService power;
     TrayService tray;
 
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Platform", &platform);
+    qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Apps", &apps);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Battery", &battery);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Network", &network);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Bluetooth", &bluetooth);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Audio", &audio);
+    qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Media", &media);
+    qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "System", &system);
+    qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Weather", &weather);
+    qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Power", &power);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Tray", &tray);
 
     QQmlApplicationEngine engine;
@@ -145,5 +331,7 @@ int main(int argc, char* argv[])
         CloseHandle(instanceMutex);
     return exitCode;
 }
+
+
 
 

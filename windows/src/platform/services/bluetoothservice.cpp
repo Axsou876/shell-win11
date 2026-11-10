@@ -7,6 +7,7 @@
 #include <winrt/Windows.Devices.Radios.h>
 #include <winrt/Windows.Foundation.Collections.h>
 
+#include <chrono>
 #include <vector>
 
 using namespace winrt::Windows::Devices::Radios;
@@ -40,6 +41,12 @@ bool BluetoothService::enabled() const
 bool BluetoothService::known() const
 {
     return m_known;
+}
+
+void BluetoothService::setEnabled(bool enabled)
+{
+    m_requestedState = enabled ? 1 : 0;
+    m_cv.notify_all();
 }
 
 void BluetoothService::stop()
@@ -108,7 +115,33 @@ void BluetoothService::run()
 
         {
             std::unique_lock lock(m_mutex);
-            m_cv.wait(lock, [this]() { return m_stop.load(); });
+            while (!m_stop.load()) {
+                m_cv.wait_for(lock, std::chrono::milliseconds(200));
+                const int requested = m_requestedState.exchange(-1);
+                if (requested < 0 || bluetoothRadios.empty())
+                    continue;
+
+                try {
+                    const RadioState target = requested == 1 ? RadioState::On : RadioState::Off;
+                    for (const auto& radio : bluetoothRadios) {
+                        const RadioAccessStatus status = radio.SetStateAsync(target).get();
+                        if (status != RadioAccessStatus::Allowed) {
+                            QMetaObject::invokeMethod(
+                                this,
+                                [this]() {
+                                    emit toggleFailed(QStringLiteral(
+                                        "Windows a refusé la modification du Bluetooth"));
+                                },
+                                Qt::QueuedConnection);
+                        }
+                    }
+                } catch (const winrt::hresult_error& error) {
+                    const QString message = QString::fromWCharArray(error.message().c_str());
+                    QMetaObject::invokeMethod(
+                        this, [this, message]() { emit toggleFailed(message); },
+                        Qt::QueuedConnection);
+                }
+            }
         }
 
         for (size_t i = 0; i < bluetoothRadios.size(); ++i)

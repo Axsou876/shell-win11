@@ -4,8 +4,8 @@ import QtQuick
 import ".."
 import "../components"
 
-// Visual shell for the 854 px dashboard. Only navigation and empty states
-// are present; no weather/media/performance service is connected.
+// Functional dashboard: the four tabs are real components backed by Windows
+// services. The tab row keeps the original Caelestia indicator animation.
 Item {
     id: root
 
@@ -71,6 +71,7 @@ Item {
                                 theme: root.theme
                                 text: tabItem.modelData.icon
                                 iconSize: 18
+                                fill: root.activeTab === tabItem.index ? 1 : 0
                                 color: root.activeTab === tabItem.index
                                     ? root.theme.primary : root.theme.onSurfaceVariantColour
                             }
@@ -79,7 +80,8 @@ Item {
                                 anchors.verticalCenter: parent.verticalCenter
                                 theme: root.theme
                                 role: "bodySmall"
-                                weight: root.activeTab === tabItem.index ? Font.DemiBold : Font.Medium
+                                weight: root.activeTab === tabItem.index
+                                    ? Font.DemiBold : Font.Medium
                                 color: root.activeTab === tabItem.index
                                     ? root.theme.primary : root.theme.onSurfaceVariantColour
                                 text: tabItem.modelData.label
@@ -118,10 +120,6 @@ Item {
                         type: Anim.DefaultSpatial
                     }
                 }
-
-                Behavior on color {
-                    CAnim {}
-                }
             }
 
             Rectangle {
@@ -134,46 +132,92 @@ Item {
             }
         }
 
-        Rectangle {
-            id: viewport
+        Flickable {
+            id: view
 
             width: parent.width
             height: parent.height - header.height - root.theme.spacingMedium
-            radius: root.theme.roundingLarge
-            color: root.theme.surfaceContainerLow
+            contentWidth: width * root.tabs.length
+            contentHeight: height
+            interactive: false
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
 
-            Column {
-                anchors.centerIn: parent
-                spacing: root.theme.spacingSmall
+            contentX: root.activeTab * width
 
-                MaterialIcon {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    theme: root.theme
-                    text: root.tabs[root.activeTab].icon
-                    iconSize: 36
-                    color: root.theme.onSurfaceVariantColour
-                    opacity: 0.7
+            Behavior on contentX {
+                Anim {
+                    type: Anim.DefaultSpatial
+                }
+            }
+
+            Row {
+                width: view.contentWidth
+                height: view.height
+
+                Loader {
+                    width: view.width
+                    height: view.height
+                    sourceComponent: homeComponent
+                    asynchronous: false
                 }
 
-                StyledText {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    theme: root.theme
-                    role: "bodyLarge"
-                    weight: Font.DemiBold
-                    color: root.theme.onSurfaceVariantColour
-                    text: root.tabs[root.activeTab].label
+                Loader {
+                    width: view.width
+                    height: view.height
+                    sourceComponent: mediaComponent
+                    asynchronous: false
                 }
 
-                StyledText {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    theme: root.theme
-                    role: "labelSmall"
-                    color: root.theme.onSurfaceVariantColour
-                    opacity: 0.7
-                    text: "Contenu à venir — aucune donnée fictive dans cette fondation."
+                Loader {
+                    width: view.width
+                    height: view.height
+                    sourceComponent: performanceComponent
+                    asynchronous: false
                 }
 
+                Loader {
+                    width: view.width
+                    height: view.height
+                    sourceComponent: weatherComponent
+                    asynchronous: false
+                }
             }
         }
     }
+
+    Component {
+        id: homeComponent
+
+        DashboardHome {
+            theme: root.theme
+        }
+    }
+
+    Component {
+        id: mediaComponent
+
+        DashboardMedia {
+            theme: root.theme
+        }
+    }
+
+    Component {
+        id: performanceComponent
+
+        DashboardPerformance {
+            theme: root.theme
+        }
+    }
+
+    Component {
+        id: weatherComponent
+
+        DashboardWeather {
+            theme: root.theme
+        }
+    }
+
+    Keys.onLeftPressed: root.activeTab = Math.max(0, root.activeTab - 1)
+    Keys.onRightPressed: root.activeTab = Math.min(root.tabs.length - 1, root.activeTab + 1)
 }

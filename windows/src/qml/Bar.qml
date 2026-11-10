@@ -17,15 +17,33 @@ Item {
 
         Item {
             Layout.alignment: Qt.AlignHCenter
-            Layout.preferredWidth: root.theme.barInnerWidth
-            Layout.preferredHeight: 19
-            Layout.topMargin: root.theme.barVPadding
+            Layout.preferredWidth: 32
+            Layout.preferredHeight: 32
+            Layout.topMargin: root.theme.barVPadding - 6
 
             Logo {
+                id: barLogo
+
                 anchors.centerIn: parent
                 width: 26
                 height: 26
                 theme: root.theme
+                scale: logoArea.containsMouse ? 1.08 : 1
+
+                Behavior on scale {
+                    Anim {
+                        type: Anim.FastSpatial
+                    }
+                }
+            }
+
+            StateLayer {
+                id: logoArea
+
+                anchors.fill: parent
+                theme: root.theme
+                radius: width / 2
+                onClicked: root.panelController.togglePanel("launcher", root.screenName, 0)
             }
         }
 
@@ -69,7 +87,16 @@ Item {
             Layout.alignment: Qt.AlignHCenter
             Layout.bottomMargin: root.theme.barVPadding
             theme: root.theme
+            panelController: root.panelController
+            screenName: root.screenName
+            screenY: root.screenY
+            screenHeight: root.height
         }
+    }
+
+    Shortcut {
+        sequence: "F1"
+        onActivated: root.panelController.togglePanel("launcher", root.screenName, 0)
     }
 }
 

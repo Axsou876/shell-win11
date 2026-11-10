@@ -28,6 +28,10 @@ public:
     void refreshVolume();
     void setVolume(double scalar, bool muted);
 
+    Q_INVOKABLE void setVolumePercent(int percent);
+    Q_INVOKABLE void toggleMute();
+    Q_INVOKABLE void refresh();
+
 signals:
     void changed();
 

@@ -119,6 +119,11 @@ void NetworkService::scheduleRefresh()
         Qt::QueuedConnection);
 }
 
+void NetworkService::refreshNow()
+{
+    scheduleRefresh();
+}
+
 void NetworkService::refresh()
 {
     bool wifiConnected = false;

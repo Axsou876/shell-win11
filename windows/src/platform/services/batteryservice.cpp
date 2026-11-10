@@ -45,11 +45,16 @@ bool BatteryService::onAc() const
     return m_onAc;
 }
 
+int BatteryService::minutesRemaining() const
+{
+    return m_minutesRemaining;
+}
+
 void BatteryService::refresh()
 {
     SYSTEM_POWER_STATUS status = {};
     if (!GetSystemPowerStatus(&status)) {
-        setState(false, false, -1, false, false);
+        setState(false, false, -1, false, false, -1);
         return;
     }
 
@@ -60,8 +65,11 @@ void BatteryService::refresh()
     const bool known = !unknown && level >= 0;
     const bool charging = (status.BatteryFlag & 8) != 0;
     const bool onAc = status.ACLineStatus == 1;
+    const int minutes = status.BatteryLifeTime == static_cast<DWORD>(-1)
+        ? -1
+        : static_cast<int>(status.BatteryLifeTime / 60);
 
-    setState(present, known, level, charging, onAc);
+    setState(present, known, level, charging, onAc, minutes);
 }
 
 bool BatteryService::nativeEventFilter(const QByteArray& eventType, void* message, qintptr* result)
@@ -78,10 +86,11 @@ bool BatteryService::nativeEventFilter(const QByteArray& eventType, void* messag
     return false;
 }
 
-void BatteryService::setState(bool present, bool known, int level, bool charging, bool onAc)
+void BatteryService::setState(bool present, bool known, int level, bool charging, bool onAc,
+    int minutesRemaining)
 {
     if (m_present == present && m_known == known && m_level == level && m_charging == charging
-        && m_onAc == onAc)
+        && m_onAc == onAc && m_minutesRemaining == minutesRemaining)
         return;
 
     m_present = present;
@@ -89,10 +98,12 @@ void BatteryService::setState(bool present, bool known, int level, bool charging
     m_level = level;
     m_charging = charging;
     m_onAc = onAc;
+    m_minutesRemaining = minutesRemaining;
     emit changed();
 
     if (!qEnvironmentVariableIsEmpty("CAELESTIA_DEBUG_STATUS")) {
         qInfo().noquote() << "Battery: present=" << present << "known=" << known << "level=" << level
-                          << "charging=" << charging << "onAc=" << onAc;
+                          << "charging=" << charging << "onAc=" << onAc
+                          << "minutes=" << minutesRemaining;
     }
 }

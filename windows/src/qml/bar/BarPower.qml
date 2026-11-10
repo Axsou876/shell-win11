@@ -6,10 +6,14 @@ Item {
     id: root
 
     required property var theme
+    required property var panelController
+    required property string screenName
+    required property real screenY
+    required property real screenHeight
 
     implicitWidth: icon.implicitHeight + theme.paddingSmall
     implicitHeight: icon.implicitHeight
-    scale: powerArea.pressed ? 0.9 : 1
+    scale: powerArea.pressed ? 0.9 : powerArea.containsMouse ? 1.08 : 1
 
     Behavior on scale {
         Anim {
@@ -25,7 +29,8 @@ Item {
         height: width
         radius: width / 2
         theme: root.theme
-        onClicked: console.log("Caelestia power button clicked")
+        onClicked: root.panelController.togglePanel("power", root.screenName,
+            root.screenY + root.screenHeight - 90)
     }
 
     MaterialIcon {

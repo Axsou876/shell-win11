@@ -165,6 +165,12 @@ Window {
     }
 
     Shortcut {
+        sequence: "F1"
+        enabled: overlay.interactive
+        onActivated: overlay.controller.togglePanel("launcher", overlay.screenName, 0)
+    }
+
+    Shortcut {
         sequence: "F8"
         enabled: overlay.interactive
         onActivated: overlay.theme.dark = !overlay.theme.dark
@@ -222,7 +228,7 @@ Window {
         onClicked: overlay.controller.closePanel()
     }
 
-    SidebarShell {
+        SidebarShell {
         x: surface.sidebarX
         y: surface.sidebarY
         width: surface.sidebarW
@@ -232,6 +238,8 @@ Window {
         deformScaleX: surface.sidebarScaleX
         deformScaleY: surface.sidebarScaleY
         theme: overlay.theme
+        controller: overlay.controller
+        screenName: overlay.screenName
     }
 
     DashboardShell {
@@ -244,6 +252,19 @@ Window {
         deformScaleX: surface.dashboardScaleX
         deformScaleY: surface.dashboardScaleY
         theme: overlay.theme
+    }
+
+    LauncherShell {
+        x: surface.launcherX
+        y: surface.launcherY
+        width: overlay.theme.launcherWidth
+        height: overlay.theme.launcherHeight
+        opacity: surface.launcherOpacity
+        visible: surface.launcherVisible
+        deformScaleX: surface.launcherScaleX
+        deformScaleY: surface.launcherScaleY
+        theme: overlay.theme
+        controller: overlay.controller
     }
 
     PanelHost {

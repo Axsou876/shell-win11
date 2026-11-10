@@ -18,6 +18,9 @@ layout(std140, binding = 0) uniform buf {
     vec4 panel2;
     vec4 radii2;
     vec4 deform2;
+    vec4 panel3;
+    vec4 radii3;
+    vec4 deform3;
 };
 
 float sdBox(vec2 p, vec2 c, vec2 h) {
@@ -107,6 +110,8 @@ void main() {
         sink = max(sink, borderSink(p, panel1, sizeParams.xy, hole, smoothing));
     if (panel2.z > 0.5 && panel2.w > 0.5)
         sink = max(sink, borderSink(p, panel2, sizeParams.xy, hole, smoothing));
+    if (panel3.z > 0.5 && panel3.w > 0.5)
+        sink = max(sink, borderSink(p, panel3, sizeParams.xy, hole, smoothing));
 
     float dOuter = sdBox(p, halfSize, halfSize);
     float dHole = sdRoundedBox4(p, holeCentre, hole.zw * 0.5, vec4(sizeParams.z)) - sink;
@@ -118,6 +123,8 @@ void main() {
         d = smin(d, panelSdf(p, panel1, radii1, deform1), smoothing);
     if (panel2.z > 0.5 && panel2.w > 0.5)
         d = smin(d, panelSdf(p, panel2, radii2, deform2), smoothing);
+    if (panel3.z > 0.5 && panel3.w > 0.5)
+        d = smin(d, panelSdf(p, panel3, radii3, deform3), smoothing);
 
     float fw = max(fwidth(d), 0.0001);
     float alpha = (1.0 - smoothstep(-fw, fw, d)) * colour.a;

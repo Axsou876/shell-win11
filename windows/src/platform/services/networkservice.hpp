@@ -33,6 +33,7 @@ public:
     [[nodiscard]] QString ethernetName() const;
 
     void scheduleRefresh();
+    Q_INVOKABLE void refreshNow();
 
 signals:
     void changed();

@@ -20,6 +20,9 @@ layout(std140, binding = 0) uniform buf {
     vec4 panel2;
     vec4 radii2;
     vec4 deform2;
+    vec4 panel3;
+    vec4 radii3;
+    vec4 deform3;
 };
 
 void main() {

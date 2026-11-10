@@ -35,9 +35,12 @@ Item {
         && controller.currentScreenName === screenName && !controller.closing
     readonly property bool dashboardActive: controller.currentPanel === "dashboard"
         && controller.currentScreenName === screenName && !controller.closing
+    readonly property bool launcherActive: controller.currentPanel === "launcher"
+        && controller.currentScreenName === screenName && !controller.closing
 
     property real sidebarOffset: sidebarActive ? 0 : 1
     property real dashboardOffset: dashboardActive ? 0 : 1
+    property real launcherOffset: launcherActive ? 0 : 1
 
     Behavior on sidebarOffset {
         Anim {
@@ -46,6 +49,12 @@ Item {
     }
 
     Behavior on dashboardOffset {
+        Anim {
+            type: Anim.DefaultSpatial
+        }
+    }
+
+    Behavior on launcherOffset {
         Anim {
             type: Anim.DefaultSpatial
         }
@@ -61,6 +70,12 @@ Item {
     readonly property real dashboardY: border - (theme.dashboardHeight + 5) * dashboardOffset
     readonly property real dashboardOpacity: 1 - dashboardOffset
     readonly property bool dashboardVisible: dashboardOffset < 0.999
+
+    readonly property real launcherX: barWidth + (width - barWidth - border - theme.launcherWidth) / 2
+    readonly property real launcherY: height - border - theme.launcherHeight - theme.launcherBottomMargin
+        + (theme.launcherHeight + theme.launcherBottomMargin + border) * launcherOffset
+    readonly property real launcherOpacity: 1 - launcherOffset
+    readonly property bool launcherVisible: launcherOffset < 0.999
 
     readonly property color surfaceColour: theme.surface
 
@@ -91,6 +106,15 @@ Item {
             surface.popoutRect.y + surface.popoutRect.height / 2)
     }
 
+    SpringDeform {
+        id: launcherSpring
+
+        enabled: surface.launcherVisible
+        deformScale: 0.15 * surface.theme.appearanceDeformScale / 10000
+        centre: Qt.point(surface.launcherX + surface.theme.launcherWidth / 2,
+            surface.launcherY + surface.theme.launcherHeight / 2)
+    }
+
     // The spring is axis-aligned because the sidebar, dashboard and popout
     // motions are horizontal or vertical. The original also supports a full
     // symmetric 2x2 matrix for diagonal motion (detached popouts); that case
@@ -101,10 +125,13 @@ Item {
     readonly property real dashboardScaleY: dashboardSpring.scaleY
     readonly property real popoutScaleX: popoutSpring.scaleX
     readonly property real popoutScaleY: popoutSpring.scaleY
+    readonly property real launcherScaleX: launcherSpring.scaleX
+    readonly property real launcherScaleY: launcherSpring.scaleY
 
     readonly property vector4d sidebarInverse: sidebarSpring.inverse
     readonly property vector4d dashboardInverse: dashboardSpring.inverse
     readonly property vector4d popoutInverse: popoutSpring.inverse
+    readonly property vector4d launcherInverse: launcherSpring.inverse
 
     Item {
         anchors.fill: parent
@@ -146,6 +173,13 @@ Item {
             property vector4d radii2: Qt.vector4d(surface.theme.panelRadius, surface.theme.panelRadius,
                 surface.theme.panelRadius, surface.theme.panelRadius)
             property vector4d deform2: surface.popoutInverse
+            property vector4d panel3: surface.launcherVisible
+                ? Qt.vector4d(surface.launcherX, surface.launcherY,
+                    surface.theme.launcherWidth, surface.theme.launcherHeight)
+                : Qt.vector4d(0, 0, 0, 0)
+            property vector4d radii3: Qt.vector4d(surface.theme.panelRadius, surface.theme.panelRadius,
+                surface.theme.panelRadius, surface.theme.panelRadius)
+            property vector4d deform3: surface.launcherInverse
 
             vertexShader: "qrc:/src/shaders/blob.vert.qsb"
             fragmentShader: "qrc:/src/shaders/blob.frag.qsb"

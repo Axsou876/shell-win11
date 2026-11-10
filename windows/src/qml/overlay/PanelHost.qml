@@ -22,6 +22,7 @@ Item {
         && controller.currentScreenName === screenName
         && controller.currentPanel !== "sidebar"
         && controller.currentPanel !== "dashboard"
+        && controller.currentPanel !== "launcher"
         && !controller.closing
 
     readonly property var panelItem: loader.item
@@ -101,7 +102,69 @@ Item {
         parent: frame.contentParent
         anchors.fill: parent
         active: host.loadedPanel !== ""
-        sourceComponent: host.loadedPanel !== "" ? foundationComponent : null
+        sourceComponent: host.loadedPanel !== "" ? host.componentFor(host.loadedPanel) : null
+    }
+
+    function componentFor(name) {
+        switch (name) {
+        case "audio":
+            return audioPanel;
+        case "network":
+            return networkPanel;
+        case "bluetooth":
+            return bluetoothPanel;
+        case "battery":
+            return batteryPanel;
+        case "power":
+            return powerPanel;
+        default:
+            return foundationComponent;
+        }
+    }
+
+    Component {
+        id: audioPanel
+
+        AudioPanel {
+            theme: host.theme
+            controller: host.controller
+        }
+    }
+
+    Component {
+        id: networkPanel
+
+        NetworkPanel {
+            theme: host.theme
+            controller: host.controller
+        }
+    }
+
+    Component {
+        id: bluetoothPanel
+
+        BluetoothPanel {
+            theme: host.theme
+            controller: host.controller
+        }
+    }
+
+    Component {
+        id: batteryPanel
+
+        BatteryPanel {
+            theme: host.theme
+            controller: host.controller
+        }
+    }
+
+    Component {
+        id: powerPanel
+
+        PowerPanel {
+            theme: host.theme
+            controller: host.controller
+        }
     }
 
     Component {

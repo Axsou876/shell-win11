@@ -66,6 +66,9 @@ QtObject {
     readonly property int sidebarWidth: 430
     readonly property int dashboardWidth: 854
     readonly property int dashboardHeight: 560
+    readonly property int launcherWidth: 640
+    readonly property int launcherHeight: 520
+    readonly property int launcherBottomMargin: 16
     readonly property int popoutWidth: 320
     readonly property int popoutNetworkWidth: 320
     readonly property int popoutAudioWidth: 320

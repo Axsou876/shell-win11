@@ -12,6 +12,10 @@ Rectangle {
     required property string screenName
     required property real screenY
 
+    property string hoveredPanel: ""
+    readonly property string activePanel: panelController.currentScreenName === screenName
+        ? panelController.currentPanel : ""
+
     implicitWidth: theme.barInnerWidth
     implicitHeight: layout.implicitHeight + theme.paddingMedium * 2
     radius: width / 2
@@ -61,9 +65,12 @@ Rectangle {
 
     function triggerAt(px, py, reason) {
         const icon = iconAt(px, py);
-        if (!icon || !icon.visible || !icon.panelName)
+        if (!icon || !icon.visible || !icon.panelName) {
+            root.hoveredPanel = "";
             return false;
+        }
 
+        root.hoveredPanel = icon.panelName;
         const centre = icon.mapToItem(null, 0, icon.height / 2);
         const anchor = root.screenY + centre.y;
         if (reason === "hover")
@@ -71,6 +78,14 @@ Rectangle {
         else
             root.panelController.openPanel(icon.panelName, root.screenName, anchor, "explicit");
         return true;
+    }
+
+    function iconScale(name) {
+        return root.hoveredPanel === name ? 1.16 : 1;
+    }
+
+    function iconColour(name) {
+        return root.activePanel === name ? root.theme.primary : root.theme.secondary;
     }
 
     Rectangle {
@@ -98,32 +113,50 @@ Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             theme: root.theme
             text: root.audioIcon()
-            color: root.theme.secondary
+            color: root.iconColour("audio")
             iconSize: root.theme.statusIconSize
+            fill: root.activePanel === "audio" ? 1 : 0
             visible: Audio.present
             opacity: Audio.known ? 1 : 0.45
+            scale: root.iconScale("audio")
             property string panelName: "audio"
+
+            Behavior on scale {
+                Anim { type: Anim.FastSpatial }
+            }
         }
 
         MaterialIcon {
             anchors.horizontalCenter: parent.horizontalCenter
             theme: root.theme
             text: root.networkIcon()
-            color: root.theme.secondary
+            color: root.iconColour("network")
             iconSize: root.theme.statusIconSize
+            fill: root.activePanel === "network" ? 1 : 0
             opacity: Network.known ? 1 : 0.45
+            scale: root.iconScale("network")
             property string panelName: "network"
+
+            Behavior on scale {
+                Anim { type: Anim.FastSpatial }
+            }
         }
 
         MaterialIcon {
             anchors.horizontalCenter: parent.horizontalCenter
             theme: root.theme
             text: Bluetooth.enabled ? "bluetooth" : "bluetooth_disabled"
-            color: root.theme.secondary
+            color: root.iconColour("bluetooth")
             iconSize: root.theme.statusIconSize
+            fill: root.activePanel === "bluetooth" ? 1 : 0
             visible: Bluetooth.present
             opacity: Bluetooth.known ? 1 : 0.45
+            scale: root.iconScale("bluetooth")
             property string panelName: "bluetooth"
+
+            Behavior on scale {
+                Anim { type: Anim.FastSpatial }
+            }
         }
 
         MaterialIcon {
@@ -132,12 +165,17 @@ Rectangle {
             text: root.batteryIcon()
             color: !Battery.onAc && Battery.level >= 0 && Battery.level <= 20
                 ? root.theme.error
-                : root.theme.secondary
+                : root.iconColour("battery")
             iconSize: root.theme.statusIconSize
-            fill: 1
+            fill: root.activePanel === "battery" ? 1 : 0
             visible: Battery.present
             opacity: Battery.known ? 1 : 0.45
+            scale: root.iconScale("battery")
             property string panelName: "battery"
+
+            Behavior on scale {
+                Anim { type: Anim.FastSpatial }
+            }
         }
     }
 
@@ -151,6 +189,7 @@ Rectangle {
         cursorShape: Qt.PointingHandCursor
 
         onPositionChanged: mouse => root.triggerAt(mouse.x, mouse.y, "hover")
+        onExited: root.hoveredPanel = ""
         onClicked: mouse => root.triggerAt(mouse.x, mouse.y, "explicit")
     }
 }

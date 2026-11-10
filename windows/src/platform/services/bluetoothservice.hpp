@@ -22,10 +22,13 @@ public:
     [[nodiscard]] bool enabled() const;
     [[nodiscard]] bool known() const;
 
+    Q_INVOKABLE void setEnabled(bool enabled);
+
     void stop();
 
 signals:
     void changed();
+    void toggleFailed(const QString& message);
 
 private:
     void run();
@@ -36,6 +39,7 @@ private:
     std::condition_variable m_cv;
     std::atomic<bool> m_stop { false };
     std::atomic<bool> m_started { false };
+    std::atomic<int> m_requestedState { -1 };
     bool m_present = false;
     bool m_enabled = false;
     bool m_known = false;

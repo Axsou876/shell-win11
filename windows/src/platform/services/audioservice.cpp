@@ -239,6 +239,34 @@ void AudioService::setVolume(double scalar, bool muted)
     setState(m_present, m_known, qBound(0, qRound(scalar * 100.0), 100), muted, m_deviceName);
 }
 
+void AudioService::setVolumePercent(int percent)
+{
+    if (!m_impl || !m_impl->volume)
+        return;
+    const float scalar = qBound(0, percent, 100) / 100.0f;
+    if (SUCCEEDED(m_impl->volume->SetMasterVolumeLevelScalar(scalar, nullptr)))
+        refreshVolume();
+}
+
+void AudioService::toggleMute()
+{
+    if (!m_impl || !m_impl->volume)
+        return;
+    BOOL muted = FALSE;
+    if (FAILED(m_impl->volume->GetMute(&muted)))
+        return;
+    if (SUCCEEDED(m_impl->volume->SetMute(!muted, nullptr)))
+        refreshVolume();
+}
+
+void AudioService::refresh()
+{
+    if (m_impl && m_impl->volume)
+        refreshVolume();
+    else
+        refreshDefaultDevice();
+}
+
 void AudioService::setState(
     bool present, bool known, int volume, bool muted, const QString& deviceName)
 {
