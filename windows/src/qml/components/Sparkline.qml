@@ -6,7 +6,7 @@ Canvas {
     id: root
 
     property var values: []
-    property color lineColor: "#ffb0ca"
+    property color lineColor: "#ffffff"
     property color fillColor: lineColor
     property real maximum: 0
 

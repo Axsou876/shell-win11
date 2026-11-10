@@ -87,6 +87,10 @@ Terminé et testé :
   avec bouton de notification de test. Les notifications restent internes au
   shell (pas de capture des toasts d’autres applications).
 - Animations de panneaux, launcher, onglets et icônes ; SDF/spring conservés.
+- Thème monochrome strict : surfaces noires pures en mode sombre, blanches pures
+  en mode clair, accents et conteneurs en gris neutres, aucune teinte colorée.
+  Les icônes d’applications, les pochettes média et la photo de compte gardent
+  leurs couleurs d’origine.
 - Rehausse périodique de l’AppBar au-dessus des fenêtres maximisées/borderless ;
   animation verticale des panneaux sans dépassement sous la barre des tâches.
 
@@ -161,6 +165,9 @@ Partiel / non exécuté volontairement :
 - Notifications Release : état vide, création (`Notifications · 1`), carte
   complète, bouton `Another action` (fermeture), clic du milieu et balayage
   horizontal (`Notifications · 0`) vérifiés ; aucune erreur QML.
+- Thème monochrome Release : launcher sombre `#000000`, launcher clair
+  `#fefefe/#ffffff`, notifications `#0a0a0a`, barre `#000000`, texte
+  `#ffffff/#000000` ; aucune couleur d’accent dans le thème (pixels neutres).
 - Nouveautés Release testées à 100 % (`GetDpiForWindow` = 96) ; à 125 %, les
   captures de l’interface précédente restent valides, mais les deux nouveaux
   panneaux n’ont pas été rejoués après un changement d’échelle système.
@@ -189,7 +196,8 @@ Partiel / non exécuté volontairement :
 - `windows/build-release/smoke/` : `release-wallpaper.png`,
   `release-notif-empty.png`, `release-notif-created.png`,
   `release-notif-swiped.png`, `release-notif-middle.png`,
-  `release-notif-action.png`
+  `release-notif-action.png`, `mono-dashboard.png`, `mono-launcher.png`,
+  `mono-launcher-light2.png`, `mono-notifications.png`, `mono-bar.png`
 
 Logs : `C:\Users\axsou\AppData\Local\Temp\opencode\phase3-final-ui.err.log`,
 `phase3-nonreg.err.log`, `phase3-rapid.err.log`.
