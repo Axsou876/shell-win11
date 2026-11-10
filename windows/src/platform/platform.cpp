@@ -131,8 +131,10 @@ Platform::Platform(QObject* parent)
     refresh();
 
     // The shell replaces the Windows taskbar; auto-hide expands each monitor's
-    // work area so the shell can fill it. The previous state is restored when
-    // the shell quits.
+    // work area so the shell can fill it. The window itself is kept hidden
+    // while the shell runs and the previous state is restored when it quits.
+    m_taskbarTimer.setInterval(250);
+    connect(&m_taskbarTimer, &QTimer::timeout, this, &Platform::enforceTaskbarHidden);
     hideTaskbar();
     QTimer::singleShot(1200, this, &Platform::refreshAppBar);
 
@@ -331,6 +333,19 @@ void Platform::hideTaskbar()
     }
 
     m_taskbarHidden = true;
+    m_taskbarTimer.start();
+}
+
+void Platform::enforceTaskbarHidden()
+{
+    if (!m_taskbarHidden)
+        return;
+
+    // Explorer can re-show the taskbar for the Start menu or after a shell
+    // refresh; put it back off-screen immediately. The auto-hide state above
+    // is what keeps the work area full, not the visibility of the window.
+    for (HWND bar : taskbarWindows())
+        ShowWindow(bar, SW_HIDE);
 }
 
 void Platform::restoreTaskbar()
@@ -338,6 +353,7 @@ void Platform::restoreTaskbar()
     if (!m_taskbarHidden)
         return;
 
+    m_taskbarTimer.stop();
     const QList<HWND> bars = taskbarWindows();
     APPBARDATA abd = {};
     abd.cbSize = sizeof(APPBARDATA);

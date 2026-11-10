@@ -95,11 +95,12 @@ Terminé et testé :
   d’origine.
 - Rehausse périodique de l’AppBar au-dessus des fenêtres maximisées/borderless ;
   animation verticale des panneaux sans dépassement sous la barre des tâches.
-- Barre des tâches Windows masquée pendant l’exécution : état `ABS_AUTOHIDE`
-  posé via `SHAppBarMessage`, fenêtres `Shell_TrayWnd`/`Shell_SecondaryTrayWnd`
-  cachées, zone de travail étendue à l’écran complet. Le shell remplit alors
-  toute la hauteur ; l’état précédent et la zone de travail sont restaurés à la
-  fermeture propre.
+- Barre des tâches Windows totalement masquée pendant l’exécution : état
+  `ABS_AUTOHIDE` posé via `SHAppBarMessage`, fenêtres
+  `Shell_TrayWnd`/`Shell_SecondaryTrayWnd` cachées et re-cachées toutes les
+  250 ms (survol du bas, menu Démarrer, refresh Explorer), zone de travail
+  étendue à l’écran complet. Le shell remplit alors toute la hauteur ; l’état
+  précédent et la zone de travail sont restaurés à la fermeture propre.
 
 Partiel / non exécuté volontairement :
 
@@ -178,14 +179,14 @@ Partiel / non exécuté volontairement :
 - Icônes d’applications Release : Firefox reste coloré dans l’icône de fenêtre
   active en mode blanc et sombre (recoloration au thème supprimée) ; captures
   `firefox-icon-light.png`, `firefox-icon-dark.png`.
-- Barre des tâches Release : `Shell_TrayWnd` masquée, `ABM_GETSTATE` = 1
-  (auto-hide), zone de travail `60,0 1920×1080`, barre et overlay sur 1080 px,
-  aucun retour de la barre au survol du bas de l’écran. Après fermeture propre
-  (`WM_QUIT`) : processus arrêté, barre visible, état 0, zone de travail
-  `0,0 1920×1032`. `Ctrl+Q` depuis le launcher : même restauration propre.
-  Kill forcé puis relance : la zone de travail reste à 1080 et l’état est
-  mémorisé ; une fermeture propre ensuite restaure bien l’état 0 et 1032.
-  Captures `taskbar-hidden-full.png`, `taskbar-final-hidden.png`.
+- Barre des tâches Release : `Shell_TrayWnd` invisible (`IsWindowVisible` =
+  faux), `ABM_GETSTATE` = 1, zone de travail `60,0 1920×1080`, barre et overlay
+  sur 1080 px ; aucun retour au survol du bas ni après la touche Windows/menu
+  Démarrer. Après fermeture propre (`Ctrl+Q` depuis le launcher) : processus
+  arrêté, barre visible, état 0, zone de travail `0,0 1920×1032`. Kill forcé
+  puis relance : la zone reste à 1080 et l’état est mémorisé ; une fermeture
+  propre restaure l’état 0 et 1032. Captures `taskbar-hidden-full.png`,
+  `taskbar-enforced.png`, `taskbar-final-hidden.png`.
 - Nouveautés Release testées à 100 % (`GetDpiForWindow` = 96) ; à 125 %, les
   captures de l’interface précédente restent valides, mais les deux nouveaux
   panneaux n’ont pas été rejoués après un changement d’échelle système.
@@ -217,7 +218,8 @@ Partiel / non exécuté volontairement :
   `release-notif-action.png`, `mono-dashboard.png`, `mono-launcher.png`,
   `mono-launcher-light2.png`, `mono-notifications.png`, `mono-bar.png`,
   `firefox-icon-light.png`, `firefox-icon-dark.png`,
-  `taskbar-hidden-full.png`, `taskbar-final-hidden.png`
+  `taskbar-hidden-full.png`, `taskbar-enforced.png`,
+  `taskbar-final-hidden.png`
 
 Logs : `C:\Users\axsou\AppData\Local\Temp\opencode\phase3-final-ui.err.log`,
 `phase3-nonreg.err.log`, `phase3-rapid.err.log`.

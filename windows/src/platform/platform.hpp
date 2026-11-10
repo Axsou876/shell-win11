@@ -124,6 +124,7 @@ private:
     // previous AppBar state is restored on exit so the user's setting survives.
     void hideTaskbar();
     void restoreTaskbar();
+    void enforceTaskbarHidden();
 
     void startActiveWindowTracking();
     void stopActiveWindowTracking();
@@ -152,6 +153,7 @@ private:
     quintptr m_rawInputHwnd = 0;
     quintptr m_escapeHotkeyHwnd = 0;
 
+    QTimer m_taskbarTimer;
     bool m_taskbarHidden = false;
     bool m_taskbarWasVisible = false;
     quint32 m_taskbarState = 0;
