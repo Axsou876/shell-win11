@@ -28,19 +28,22 @@ Item {
         anchors.fill: parent
         spacing: root.theme.spacingSmall
 
-        Row {
+        Item {
             width: parent.width
+            height: month.height
 
             StyledText {
+                id: month
+
+                anchors.left: parent.left
                 theme: root.theme
                 role: "bodyLarge"
                 weight: Font.DemiBold
                 text: Qt.formatDateTime(root.today, "MMMM yyyy")
             }
 
-            Item { width: parent.width - 180; height: 1 }
-
             StyledText {
+                anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 theme: root.theme
                 role: "labelSmall"

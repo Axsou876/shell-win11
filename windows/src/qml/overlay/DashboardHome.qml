@@ -178,6 +178,7 @@ Item {
                     spacing: root.theme.spacingLarge
 
                     RoundedClip {
+                        anchors.verticalCenter: parent.verticalCenter
                         width: 72
                         height: 72
                         radius: 36

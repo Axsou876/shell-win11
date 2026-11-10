@@ -66,12 +66,12 @@ Item {
     readonly property real sidebarOpacity: 1 - sidebarOffset
     readonly property bool sidebarVisible: sidebarOffset < 0.999
 
-    readonly property real dashboardX: barWidth + (width - barWidth - border - dashboardW) / 2
+    readonly property real dashboardX: (width - dashboardW) / 2
     readonly property real dashboardY: border - (theme.dashboardHeight + 5) * dashboardOffset
     readonly property real dashboardOpacity: 1 - dashboardOffset
     readonly property bool dashboardVisible: dashboardOffset < 0.999
 
-    readonly property real launcherX: barWidth + (width - barWidth - border - theme.launcherWidth) / 2
+    readonly property real launcherX: (width - theme.launcherWidth) / 2
     readonly property real launcherY: height - border - theme.launcherHeight - theme.launcherBottomMargin
         + (theme.launcherHeight + theme.launcherBottomMargin + border) * launcherOffset
     readonly property real launcherOpacity: 1 - launcherOffset
