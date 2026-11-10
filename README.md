@@ -21,11 +21,15 @@ This repository also contains a native Windows 11 port of the shell composition
 
 Phase 3 turns the Step 1e hover foundation into a functional desktop shell:
 
-- **Launcher** (click the Caelestia logo or `F1`): discovers Start Menu shortcuts
-  and registered Windows/UWP applications through `shell:AppsFolder`, extracts
-  real shell icons into a cache, supports case-insensitive fuzzy search,
-  favourites, recent/frequency ordering, keyboard navigation and launches with
-  `ShellExecuteExW`. Typed text is never executed as a command.
+- **Launcher** (click the Caelestia logo, the search button, or `F1`): discovers
+  Start Menu shortcuts and registered Windows/UWP applications through
+  `shell:AppsFolder`, extracts real shell icons into a cache, supports
+  case-insensitive fuzzy search, favourites, recent/frequency ordering, keyboard
+  navigation and launches with `ShellExecuteExW`. Typed text is never executed
+  as a command.
+- **Left bar dock**: favourites (or recent applications when no favourite exists)
+  are shown as real icons under the launcher/search/calendar buttons. Clicking an
+  icon launches it; the star in the launcher adds it to the dock.
 - **Dashboard** (`F10`): real clock/system summary, GSMTC media session and
   controls, CPU/memory/GPU/network/storage counters with history charts, and an
   Open-Meteo weather tab with a city setup form. No placeholder values are
@@ -86,9 +90,11 @@ For a standalone folder, run `windeployqt` on that executable.
 
 ### Controls (Phase 3)
 
-- Click the Caelestia logo in the bar or press `F1`: open the application
-  launcher. Type to filter; `↑`/`↓` navigate, `Enter` launches, `Esc` or a click
-  outside closes. The star toggles a favourite.
+- Click the Caelestia logo in the bar, the search icon or press `F1`: open the
+  application launcher. Type to filter; `↑`/`↓` navigate, `Enter` launches, `Esc`
+  or a click outside closes. The star toggles a favourite.
+- The left bar shows the favourite/recent application dock. The search icon
+  opens the launcher; the calendar icon opens the Dashboard.
 - `F10` or hover the top-center strip: Dashboard. Its tabs are Dashboard,
   Media, Performance and Weather.
 - `F9`: Control Centre (favourites, quick actions, audio, network, Bluetooth,
@@ -163,6 +169,10 @@ For a standalone folder, run `windeployqt` on that executable.
   `BatteryService`: `GetSystemPowerStatus` plus `WM_POWERBROADCAST`.
 - `PowerService`: lock, sleep, sign-out, restart and shutdown with the Windows
   shutdown privilege. The QML Power panel requires a second confirmation.
+- `BarFavorites.qml`: vertical favourite/recent dock in the left bar, real cached
+  icons, launches through `Apps.launchById`. The bar also exposes launcher and
+  Dashboard buttons. A slow timer re-raises the AppBar above maximized/borderless
+  windows without changing its AppBar reservation.
 
 ### Known Windows differences
 

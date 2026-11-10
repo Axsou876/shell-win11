@@ -38,6 +38,15 @@ Item {
         }
     }
 
+    // Keep the AppBar above maximized and borderless applications. This is a
+    // slow safety net; panel opening still raises the bars immediately.
+    Timer {
+        interval: 2000
+        repeat: true
+        running: true
+        onTriggered: Platform.raiseAppBars()
+    }
+
     FontLoader {
         id: bodyFont
         source: "qrc:/assets/fonts/GoogleSansFlex.ttf"

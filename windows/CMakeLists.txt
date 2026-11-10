@@ -118,6 +118,7 @@ qt_add_qml_module(caelestia-shell
         src/qml/components/Meter.qml
         src/qml/components/PanelHeader.qml
         src/qml/bar/BarWorkspaces.qml
+        src/qml/bar/BarFavorites.qml
         src/qml/bar/BarActiveWindow.qml
         src/qml/bar/BarTray.qml
         src/qml/bar/BarClock.qml

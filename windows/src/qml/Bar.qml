@@ -12,6 +12,8 @@ Item {
     required property real screenY
 
     ColumnLayout {
+        id: barLayout
+
         anchors.fill: parent
         spacing: root.theme.spacingMedium
 
@@ -47,9 +49,61 @@ Item {
             }
         }
 
+        Column {
+            Layout.alignment: Qt.AlignHCenter
+            spacing: root.theme.spacingExtraSmall
+
+            Item {
+                width: 30
+                height: 30
+
+                StateLayer {
+                    anchors.fill: parent
+                    theme: root.theme
+                    radius: width / 2
+                    onClicked: root.panelController.togglePanel("launcher", root.screenName, 0)
+                }
+
+                MaterialIcon {
+                    anchors.centerIn: parent
+                    theme: root.theme
+                    text: "search"
+                    iconSize: 18
+                    color: root.theme.onSurfaceVariantColour
+                }
+            }
+
+            Item {
+                width: 30
+                height: 30
+
+                StateLayer {
+                    anchors.fill: parent
+                    theme: root.theme
+                    radius: width / 2
+                    onClicked: root.panelController.togglePanel("dashboard", root.screenName, 0)
+                }
+
+                MaterialIcon {
+                    anchors.centerIn: parent
+                    theme: root.theme
+                    text: "calendar_month"
+                    iconSize: 18
+                    color: root.theme.onSurfaceVariantColour
+                }
+            }
+        }
+
         BarWorkspaces {
             Layout.alignment: Qt.AlignHCenter
             theme: root.theme
+        }
+
+        BarFavorites {
+            Layout.alignment: Qt.AlignHCenter
+            theme: root.theme
+            panelController: root.panelController
+            screenName: root.screenName
         }
 
         Item {

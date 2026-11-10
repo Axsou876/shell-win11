@@ -103,6 +103,7 @@ class AppLauncherService final : public QObject {
     Q_PROPERTY(int resultCount READ resultCount NOTIFY resultCountChanged)
     Q_PROPERTY(QStringList favoriteIds READ favoriteIds NOTIFY favoritesChanged)
     Q_PROPERTY(QVariantList favoriteApps READ favoriteApps NOTIFY favoritesChanged)
+    Q_PROPERTY(QVariantList recentApps READ recentApps NOTIFY recentsChanged)
 
 public:
     explicit AppLauncherService(QObject* parent = nullptr);
@@ -123,6 +124,7 @@ public:
     Q_INVOKABLE void toggleFavorite(int searchRow);
     Q_INVOKABLE void clearQuery();
     [[nodiscard]] QVariantList favoriteApps() const;
+    [[nodiscard]] QVariantList recentApps() const;
 
     // CLI helpers: known applications only, never a shell command string.
     [[nodiscard]] QStringList knownAppNames() const;
@@ -135,6 +137,7 @@ signals:
     void totalCountChanged();
     void resultCountChanged();
     void favoritesChanged();
+    void recentsChanged();
     void launchSucceeded(const QString& id, const QString& name);
     void launchFailed(const QString& id, const QString& message);
     void iconChanged();

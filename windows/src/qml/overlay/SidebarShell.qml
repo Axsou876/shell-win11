@@ -158,7 +158,7 @@ Item {
                 spacing: 2
 
                 Repeater {
-                    model: Apps.favoriteApps
+                    model: Apps.favoriteApps.slice(0, 4)
 
                     M3ListItem {
                         required property var modelData

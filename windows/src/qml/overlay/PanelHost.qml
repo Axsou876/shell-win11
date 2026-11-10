@@ -91,7 +91,7 @@ Item {
 
         Behavior on y {
             Anim {
-                type: Anim.DefaultSpatial
+                type: Anim.Standard
             }
         }
     }

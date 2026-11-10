@@ -1,129 +1,141 @@
-﻿# Phase 3 â€” Desktop Shell : rapport dâ€™implÃ©mentation
+﻿# Phase 3 — Desktop Shell : rapport d’implémentation
 
-Branche : `phase3-desktop-shell` (crÃ©Ã©e depuis `79eaffb`, sans rÃ©Ã©criture de lâ€™historique).
-Projet Linux : `shell-main` lu uniquement, jamais modifiÃ©.
+Branche : `phase3-desktop-shell` (créée depuis `79eaffb`, sans réécriture de l’historique).
+Projet Linux : `shell-main` lu uniquement, jamais modifié.
 
 ## 1. Architecture finale
 
 ```
 windows/src/
   main.cpp                              services Qt + modes diagnostics
-  platform/platform.*                   AppBar, overlay input, focus, Ã©crans
-  platform/services/applauncherservice.* dÃ©couverte, recherche, favoris, lancement
-  platform/services/systemservice.*      CPU, RAM, GPU, rÃ©seau, disque, historiques
-  platform/services/mediaservice.*       GSMTC C++/WinRT, artwork, contrÃ´les
+  platform/platform.*                   AppBar, overlay input, focus, écrans
+  platform/services/applauncherservice.* découverte, recherche, favoris, lancement
+  platform/services/systemservice.*      CPU, RAM, GPU, réseau, disque, historiques
+  platform/services/mediaservice.*       GSMTC C++/WinRT, artwork, contrôles
   platform/services/weatherservice.*     Open-Meteo, configuration ville
   platform/services/audioservice.*       Core Audio, volume, mute
   platform/services/networkservice.*     WLAN API / IPHelper
   platform/services/bluetoothservice.*   Windows.Devices.Radios + set-state
-  platform/services/batteryservice.*     GetSystemPowerStatus + Ã©vÃ©nements
+  platform/services/batteryservice.*     GetSystemPowerStatus + événements
   platform/services/powerservice.*       verrouillage/veille/session
   qml/overlay/LauncherShell.qml          panneau launcher
   qml/overlay/DashboardShell.qml         onglets + slide horizontal
   qml/overlay/DashboardHome/Media/Performance/Weather.qml
   qml/overlay/SidebarShell.qml           Control Centre F9
+  qml/bar/BarFavorites.qml               dock favoris/récents dans la barre
   qml/popouts/AudioPanel/NetworkPanel/BluetoothPanel/BatteryPanel/PowerPanel.qml
   qml/components/DashCard/Sparkline/Meter/PanelHeader.qml
-  src/shaders/blob.*                     panneau launcher ajoutÃ© au SDF
+  src/shaders/blob.*                     panneau launcher ajouté au SDF
 ```
 
-Le launcher est un panneau `launcher` du `PanelController`, rendu par le mÃªme
+Le launcher est un panneau `launcher` du `PanelController`, rendu par le même
 SDF/spring que les autres surfaces. Son ouverture est explicite (focus clavier),
-sa fermeture passe par Ã‰chap, le clic extÃ©rieur ou le lancement rÃ©ussi.
+sa fermeture passe par Échap, le clic extérieur ou le lancement réussi.
 
-## 2. APIs Windows utilisÃ©es
+## 2. APIs Windows utilisées
 
 | Domaine | API |
 |---|---|
 | Applications | `IShellLinkW`/`IPersistFile`, `FOLDERID_Programs`, `FOLDERID_CommonPrograms`, `FOLDERID_AppsFolder`, `IShellItem2`/`PKEY_AppUserModel_ID`, `IShellItemImageFactory`, `ShellExecuteExW`, `SHGetFileInfoW` |
 | Audio | `IMMDeviceEnumerator`, `IAudioEndpointVolume`, `IMMNotificationClient` |
-| RÃ©seau | `WlanOpenHandle`/`WlanEnumInterfaces`/`WlanQueryInterface`, `NotifyIpInterfaceChange`, `GetIfTable2` |
+| Réseau | `WlanOpenHandle`/`WlanEnumInterfaces`/`WlanQueryInterface`, `NotifyIpInterfaceChange`, `GetIfTable2` |
 | Bluetooth | `Windows.Devices.Radios` (C++/WinRT), `Radio.SetStateAsync` |
 | Batterie | `GetSystemPowerStatus`, `WM_POWERBROADCAST` |
 | Performance | `GetSystemTimes`, `GlobalMemoryStatusEx`, `GetIfTable2`, `GetDiskFreeSpaceExW`, DXGI `IDXGIAdapter3::QueryVideoMemoryInfo`, PDH `GPU Engine` |
-| MÃ©dia | GSMTC `GlobalSystemMediaTransportControlsSessionManager`, `TryGetMediaPropertiesAsync`, `TryPlayAsync`/`TryPauseAsync`/`TrySkipNextAsync`/`TrySkipPreviousAsync` |
-| MÃ©tÃ©o | Open-Meteo Geocoding + Forecast (HTTPS, sans clÃ© API) |
-| Session | `LockWorkStation`, `SetSuspendState`, `ExitWindowsEx`, privilÃ¨ge `SeShutdownPrivilege` |
+| Média | GSMTC `GlobalSystemMediaTransportControlsSessionManager`, `TryGetMediaPropertiesAsync`, `TryPlayAsync`/`TryPauseAsync`/`TrySkipNextAsync`/`TrySkipPreviousAsync` |
+| Météo | Open-Meteo Geocoding + Forecast (HTTPS, sans clé API) |
+| Session | `LockWorkStation`, `SetSuspendState`, `ExitWindowsEx`, privilège `SeShutdownPrivilege` |
 
-Aucun texte saisi nâ€™est exÃ©cutÃ© : le launcher ne lance que des entrÃ©es dÃ©couvertes
-et lance `ShellExecuteExW` sur leur `.lnk` ou `shell:AppsFolder\<AUMID>`.
+Aucun texte saisi n’est exécuté : le launcher ne lance que des entrées découvertes
+et appelle `ShellExecuteExW` sur leur `.lnk` ou `shell:AppsFolder\<AUMID>`.
 
-## 3. Ã‰tat des fonctionnalitÃ©s
+## 3. État des fonctionnalités
 
-TerminÃ© et testÃ© :
+Terminé et testé :
 
-- Launcher par logo/F1, recherche fuzzy insensible Ã  la casse, navigation
-  clavier, Ã‰chap, clic extÃ©rieur, favoris, icÃ´nes shell, lancement rÃ©el.
-- 213 applications dÃ©couvertes : Firefox, Discord, Brave, Steam, Bloc-notes,
-  Calculatrice, ParamÃ¨tres, etc.
-- Dashboard 4 onglets avec donnÃ©es rÃ©elles ; Media GSMTC ; Performance
-  CPU/RAM/GPU/rÃ©seau/disque avec historiques ; Weather Open-Meteo configurable.
-- Panneaux Audio/RÃ©seau/Bluetooth/Batterie rÃ©els ; Control Centre F9 ; Power
+- Launcher par logo, bouton recherche ou F1, recherche fuzzy insensible à la
+  casse, navigation clavier, Échap, clic extérieur, favoris, icônes shell,
+  lancement réel.
+- 213 applications découvertes : Firefox, Discord, Brave, Steam, Bloc-notes,
+  Calculatrice, Paramètres, etc.
+- Dock vertical dans la barre : favoris puis applications récentes
+  (dédupliqués, jusqu’à huit icônes réelles, zone défilante), clic pour lancer.
+  Boutons recherche et calendrier/Dashboard.
+- Dashboard 4 onglets avec données réelles ; Media GSMTC ; Performance
+  CPU/RAM/GPU/réseau/disque avec historiques ; Weather Open-Meteo configurable.
+- Panneaux Audio/Réseau/Bluetooth/Batterie réels ; Control Centre F9 ; Power
   avec confirmation.
-- Animations de panneaux, launcher, onglets et icÃ´nes ; SDF/spring conservÃ©s.
+- Animations de panneaux, launcher, onglets et icônes ; SDF/spring conservés.
+- Rehausse périodique de l’AppBar au-dessus des fenêtres maximisées/borderless ;
+  animation verticale des panneaux sans dépassement sous la barre des tâches.
 
-Partiel / non exÃ©cutÃ© volontairement :
+Partiel / non exécuté volontairement :
 
-- Les actions Power destructives (verrouillage, veille, redÃ©marrage, arrÃªt,
-  dÃ©connexion) sont cÃ¢blÃ©es et protÃ©gÃ©es par confirmation, mais nâ€™ont pas Ã©tÃ©
-  exÃ©cutÃ©es pendant les tests pour ne pas interrompre la session.
-- Le toggle Bluetooth est cÃ¢blÃ© ; il nâ€™a pas Ã©tÃ© actionnÃ© pour ne pas dÃ©connecter
-  les appareils de lâ€™utilisateur.
-- Notifications toast Windows non implÃ©mentÃ©es (le F9 est un Control Centre).
-- SÃ©lection dâ€™un autre pÃ©riphÃ©rique audio et liste/appairage Bluetooth encore
-  dans les paramÃ¨tres Windows.
+- Les actions Power destructives (verrouillage, veille, redémarrage, arrêt,
+  déconnexion) sont câblées et protégées par confirmation, mais n’ont pas été
+  exécutées pendant les tests pour ne pas interrompre la session.
+- Le toggle Bluetooth est câblé ; il n’a pas été actionné pour ne pas déconnecter
+  les appareils de l’utilisateur.
+- Notifications toast Windows non implémentées (le F9 est un Control Centre).
+- Sélection d’un autre périphérique audio et liste/appairage Bluetooth encore
+  dans les paramètres Windows.
 
-## 4. Tests rÃ©ellement exÃ©cutÃ©s
+## 4. Tests réellement exécutés
 
 ### Debug
 
-- `--list-apps` : `TOTAL 213`, Firefox/Discord/Bloc-notes/Calculatrice prÃ©sents.
-- `--launch-app "Calculatrice"` : `CalculatorApp` dÃ©marrÃ©.
-- UI : clic logo â†’ launcher ; saisie `calc` ; EntrÃ©e â†’ `CalculatorApp` PID
-  observÃ© ; Ã‰chap ferme ; styles `transparent=yes noactivate=yes` aprÃ¨s fermeture.
-- Favori : clic Ã©toile â†’ `launcher/favorites` contient lâ€™ID de Calculatrice ;
-  F9 affiche le favori ; Ã©tat restaurÃ© aprÃ¨s test.
-- Dashboard : 4 onglets capturÃ©s ; Media affiche la session Spotify rÃ©elle ;
-  Performance affiche CPU/RAM/GPU/rÃ©seau/disque ; Weather affiche Paris.
-- MÃ©tÃ©o sans ville : formulaire de configuration capturÃ©, puis `Paris` restaurÃ©.
+- `--list-apps` : `TOTAL 213`, Firefox/Discord/Bloc-notes/Calculatrice présents.
+- `--launch-app "Calculatrice"` : `CalculatorApp` démarré.
+- UI : clic logo → launcher ; saisie `calc` ; Entrée → `CalculatorApp` PID
+  observé ; clic direct sur le premier résultat (900,632) → `CalculatorApp`
+  PID 11832 ; Échap ferme ; styles `transparent=yes noactivate=yes` après
+  fermeture.
+- Favori : clic étoile → `launcher/favorites` contient l’ID de Calculatrice ;
+  F9 affiche le favori ; état restauré après test.
+- Dock : icônes récentes/favorites réelles dans la barre ; capture
+  `final-bar-dock.png`.
+- Barre au-dessus d’une fenêtre Notepad maximisée : logo toujours visible.
+- Dashboard : 4 onglets capturés ; Media affiche la session Spotify réelle ;
+  Performance affiche CPU/RAM/GPU/réseau/disque ; Weather affiche Paris.
+- Météo sans ville : formulaire de configuration capturé, puis `Paris` restauré.
 - Media : session Spotify (`Kalash`, Booba) et Media Player
-  (`caelestia-test-tone`) dÃ©tectÃ©es ; pause/reprise vÃ©rifiÃ©es ; artwork en cache.
-- Statut : audio `Haut-parleurs (SkillKorp SKP_H21)`, volume 100, mute testÃ© et
-  restaurÃ© ; Wi-Fi `Livebox-6190` signal 81/66 ; Bluetooth prÃ©sent/activÃ© ;
-  batterie 100 % sur secteur (`minutes=-1`, Windows ne fournit pas dâ€™autonomie).
-- Dashboard 100 % â†” 125 % : ouvertures directes, sans `PANEL_CLOSE`
-  intermÃ©diaire ; sortie ferme.
-- Transitions directes audio â†’ rÃ©seau â†’ Bluetooth : aucune fermeture
-  intermÃ©diaire. Balayage rapide : seule la cible finale (Battery) sâ€™ouvre.
-- Focus : Discord reste au premier plan pendant lâ€™ouverture hover ; styles
+  (`caelestia-test-tone`) détectées ; pause/reprise vérifiées ; artwork en cache.
+- Statut : audio `Haut-parleurs (SkillKorp SKP_H21)`, volume 100, mute testé et
+  restauré ; Wi-Fi `Livebox-6190` signal 81/66 ; Bluetooth présent/activé ;
+  batterie 100 % sur secteur (`minutes=-1`, Windows ne fournit pas d’autonomie).
+- Dashboard 100 % ↔ 125 % : ouvertures directes, sans `PANEL_CLOSE`
+  intermédiaire ; sortie ferme.
+- Transitions directes audio → réseau → Bluetooth : aucune fermeture
+  intermédiaire. Balayage rapide : seule la cible finale (Battery) s’ouvre.
+- Focus : Discord reste au premier plan pendant l’ouverture hover ; styles
   hover `transparent=no noactivate=yes`.
-- Panneaux Audio/RÃ©seau/Bluetooth/Batterie/Power ouverts et capturÃ©s, sans
+- Panneaux Audio/Réseau/Bluetooth/Batterie/Power ouverts et capturés, sans
   erreur QML.
-- Step 1e conservÃ© : AppBar, clic Ã  travers, `WS_EX_NOACTIVATE`,
-  `WS_EX_TRANSPARENT`, D3D11, F8/F9/F10, multi-Ã©crans/DPI.
+- Step 1e conservé : AppBar, clic à travers, `WS_EX_NOACTIVATE`,
+  `WS_EX_TRANSPARENT`, D3D11, F8/F9/F10, multi-écrans/DPI.
 
 ### Release
 
-- Build `windows/build-release` en `Release` : succÃ¨s.
+- Build `windows/build-release` en `Release` : succès.
 - `--dump-status`, `--dump-system`, `--weather Paris`, `--list-apps`,
-  `--dump-media`, `--launch-app` : mÃªmes services, mÃªmes valeurs rÃ©elles.
-- UI Release : launcher Firefox capturÃ© ; `calc` + EntrÃ©e a lancÃ©
-  `CalculatorApp` ; Dashboard 4 onglets ; Audio/RÃ©seau/Batterie ; F9 ;
-  Power ; aucune erreur QML.
-- CPU idle mesurÃ© : 0,38 s sur 5 s / 8 cÅ“urs â‰ˆ 0,9 % ; working set â‰ˆ 451 Mo.
+  `--dump-media`, `--launch-app` : mêmes services, mêmes valeurs réelles.
+- UI Release : launcher Firefox capturé ; `calc` + Entrée a lancé
+  `CalculatorApp` ; Dashboard 4 onglets ; Audio/Réseau/Batterie ; F9 ;
+  Power ; dock de la barre ; aucune erreur QML.
+- CPU idle mesuré : 0,38 s sur 5 s / 8 cœurs ≈ 0,9 % ; working set ≈ 451 Mo.
 
 ## 5. Captures
 
 `windows/build/phase3-captures/` :
 
-- `final-launcher-firefox.png`
+- `final-launcher-firefox.png`, `final-bar-dock.png`, `bar-dock.png`
 - `final-dashboard-home.png`, `final-dashboard-media.png`,
   `final-dashboard-performance.png`, `final-dashboard-weather.png`
 - `dashboard-weather-config.png`
 - `final-panel-audio.png`, `final-panel-network.png`,
-  `final-panel-battery.png`, `final-power.png`
+  `final-panel-battery.png`, `final-power.png`, `panel-bluetooth.png`
+- `full-battery-fixed.png`, `bar-over-maximized.png`
 - `final-sidebar.png`, `sidebar-favorite.png`
-- `panel-bluetooth.png`
 
 Logs : `C:\Users\axsou\AppData\Local\Temp\opencode\phase3-final-ui.err.log`,
 `phase3-nonreg.err.log`, `phase3-rapid.err.log`.
@@ -131,19 +143,18 @@ Logs : `C:\Users\axsou\AppData\Local\Temp\opencode\phase3-final-ui.err.log`,
 ## 6. Limites restantes
 
 - Pas de centre de notifications Windows.
-- Pas de sÃ©lection du pÃ©riphÃ©rique audio (endpoint par dÃ©faut seulement).
+- Pas de sélection du périphérique audio (endpoint par défaut seulement).
 - Pas de liste/appairage Bluetooth dans le shell.
-- Les actions Power destructives nâ€™ont pas Ã©tÃ© exÃ©cutÃ©es en test.
-- MÃ©tÃ©o dÃ©pend dâ€™Open-Meteo et dâ€™une connexion rÃ©seau ; une seule ville.
-- Certaines applications UWP nâ€™exposent pas dâ€™icÃ´ne via le shell ; icÃ´ne
-  gÃ©nÃ©rique de secours.
-- HDR, contraste Ã©levÃ©, tactile/stylet et masquage fullscreen non traitÃ©s.
-- Le warning QSG prÃ©existant sur la gÃ©omÃ©trie des fenÃªtres AppBar subsiste.
+- Les actions Power destructives n’ont pas été exécutées en test.
+- Météo dépend d’Open-Meteo et d’une connexion réseau ; une seule ville.
+- Certaines applications UWP n’exposent pas d’icône via le shell ; icône
+  générique de secours.
+- HDR, contraste élevé, tactile/stylet et masquage fullscreen non traités.
+- Le warning QSG préexistant sur la géométrie des fenêtres AppBar subsiste.
 
 ## 7. Garanties
 
-- `shell-main` nâ€™a pas Ã©tÃ© modifiÃ©.
-- Aucune fonctionnalitÃ© Step 1e supprimÃ©e : AppBar, focus, hover, transitions,
-  D3D11, BlobRect, multi-Ã©crans, DPI, F8/F9/F10, Ã‰chap.
+- `shell-main` n’a pas été modifié.
+- Aucune fonctionnalité Step 1e supprimée : AppBar, focus, hover, transitions,
+  D3D11, BlobRect, multi-écrans, DPI, F8/F9/F10, Échap.
 - Commit final : voir `git log` sur `phase3-desktop-shell`.
-

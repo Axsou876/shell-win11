@@ -640,6 +640,7 @@ void AppLauncherService::applyEntries(QList<AppEntry> entries)
     emit readyChanged();
     emit totalCountChanged();
     emit favoritesChanged();
+    emit recentsChanged();
     setScanning(false);
     startIconQueue();
 }
@@ -755,6 +756,7 @@ void AppLauncherService::launchEntry(const AppEntry& entry)
                 settings.sync();
                 m_search->rebuild();
                 emit launchSucceeded(entry.id, entry.name);
+                emit recentsChanged();
             },
             Qt::QueuedConnection);
     });
@@ -799,7 +801,35 @@ QVariantList AppLauncherService::favoriteApps() const
         item.insert(QStringLiteral("name"), entry.name);
         item.insert(QStringLiteral("icon"), entry.iconPath);
         result.append(item);
-        if (result.size() >= 4)
+        if (result.size() >= 8)
+            break;
+    }
+    return result;
+}
+
+QVariantList AppLauncherService::recentApps() const
+{
+    QList<const AppEntry*> recent;
+    for (const AppEntry& entry : m_apps->entries()) {
+        if (entry.lastUsed > 0 || entry.frequency > 0)
+            recent.append(&entry);
+    }
+    std::sort(recent.begin(), recent.end(), [](const AppEntry* a, const AppEntry* b) {
+        if (a->lastUsed != b->lastUsed)
+            return a->lastUsed > b->lastUsed;
+        if (a->frequency != b->frequency)
+            return a->frequency > b->frequency;
+        return QString::localeAwareCompare(a->name, b->name) < 0;
+    });
+
+    QVariantList result;
+    for (const AppEntry* entry : std::as_const(recent)) {
+        QVariantMap item;
+        item.insert(QStringLiteral("id"), entry->id);
+        item.insert(QStringLiteral("name"), entry->name);
+        item.insert(QStringLiteral("icon"), entry->iconPath);
+        result.append(item);
+        if (result.size() >= 8)
             break;
     }
     return result;
