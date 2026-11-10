@@ -56,8 +56,8 @@ Phase 3 turns the Step 1e hover foundation into a functional desktop shell:
 - **Windows taskbar**: hidden while the shell runs. Its auto-hide state expands
   the work area to the full monitor, so the bar and frame reach the screen
   edges. The previous taskbar state and work area are restored on a clean quit
-  (open a panel/launcher and press `Ctrl+Q`); after a forced kill, restart
-  Explorer to bring the taskbar back.
+  (open a panel/launcher and press `Ctrl+Q`). After a forced kill, relaunch and
+  close the shell cleanly, or restart Explorer, to bring the taskbar back.
 - **Bar popouts**: real Audio (`IAudioEndpointVolume`), Network (WLAN/IPHelper),
   Bluetooth (`Windows.Devices.Radios`) and Battery (`GetSystemPowerStatus`)
   panels. Power opens the right-edge session menu.
@@ -231,7 +231,7 @@ For a standalone folder, run `windeployqt` on that executable.
 - The Windows taskbar is hidden while the shell runs and the frame fills the
   full monitor. On a clean quit the previous taskbar visibility/auto-hide state
   and work area are restored. A forced kill can leave the taskbar hidden until
-  Explorer is restarted.
+  the shell is relaunched and closed cleanly, or Explorer is restarted.
 - Fullscreen hiding, HDR/high contrast, touch/pen input and wallpaper-generated
   (Matugen) palettes are not implemented yet.
 - The spring deformation is axis-aligned; detached/diagonal popouts would need

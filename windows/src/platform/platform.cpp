@@ -293,11 +293,32 @@ void Platform::hideTaskbar()
     if (bars.isEmpty())
         return;
 
+    // If the previous shell was killed before it could restore the taskbar,
+    // recover the saved visibility/state before hiding it again.
+    QSettings settings;
+    if (settings.value(QStringLiteral("shell/taskbarHeld"), false).toBool()) {
+        const quint32 previous
+            = settings.value(QStringLiteral("shell/taskbarState"), 0).toUInt();
+        APPBARDATA restore = {};
+        restore.cbSize = sizeof(APPBARDATA);
+        for (HWND bar : bars) {
+            ShowWindow(bar, SW_SHOW);
+            restore.hWnd = bar;
+            restore.lParam = static_cast<LPARAM>(previous);
+            SHAppBarMessage(ABM_SETSTATE, &restore);
+        }
+        settings.setValue(QStringLiteral("shell/taskbarHeld"), false);
+    }
+
     APPBARDATA abd = {};
     abd.cbSize = sizeof(APPBARDATA);
     abd.hWnd = bars.first();
     m_taskbarState = static_cast<quint32>(SHAppBarMessage(ABM_GETSTATE, &abd));
     m_taskbarWasVisible = IsWindowVisible(bars.first());
+
+    settings.setValue(QStringLiteral("shell/taskbarState"), m_taskbarState);
+    settings.setValue(QStringLiteral("shell/taskbarHeld"), true);
+    settings.sync();
 
     for (HWND bar : bars) {
         abd.hWnd = bar;
@@ -328,6 +349,9 @@ void Platform::restoreTaskbar()
         SHAppBarMessage(ABM_SETSTATE, &abd);
     }
 
+    QSettings settings;
+    settings.setValue(QStringLiteral("shell/taskbarHeld"), false);
+    settings.sync();
     m_taskbarHidden = false;
 }
 

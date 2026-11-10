@@ -183,6 +183,8 @@ Partiel / non exécuté volontairement :
   aucun retour de la barre au survol du bas de l’écran. Après fermeture propre
   (`WM_QUIT`) : processus arrêté, barre visible, état 0, zone de travail
   `0,0 1920×1032`. `Ctrl+Q` depuis le launcher : même restauration propre.
+  Kill forcé puis relance : la zone de travail reste à 1080 et l’état est
+  mémorisé ; une fermeture propre ensuite restaure bien l’état 0 et 1032.
   Captures `taskbar-hidden-full.png`, `taskbar-final-hidden.png`.
 - Nouveautés Release testées à 100 % (`GetDpiForWindow` = 96) ; à 125 %, les
   captures de l’interface précédente restent valides, mais les deux nouveaux
@@ -229,8 +231,9 @@ Logs : `C:\Users\axsou\AppData\Local\Temp\opencode\phase3-final-ui.err.log`,
   shell (les paramètres Windows restent la référence).
 - Les actions Power destructives n’ont pas été exécutées en test.
 - Si le shell est tué de force, la barre des tâches peut rester masquée ; il
-  faut redémarrer Explorer (ou relancer/fermer proprement le shell) pour la
-  retrouver. Une fermeture normale restaure l’état et la zone de travail.
+  faut relancer puis fermer proprement le shell, ou redémarrer Explorer, pour
+  la retrouver. Une fermeture normale restaure l’état et la zone de travail ;
+  l’état précédent est aussi mémorisé pour la relance après un kill.
 - Météo dépend d’Open-Meteo et d’une connexion réseau ; une seule ville.
 - Certaines applications UWP n’exposent pas d’icône via le shell ; icône
   générique de secours.
