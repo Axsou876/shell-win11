@@ -188,7 +188,8 @@ Partiel / non exécuté volontairement :
   `notifications-added.png`, `notifications-added2.png`
 - `windows/build-release/smoke/` : `release-wallpaper.png`,
   `release-notif-empty.png`, `release-notif-created.png`,
-  `release-notif-swiped.png`, `release-notif-action.png`
+  `release-notif-swiped.png`, `release-notif-middle.png`,
+  `release-notif-action.png`
 
 Logs : `C:\Users\axsou\AppData\Local\Temp\opencode\phase3-final-ui.err.log`,
 `phase3-nonreg.err.log`, `phase3-rapid.err.log`.
