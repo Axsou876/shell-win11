@@ -298,4 +298,4 @@ ses 9 fenêtres réelles. Aucun bureau vide supplémentaire ne subsiste.
 
 ## 11. Commit Git
 
-Commit de la phase Workspaces sur la branche `phase3-desktop-shell` : `HASH`.
+Commit de la phase Workspaces sur la branche `phase3-desktop-shell` : `e677fa4`.
