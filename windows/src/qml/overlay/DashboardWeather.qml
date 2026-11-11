@@ -114,14 +114,16 @@ Item {
     }
 
     // --- Weather -----------------------------------------------------------
-    Column {
+    ColumnLayout {
         anchors.fill: parent
         spacing: root.theme.spacingMedium
         visible: Weather.configured
 
-        // Header.
+        // Header: same 16 px inner margins as WeatherTab.qml.
         RowLayout {
-            width: parent.width
+            Layout.fillWidth: true
+            Layout.leftMargin: root.theme.paddingLarge
+            Layout.rightMargin: root.theme.paddingLarge
             spacing: root.theme.spacingLargeIncreased
 
             Column {
@@ -211,8 +213,8 @@ Item {
 
         // Big current conditions card.
         Rectangle {
-            width: parent.width
-            height: 150
+            Layout.fillWidth: true
+            Layout.preferredHeight: 150
             radius: root.theme.roundingExtraLarge * 2
             color: root.theme.surfaceContainer
 
@@ -253,7 +255,7 @@ Item {
 
         // Detail cards.
         RowLayout {
-            width: parent.width
+            Layout.fillWidth: true
             spacing: root.theme.spacingMedium
 
             Repeater {
@@ -314,8 +316,10 @@ Item {
             }
         }
 
-        // Forecast.
+        // Forecast title: 12 px left inset and 12 px top margin, as Linux.
         StyledText {
+            Layout.leftMargin: root.theme.paddingMedium
+            Layout.topMargin: root.theme.spacingMedium
             theme: root.theme
             role: "bodyMedium"
             weight: Font.DemiBold
@@ -325,7 +329,7 @@ Item {
         }
 
         RowLayout {
-            width: parent.width
+            Layout.fillWidth: true
             spacing: root.theme.spacingMedium
             visible: Weather.forecast.length > 0
 
@@ -339,7 +343,7 @@ Item {
                     required property var modelData
 
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 128
+                    Layout.preferredHeight: 120
                     radius: root.theme.roundingLarge
                     color: root.theme.surfaceContainer
 
