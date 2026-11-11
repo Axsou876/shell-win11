@@ -132,6 +132,7 @@ void WeatherService::setCity(const QString& city)
     m_description.clear();
     m_icon.clear();
     m_humidity.clear();
+    m_feelsLike.clear();
     m_wind.clear();
     m_sunrise.clear();
     m_sunset.clear();
@@ -224,7 +225,7 @@ void WeatherService::requestForecast(double latitude, double longitude,
     query.addQueryItem(QStringLiteral("daily"),
         QStringLiteral("weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset"));
     query.addQueryItem(QStringLiteral("timezone"), QStringLiteral("auto"));
-    query.addQueryItem(QStringLiteral("forecast_days"), QStringLiteral("5"));
+    query.addQueryItem(QStringLiteral("forecast_days"), QStringLiteral("7"));
     url.setQuery(query);
 
     QNetworkRequest request(url);
@@ -264,6 +265,9 @@ void WeatherService::requestForecast(double latitude, double longitude,
         m_humidity = formatNumber(
                         current.value(QStringLiteral("relative_humidity_2m")).toDouble())
             + QStringLiteral(" %");
+        m_feelsLike = formatNumber(
+                          current.value(QStringLiteral("apparent_temperature")).toDouble(), 1)
+            + QStringLiteral(" °C");
         m_wind = formatNumber(current.value(QStringLiteral("wind_speed_10m")).toDouble(), 1)
             + QStringLiteral(" km/h");
         m_city = resolvedName;

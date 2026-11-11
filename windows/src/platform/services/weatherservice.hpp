@@ -22,6 +22,7 @@ class WeatherService final : public QObject {
     Q_PROPERTY(QString description READ description NOTIFY changed)
     Q_PROPERTY(QString icon READ icon NOTIFY changed)
     Q_PROPERTY(QString humidity READ humidity NOTIFY changed)
+    Q_PROPERTY(QString feelsLike READ feelsLike NOTIFY changed)
     Q_PROPERTY(QString wind READ wind NOTIFY changed)
     Q_PROPERTY(QString sunrise READ sunrise NOTIFY changed)
     Q_PROPERTY(QString sunset READ sunset NOTIFY changed)
@@ -41,6 +42,7 @@ public:
     [[nodiscard]] QString description() const { return m_description; }
     [[nodiscard]] QString icon() const { return m_icon; }
     [[nodiscard]] QString humidity() const { return m_humidity; }
+    [[nodiscard]] QString feelsLike() const { return m_feelsLike; }
     [[nodiscard]] QString wind() const { return m_wind; }
     [[nodiscard]] QString sunrise() const { return m_sunrise; }
     [[nodiscard]] QString sunset() const { return m_sunset; }
@@ -72,6 +74,7 @@ private:
     QString m_description;
     QString m_icon;
     QString m_humidity;
+    QString m_feelsLike;
     QString m_wind;
     QString m_sunrise;
     QString m_sunset;

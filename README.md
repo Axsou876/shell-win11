@@ -32,13 +32,17 @@ Phase 3 turns the Step 1e hover foundation into a functional desktop shell:
   favourite, so no empty grid/icon remains. Clicking an icon launches it; the
   star in the launcher adds/removes it. Recent applications are not injected
   into the bar automatically.
-- **Dashboard** (`F10`): Dashboard / Media / Performance / Workspaces tabs.
-  Dashboard has a real weather card, Windows account profile picture/name,
-  Windows version, hostname, uptime, calendar, media mini-player and live
-  CPU/RAM/GPU/disk/network. Media has GSMTC artwork, title/artist/album,
-  position/duration and controls. Performance uses circular live gauges.
-  Workspaces lists the current desktop's windows and focuses them on click.
-  No placeholder values are shown; unavailable counters display `N/D`.
+- **Dashboard** (`F10`): reconstructed from the Linux `modules/dashboard`
+  composition (see `windows/docs/dashboard-parity-report.md`). Tabs are
+  Dashboard / Media / Performance / Weather / Workspaces, with stacked
+  icon + label tabs and a content-width indicator. The home page follows the
+  Linux grid (user card, small weather, clock, calendar, resource rings and a
+  media card with BongoCat); Performance uses CPU/GPU hero cards plus storage,
+  network and memory cards; Media has a real GSMTC cover/progress/details
+  layout; Weather is a real Open-Meteo tab with current conditions, feels-like,
+  sunrise/sunset and a 7-day forecast; Workspaces lists the current desktop's
+  windows and focuses them on click. All values are real Windows measurements;
+  unavailable temperatures display `N/D`.
 - **Power menu**: a vertical floating menu on the right edge with the Windows
   account picture, sign-out, shutdown, settings and restart. Destructive actions
   require a second confirmation; Windows shutdown privilege is used.
@@ -124,7 +128,7 @@ For a standalone folder, run `windeployqt` on that executable.
   The search icon opens the launcher, the bell opens notifications. There is no
   separate calendar button or empty application-grid icon in the bar.
 - `F10` (shell focused) or hover the top-center strip: Dashboard. Its tabs are
-  Dashboard, Media, Performance and Workspaces.
+  Dashboard, Media, Performance, Weather and Workspaces.
 - `F9` (shell focused): Control Centre (favourites, quick actions, audio,
   network, Bluetooth, battery and power).
 - Hover Audio, Network, Bluetooth or Battery in the bar: open the corresponding
@@ -181,8 +185,9 @@ For a standalone folder, run `windeployqt` on that executable.
   axis-aligned stretch/compress; the inverse matrix feeds the SDF and the forward
   scale transforms the panel content.
 - Border sink: the inner wall recedes while a panel enters from a screen border.
-- Sidebar 430 px (slide from right), Dashboard 854×560 (slide from top, animated
-  tab indicator), popouts 320 px (fused into the bar with a 20% left extension).
+- Sidebar 430 px (slide from right), Dashboard 1000×560 (slide from top,
+  content-width animated tab indicator), popouts 320 px (fused into the bar with
+  a 20% left extension).
 - Popout widths use the original tokens: network/audio/Bluetooth 320 px, battery
   250 px.
 - Strict monochrome palettes: pure black surfaces in dark mode, pure white in
@@ -255,7 +260,13 @@ For a standalone folder, run `windeployqt` on that executable.
 - GSMTC only exposes players that publish a Windows media session. Apps without
   GSMTC support keep their own controls.
 - CPU/GPU temperature is not exposed by a reliable Windows API here; the
-  Performance gauges show real usage/memory rather than invented temperatures.
+  Performance hero cards show real usage, memory and storage and display
+  `Température N/D` rather than invented temperatures.
+- The Linux media visualiser (cava) and lyrics have no direct Windows source
+  yet: the Media tab keeps a real cover/progress/details layout, shows an honest
+  `Visualiseur audio temps réel indisponible` note and a lyrics-unavailable
+  panel. Linux `MaterialShape` accents are approximated with monochrome
+  rounded shapes.
 - The dashboard profile uses the Windows account picture when one exists;
   otherwise it falls back to the system generic account picture.
 - Weather needs network access and a configured city; Open-Meteo is the only

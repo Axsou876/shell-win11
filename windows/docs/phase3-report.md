@@ -24,8 +24,12 @@ windows/src/
   platform/services/windowsservice.*     fenêtres du bureau actuel (Workspaces)
   qml/overlay/LauncherShell.qml          panneau launcher (applications / >wal)
   qml/overlay/NotificationsShell.qml     panneau notifications + actions
-  qml/overlay/DashboardShell.qml         onglets + slide horizontal
-  qml/overlay/DashboardHome/Media/Performance/Workspaces.qml
+  qml/overlay/DashboardShell.qml         onglets empilés + slide horizontal
+  qml/overlay/DashboardHome.qml          accueil Linux (user, météo, heure, calendrier, anneaux, média)
+  qml/overlay/DashboardMedia.qml         média réel GSMTC + paroles indisponibles
+  qml/overlay/DashboardPerformance.qml   cartes Hero CPU/GPU, stockage, réseau, mémoire
+  qml/overlay/DashboardWeather.qml       onglet météo Open-Meteo 7 jours
+  qml/overlay/DashboardWorkspaces.qml    fenêtres réelles
   qml/overlay/PowerMenu.qml              menu vertical droit + confirmation
   qml/overlay/SidebarShell.qml           Control Centre F9
   qml/bar/BarFavorites.qml               dock de favoris dans la barre
@@ -73,11 +77,13 @@ Terminé et testé :
   huit icônes réelles, zone défilante), clic pour lancer. Le dock est **masqué
   quand il est vide** (plus d’icône grille), les applications récentes ne sont
   plus ajoutées automatiquement et le bouton calendrier a été retiré.
-- Dashboard 4 onglets **Dashboard / Media / Performance / Workspaces** avec
-  données réelles : météo, profil Windows (photo de compte, version, uptime),
-  calendrier, média, anneaux CPU/GPU/mémoire et fenêtres du bureau actuel.
-  Media GSMTC avec progression réelle ; Performance en anneaux ; Workspaces
-  liste et active les fenêtres réelles.
+- Dashboard reconstruit depuis `shell-main/modules/dashboard` : onglets
+  **Dashboard / Media / Performance / Weather / Workspaces**, accueil en grille
+  Linux (carte utilisateur, petite météo, horloge, calendrier, anneaux
+  CPU/RAM/disque, carte média), Performance en cartes Hero CPU/GPU + stockage +
+  réseau + mémoire, Média réel GSMTC, Météo Open-Meteo avec ressenti et
+  prévisions 7 jours. Détails, écarts et notes de parité :
+  `docs/dashboard-parity-report.md` ; audit : `docs/dashboard-parity-audit.md`.
 - Panneaux Audio/Réseau/Bluetooth/Batterie réels ; Control Centre F9 ; menu
   d’alimentation vertical à droite avec photo de compte et confirmation.
 - Launcher `>wal` : 94 fonds d’écran réels trouvés dans Pictures/Themes/Web,
@@ -140,7 +146,11 @@ Partiel / non exécuté volontairement :
   les anneaux CPU/GPU/mémoire ; Workspaces liste les fenêtres réelles.
 - Menu Power : ouvert à droite, carte de confirmation affichée après clic sur
   Arrêter ; annulation par Échap ; aucune action destructive exécutée.
-- Météo : carte Paris sur le Dashboard (Open-Meteo), configuration conservée.
+- Météo : Paris sur l’onglet Weather (Open-Meteo), ressenti 11.8 °C, lever
+  07:53, coucher 17:15, prévisions 7 jours ; configuration conservée.
+- Parité dashboard Release : 5 onglets capturés, `F10` depuis le launcher,
+  `F8` clair/sombre, `F9` Sidebar, `calc` lancé depuis le launcher
+  (`CalculatorApp`), aucune erreur QML ; captures `parity4-*`, `parity6-*`.
 - Media : session Spotify (`Kalash`, Booba) et Media Player
   (`caelestia-test-tone`) détectées ; pause/reprise vérifiées ; artwork en cache.
 - Statut : audio `Haut-parleurs (SkillKorp SKP_H21)`, volume 100, mute testé et
@@ -219,7 +229,10 @@ Partiel / non exécuté volontairement :
   `mono-launcher-light2.png`, `mono-notifications.png`, `mono-bar.png`,
   `firefox-icon-light.png`, `firefox-icon-dark.png`,
   `taskbar-hidden-full.png`, `taskbar-enforced.png`,
-  `taskbar-final-hidden.png`
+  `taskbar-final-hidden.png`, `parity4-home.png`, `parity4-media.png`,
+  `parity4-performance.png`, `parity4-weather.png`, `parity3-workspaces.png`,
+  `parity6-dashboard-f10.png`, `parity6-dashboard-light.png`,
+  `parity6-sidebar-f9.png`, `reg-launcher.png`, `reg-sidebar2.png`
 
 Logs : `C:\Users\axsou\AppData\Local\Temp\opencode\phase3-final-ui.err.log`,
 `phase3-nonreg.err.log`, `phase3-rapid.err.log`.

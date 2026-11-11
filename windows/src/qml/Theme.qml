@@ -65,7 +65,7 @@ QtObject {
 
     // Large shell surfaces (Caelestia tokens).
     readonly property int sidebarWidth: 430
-    readonly property int dashboardWidth: 854
+    readonly property int dashboardWidth: 1000
     readonly property int dashboardHeight: 560
     readonly property int launcherWidth: 640
     readonly property int launcherHeight: 520

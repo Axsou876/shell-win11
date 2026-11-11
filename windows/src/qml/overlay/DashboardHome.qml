@@ -1,559 +1,558 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import Caelestia.Platform 1.0
 import ".."
 import "../components"
 
+// Dashboard home rebuilt from the Linux Dash.qml grid: user card, small
+// weather, clock, calendar, resource rings and the media card. All values come
+// from the real Windows services.
 Item {
     id: root
 
     required property var theme
 
-    property date now: new Date()
-    property bool editingWeather: !Weather.configured
-    property string cityInput: Weather.configured ? Weather.city : ""
+    signal openWeather()
+
+    readonly property real gap: theme.spacingMedium
+    readonly property real row0: 180
+    readonly property real row1: Math.max(0, height - row0 - gap)
+    readonly property real mediaWidth: 200
+    readonly property real resourceWidth: 70
+    readonly property real calendarX: 122
 
     Timer {
+        id: clockTimer
+
         interval: 1000
-        repeat: true
         running: true
+        repeat: true
+        triggeredOnStart: true
         onTriggered: root.now = new Date()
     }
 
-    function iconUrl(path) {
-        return path ? "file:///" + path.replace(/\\/g, "/") : "";
-    }
+    property date now: new Date()
 
     function uptimeText() {
-        const seconds = System.uptimeSeconds;
-        const days = Math.floor(seconds / 86400);
-        const hours = Math.floor((seconds % 86400) / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        return days > 0 ? days + " j " + hours + " h" : hours + " h " + minutes + " min";
-    }
-
-    function rate(kbps) {
-        return kbps >= 1000 ? (kbps / 1000).toFixed(1) + " Mb/s"
-            : Math.round(kbps) + " kb/s";
+        const s = Math.max(0, System.uptimeSeconds);
+        const d = Math.floor(s / 86400);
+        const h = Math.floor((s % 86400) / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        let out = "";
+        if (d > 0)
+            out += d + "j ";
+        if (h > 0 || d > 0)
+            out += h + "h ";
+        return "up " + out + m + "min";
     }
 
     component Tile: Rectangle {
+        id: tile
+
         required property var theme
 
-        radius: theme.roundingLargeIncreased
         color: theme.surfaceContainer
         border.width: 1
         border.color: Qt.alpha(theme.outlineVariant, 0.25)
     }
 
-    Column {
-        anchors.fill: parent
-        spacing: root.theme.spacingMedium
+    // --- Weather -----------------------------------------------------------
+    Tile {
+        id: weatherCard
+
+        x: 0
+        y: 0
+        width: 275
+        height: root.row0
+        radius: root.theme.roundingExtraLarge * 1.5
+        theme: root.theme
+
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.openWeather()
+        }
 
         Row {
-            width: parent.width
-            height: 168
-            spacing: root.theme.spacingMedium
+            anchors.centerIn: parent
+            spacing: root.theme.spacingLargeIncreased
 
-            Tile {
-                width: 220
-                height: parent.height
+            MaterialIcon {
+                anchors.verticalCenter: parent.verticalCenter
                 theme: root.theme
-
-                Column {
-                    anchors.fill: parent
-                    anchors.margins: root.theme.paddingLarge
-                    spacing: root.theme.spacingSmall
-
-                    Row {
-                        width: parent.width
-                        spacing: root.theme.spacingSmall
-
-                        MaterialIcon {
-                            anchors.verticalCenter: parent.verticalCenter
-                            theme: root.theme
-                            text: Weather.available ? Weather.icon : "cloud_off"
-                            iconSize: 38
-                            color: root.theme.primary
-                        }
-
-                        Column {
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            StyledText {
-                                theme: root.theme
-                                role: "bodyLarge"
-                                pointSize: 26
-                                weight: Font.DemiBold
-                                text: Weather.available ? Weather.temperature : "Météo"
-                            }
-
-                            StyledText {
-                                theme: root.theme
-                                role: "labelSmall"
-                                color: root.theme.onSurfaceVariantColour
-                                text: Weather.available ? Weather.description : "Non configurée"
-                            }
-                        }
-                    }
-
-                    StyledText {
-                        width: parent.width
-                        theme: root.theme
-                        role: "labelSmall"
-                        color: root.theme.onSurfaceVariantColour
-                        elide: Text.ElideRight
-                        text: Weather.available ? Weather.city : "Choisir une ville"
-                    }
-
-                    Item { width: 1; height: 2 }
-
-                    Row {
-                        width: parent.width
-                        spacing: root.theme.spacingSmall
-                        visible: Weather.available
-
-                        StyledText {
-                            theme: root.theme
-                            role: "labelSmall"
-                            color: root.theme.onSurfaceVariantColour
-                            text: "Humidité " + Weather.humidity
-                        }
-
-                        StyledText {
-                            theme: root.theme
-                            role: "labelSmall"
-                            color: root.theme.onSurfaceVariantColour
-                            text: "Vent " + Weather.wind
-                        }
-                    }
-                }
-
-                Row {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    anchors.margins: root.theme.paddingLarge
-                    spacing: root.theme.spacingSmall
-                    visible: !Weather.available
-
-                    Rectangle {
-                        width: parent.width - 80
-                        height: 34
-                        radius: root.theme.roundingSmall
-                        color: root.theme.surfaceContainerHigh
-
-                        TextInput {
-                            anchors.fill: parent
-                            anchors.leftMargin: root.theme.spacingSmall
-                            anchors.rightMargin: root.theme.spacingSmall
-                            verticalAlignment: TextInput.AlignVCenter
-                            color: root.theme.onSurfaceColour
-                            font.family: root.theme.bodyFont
-                            font.pointSize: 12
-                            text: root.cityInput
-                            selectByMouse: true
-                            onTextChanged: root.cityInput = text
-                            onAccepted: Weather.setCity(text)
-                        }
-                    }
-
-                    M3Button {
-                        theme: root.theme
-                        icon: "check"
-                        implicitWidth: 34
-                        implicitHeight: 34
-                        onClicked: Weather.setCity(root.cityInput)
-                    }
-                }
+                text: Weather.available ? Weather.icon : "cloud_off"
+                iconSize: 56
+                color: root.theme.secondary
             }
 
-            Tile {
-                width: parent.width - 220 - 220 - root.theme.spacingMedium * 2
-                height: parent.height
-                theme: root.theme
+            Column {
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: root.theme.spacingExtraSmall
 
-                Row {
-                    anchors.fill: parent
-                    anchors.margins: root.theme.paddingLarge
-                    spacing: root.theme.spacingLarge
+                StyledText {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    theme: root.theme
+                    role: "bodyLarge"
+                    pointSize: 26
+                    weight: Font.DemiBold
+                    color: root.theme.primary
+                    text: Weather.available ? Weather.temperature : "Météo"
+                }
 
-                    RoundedClip {
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 72
-                        height: 72
-                        radius: 36
+                StyledText {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    theme: root.theme
+                    role: "labelSmall"
+                    color: root.theme.onSurfaceVariantColour
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    maximumLineCount: 2
+                    width: Math.min(implicitWidth, 155)
+                    text: Weather.available ? Weather.description : "Non configurée"
+                }
 
-                        Rectangle {
-                            anchors.fill: parent
-                            color: root.theme.surfaceContainerHigh
-
-                            Image {
-                                anchors.fill: parent
-                                source: root.iconUrl(User.avatarPath)
-                                visible: User.avatarPath !== ""
-                                fillMode: Image.PreserveAspectCrop
-                                asynchronous: true
-                            }
-
-                            MaterialIcon {
-                                anchors.centerIn: parent
-                                visible: User.avatarPath === ""
-                                theme: root.theme
-                                text: "account_circle"
-                                iconSize: 54
-                                color: root.theme.onSurfaceVariantColour
-                            }
-                        }
-                    }
-
-                    Column {
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width - 72 - root.theme.spacingLarge
-                        spacing: 3
-
-                        StyledText {
-                            width: parent.width
-                            theme: root.theme
-                            role: "bodyLarge"
-                            pointSize: 22
-                            weight: Font.DemiBold
-                            elide: Text.ElideRight
-                            text: User.displayName
-                        }
-
-                        Row {
-                            spacing: root.theme.spacingSmall
-
-                            MaterialIcon {
-                                anchors.verticalCenter: parent.verticalCenter
-                                theme: root.theme
-                                text: "desktop_windows"
-                                iconSize: 16
-                                color: root.theme.primary
-                            }
-
-                            StyledText {
-                                anchors.verticalCenter: parent.verticalCenter
-                                theme: root.theme
-                                role: "bodyMedium"
-                                color: root.theme.onSurfaceVariantColour
-                                text: User.windowsVersion
-                            }
-                        }
-
-                        Row {
-                            spacing: root.theme.spacingSmall
-
-                            MaterialIcon {
-                                anchors.verticalCenter: parent.verticalCenter
-                                theme: root.theme
-                                text: "computer"
-                                iconSize: 16
-                                color: root.theme.primary
-                            }
-
-                            StyledText {
-                                anchors.verticalCenter: parent.verticalCenter
-                                theme: root.theme
-                                role: "bodyMedium"
-                                color: root.theme.onSurfaceVariantColour
-                                text: User.hostName
-                            }
-                        }
-
-                        Row {
-                            spacing: root.theme.spacingSmall
-
-                            MaterialIcon {
-                                anchors.verticalCenter: parent.verticalCenter
-                                theme: root.theme
-                                text: "schedule"
-                                iconSize: 16
-                                color: root.theme.primary
-                            }
-
-                            StyledText {
-                                anchors.verticalCenter: parent.verticalCenter
-                                theme: root.theme
-                                role: "bodyMedium"
-                                color: root.theme.onSurfaceVariantColour
-                                text: "Allumé depuis " + root.uptimeText()
-                            }
-                        }
-                    }
+                StyledText {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    theme: root.theme
+                    role: "labelSmall"
+                    color: root.theme.outline
+                    text: Weather.available ? Weather.city : "Ouvrir Weather"
                 }
             }
+        }
+    }
 
-            Tile {
-                width: 220
-                height: parent.height
+    // --- User --------------------------------------------------------------
+    Tile {
+        id: userCard
+
+        x: 287
+        y: 0
+        width: 340
+        height: root.row0
+        radius: root.theme.roundingExtraLarge
+        theme: root.theme
+
+        RoundedClip {
+            id: pfp
+
+            x: 16
+            y: 16
+            width: 148
+            height: 148
+            radius: 74
+            color: root.theme.surfaceContainerHighest
+
+            Image {
+                anchors.fill: parent
+                source: User.avatarPath !== ""
+                    ? "file:///" + User.avatarPath.replace(/\\/g, "/") : ""
+                fillMode: Image.PreserveAspectCrop
+                asynchronous: true
+            }
+
+            MaterialIcon {
+                anchors.centerIn: parent
+                visible: User.avatarPath === ""
                 theme: root.theme
+                text: "person_add"
+                iconSize: 56
+                fill: 1
+                color: root.theme.onSurfaceVariantColour
+            }
+        }
 
-                Column {
-                    anchors.fill: parent
-                    anchors.margins: root.theme.paddingLarge
-                    spacing: root.theme.spacingSmall
+        // Caelestia logo badge (approximates the Linux Gem shape).
+        Rectangle {
+            width: 46
+            height: 46
+            radius: 23
+            x: 8
+            y: 8
+            color: root.theme.primaryContainer
 
-                    Row {
-                        width: parent.width
+            Logo {
+                anchors.centerIn: parent
+                width: 28
+                height: 28
+                theme: root.theme
+            }
+        }
 
-                        StyledText {
-                            theme: root.theme
-                            role: "labelSmall"
-                            weight: Font.DemiBold
-                            color: root.theme.onSurfaceVariantColour
-                            text: "MÉDIA"
-                        }
-                    }
+        // Window-manager chip.
+        Rectangle {
+            id: wmChip
 
-                    Row {
-                        width: parent.width
-                        spacing: root.theme.spacingSmall
+            x: pfp.x + pfp.width + 8
+            y: 12
+            width: 150
+            height: 28
+            radius: 14
+            color: root.theme.secondaryContainer
 
-                        RoundedClip {
-                            width: 58
-                            height: 58
-                            radius: root.theme.roundingMedium
+            Row {
+                id: wmRow
 
-                            Rectangle {
-                                anchors.fill: parent
-                                color: root.theme.surfaceContainerHigh
+                anchors.centerIn: parent
+                spacing: root.theme.spacingExtraSmall
 
-                                Image {
-                                    anchors.fill: parent
-                                    source: root.iconUrl(Media.artworkPath)
-                                    visible: Media.artworkPath !== ""
-                                    fillMode: Image.PreserveAspectCrop
-                                    asynchronous: true
-                                }
+                MaterialIcon {
+                    anchors.verticalCenter: parent.verticalCenter
+                    theme: root.theme
+                    text: "select_window"
+                    iconSize: 15
+                    color: root.theme.onSecondaryContainerColour
+                }
 
-                                MaterialIcon {
-                                    anchors.centerIn: parent
-                                    visible: Media.artworkPath === ""
-                                    theme: root.theme
-                                    text: "music_note"
-                                    iconSize: 28
-                                    color: root.theme.onSurfaceVariantColour
-                                }
-                            }
-                        }
-
-                        Column {
-                            width: parent.width - 58 - root.theme.spacingSmall
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 1
-
-                            StyledText {
-                                width: parent.width
-                                theme: root.theme
-                                role: "bodyMedium"
-                                weight: Font.Medium
-                                elide: Text.ElideRight
-                                text: Media.available ? Media.title : "Aucune lecture"
-                            }
-
-                            StyledText {
-                                width: parent.width
-                                theme: root.theme
-                                role: "labelSmall"
-                                color: root.theme.onSurfaceVariantColour
-                                elide: Text.ElideRight
-                                text: Media.available ? Media.artist : "GSMTC"
-                            }
-                        }
-                    }
-
-                    Row {
-                        spacing: root.theme.spacingSmall
-                        visible: Media.available
-
-                        M3Button {
-                            theme: root.theme
-                            icon: Media.playing ? "pause" : "play_arrow"
-                            variant: "tonal"
-                            implicitWidth: 36
-                            implicitHeight: 32
-                            enabled: Media.canPlayPause
-                            onClicked: Media.playPause()
-                        }
-
-                        M3Button {
-                            theme: root.theme
-                            icon: "skip_next"
-                            variant: "text"
-                            implicitWidth: 32
-                            implicitHeight: 32
-                            enabled: Media.canNext
-                            onClicked: Media.next()
-                        }
-                    }
+                StyledText {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Math.min(implicitWidth, wmChip.width - 42)
+                    theme: root.theme
+                    role: "labelSmall"
+                    color: root.theme.onSecondaryContainerColour
+                    elide: Text.ElideRight
+                    text: User.windowsVersion
                 }
             }
         }
 
-        Row {
-            width: parent.width
-            height: parent.height - 168 - root.theme.spacingMedium
-            spacing: root.theme.spacingMedium
+        StyledText {
+            anchors.left: wmChip.left
+            anchors.top: wmChip.bottom
+            anchors.topMargin: 6
+            width: userCard.width - wmChip.x - 16
+            theme: root.theme
+            role: "bodyMedium"
+            weight: Font.DemiBold
+            color: root.theme.onSurfaceColour
+            elide: Text.ElideRight
+            text: User.displayName
+        }
 
-            Tile {
-                width: parent.width * 0.56
-                height: parent.height
+        // Uptime badge.
+        Rectangle {
+            id: uptimeBadge
+
+            x: pfp.x + pfp.width - 42
+            y: pfp.y + pfp.height - 42
+            width: 44
+            height: 44
+            radius: 22
+            color: root.theme.tertiaryContainer
+
+            MaterialIcon {
+                anchors.centerIn: parent
                 theme: root.theme
+                text: "clock_arrow_up"
+                iconSize: 20
+                color: root.theme.onTertiaryContainerColour
+            }
+        }
 
-                DashboardCalendar {
-                    anchors.fill: parent
-                    anchors.margins: root.theme.paddingLarge
-                    theme: root.theme
-                    today: root.now
-                }
+        StyledText {
+            anchors.left: uptimeBadge.right
+            anchors.verticalCenter: uptimeBadge.verticalCenter
+            anchors.leftMargin: root.theme.spacingSmall
+            width: userCard.width - x - root.theme.paddingLarge
+            theme: root.theme
+            role: "bodySmall"
+            color: root.theme.onSurfaceVariantColour
+            elide: Text.ElideRight
+            text: root.uptimeText()
+        }
+
+        Rectangle {
+            width: 10
+            height: 10
+            radius: 5
+            x: uptimeBadge.x + 2
+            y: uptimeBadge.y - 10
+            color: root.theme.secondaryContainer
+        }
+
+        Rectangle {
+            width: 15
+            height: 15
+            radius: 7.5
+            x: uptimeBadge.x + 14
+            y: uptimeBadge.y - 22
+            color: root.theme.secondaryContainer
+        }
+    }
+
+    // --- Media mini card ---------------------------------------------------
+    Tile {
+        id: mediaCard
+
+        x: root.width - root.mediaWidth
+        y: 0
+        width: root.mediaWidth
+        height: root.height
+        radius: root.theme.roundingExtraLarge * 2
+        theme: root.theme
+
+        readonly property bool available: Media.available
+        readonly property real progress: Media.durationMs > 0
+            ? Math.max(0, Math.min(1, Media.positionMs / Media.durationMs)) : 0
+
+        RoundedClip {
+            id: homeCover
+
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 24
+            width: 150
+            height: 150
+            radius: 20
+            color: root.theme.surfaceContainerHighest
+
+            Image {
+                anchors.fill: parent
+                source: Media.artworkPath !== ""
+                    ? "file:///" + Media.artworkPath.replace(/\\/g, "/") : ""
+                fillMode: Image.PreserveAspectCrop
+                asynchronous: true
             }
 
-            Tile {
-                width: parent.width - parent.width * 0.56 - root.theme.spacingMedium
-                height: parent.height
+            MaterialIcon {
+                anchors.centerIn: parent
+                visible: Media.artworkPath === ""
                 theme: root.theme
+                text: "music_note"
+                iconSize: 44
+                color: root.theme.onSurfaceVariantColour
+            }
+        }
 
-                Column {
-                    anchors.fill: parent
-                    anchors.margins: root.theme.paddingLarge
-                    spacing: root.theme.spacingSmall
+        CircularProgress {
+            anchors.centerIn: homeCover
+            width: 170
+            height: 170
+            theme: root.theme
+            value: mediaCard.progress
+            startAngle: -180
+            sweepAngle: 180
+            strokeWidth: 6
+            fgColour: root.theme.primary
+        }
 
-                    StyledText {
+        StyledText {
+            id: homeTitle
+
+            anchors.top: homeCover.bottom
+            anchors.topMargin: root.theme.spacingMedium
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width - root.theme.paddingLargeIncreased
+            theme: root.theme
+            role: "titleSmall"
+            color: root.theme.primary
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideRight
+            text: Media.available ? Media.title : "Aucune lecture"
+        }
+
+        StyledText {
+            anchors.top: homeTitle.bottom
+            anchors.topMargin: root.theme.spacingSmall
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width - root.theme.paddingLargeIncreased
+            theme: root.theme
+            role: "bodySmall"
+            color: root.theme.outline
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideRight
+            text: Media.available ? Media.album : "GSMTC"
+        }
+
+        StyledText {
+            id: homeArtist
+
+            anchors.top: homeTitle.bottom
+            anchors.topMargin: root.theme.spacingSmall + 16
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width - root.theme.paddingLargeIncreased
+            theme: root.theme
+            role: "bodySmall"
+            color: root.theme.secondary
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideRight
+            text: Media.available ? Media.artist : "—"
+        }
+
+        Row {
+            id: homeControls
+
+            anchors.top: homeArtist.bottom
+            anchors.topMargin: root.theme.spacingMedium
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: root.theme.spacingExtraSmall
+
+            M3Button {
+                theme: root.theme
+                icon: "skip_previous"
+                variant: "text"
+                implicitWidth: 34
+                implicitHeight: 32
+                enabled: Media.canPrevious
+                onClicked: Media.previous()
+            }
+
+            M3Button {
+                theme: root.theme
+                icon: Media.playing ? "pause" : "play_arrow"
+                variant: "tonal"
+                implicitWidth: 44
+                implicitHeight: 36
+                enabled: Media.canPlayPause
+                onClicked: Media.playPause()
+            }
+
+            M3Button {
+                theme: root.theme
+                icon: "skip_next"
+                variant: "text"
+                implicitWidth: 34
+                implicitHeight: 32
+                enabled: Media.canNext
+                onClicked: Media.next()
+            }
+        }
+
+        AnimatedImage {
+            anchors.top: homeControls.bottom
+            anchors.topMargin: root.theme.spacingSmall
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.leftMargin: 28
+            anchors.rightMargin: 28
+            anchors.bottomMargin: 16
+            visible: Media.available
+            playing: Media.playing
+            source: "qrc:/assets/bongocat.gif"
+            fillMode: Image.PreserveAspectFit
+            asynchronous: true
+        }
+
+        StyledText {
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 16
+            anchors.horizontalCenter: parent.horizontalCenter
+            visible: !Media.available
+            theme: root.theme
+            role: "labelSmall"
+            color: root.theme.onSurfaceVariantColour
+            text: "Aucune session média"
+        }
+    }
+
+    // --- Date / time -------------------------------------------------------
+    Tile {
+        id: dateCard
+
+        x: 0
+        y: root.row0 + root.gap
+        width: 110
+        height: root.row1
+        radius: root.theme.roundingLarge
+        theme: root.theme
+
+        Column {
+            anchors.centerIn: parent
+            spacing: -4
+
+            StyledText {
+                anchors.horizontalCenter: parent.horizontalCenter
+                theme: root.theme
+                role: "clock"
+                pointSize: 28
+                weight: Font.DemiBold
+                color: root.theme.secondary
+                text: Qt.formatDateTime(root.now, "HH")
+            }
+
+            StyledText {
+                anchors.horizontalCenter: parent.horizontalCenter
+                theme: root.theme
+                role: "clock"
+                pointSize: 25
+                color: root.theme.primary
+                text: "•••"
+            }
+
+            StyledText {
+                anchors.horizontalCenter: parent.horizontalCenter
+                theme: root.theme
+                role: "clock"
+                pointSize: 28
+                weight: Font.DemiBold
+                color: root.theme.secondary
+                text: Qt.formatDateTime(root.now, "mm")
+            }
+        }
+    }
+
+    // --- Calendar ----------------------------------------------------------
+    Tile {
+        id: calendarCard
+
+        x: root.calendarX
+        y: root.row0 + root.gap
+        width: Math.max(0, root.width - root.mediaWidth - root.gap - root.resourceWidth
+            - root.gap - root.calendarX)
+        height: root.row1
+        radius: root.theme.roundingExtraLarge
+        theme: root.theme
+
+        DashboardCalendar {
+            anchors.fill: parent
+            anchors.margins: root.theme.paddingLarge
+            theme: root.theme
+        }
+    }
+
+    // --- Resources ---------------------------------------------------------
+    Tile {
+        id: resourcesCard
+
+        x: root.width - root.mediaWidth - root.gap - root.resourceWidth
+        y: root.row0 + root.gap
+        width: root.resourceWidth
+        height: root.row1
+        radius: root.theme.roundingLarge
+        theme: root.theme
+
+        Column {
+            anchors.centerIn: parent
+            spacing: root.theme.spacingLargeIncreased
+
+            Repeater {
+                model: [
+                    { icon: "memory", value: System.cpuUsage, colour: root.theme.primary },
+                    { icon: "memory_alt", value: System.memoryPercent, colour: root.theme.tertiary },
+                    { icon: "hard_disk", value: System.diskPercent, colour: root.theme.secondary }
+                ]
+
+                Item {
+                    required property var modelData
+
+                    width: 42
+                    height: 42
+
+                    CircularProgress {
+                        anchors.fill: parent
                         theme: root.theme
-                        role: "labelSmall"
-                        weight: Font.DemiBold
-                        color: root.theme.onSurfaceVariantColour
-                        text: "SYSTÈME"
+                        value: modelData.value / 100
+                        strokeWidth: 6
+                        fgColour: modelData.colour
                     }
 
-                    Row {
-                        width: parent.width
-                        spacing: root.theme.spacingMedium
-
-                        Column {
-                            width: (parent.width - root.theme.spacingMedium) / 2
-                            spacing: 4
-
-                            StyledText {
-                                theme: root.theme
-                                role: "bodyMedium"
-                                weight: Font.Medium
-                                text: "CPU " + Math.round(System.cpuUsage) + " %"
-                            }
-
-                            Meter {
-                                width: parent.width
-                                theme: root.theme
-                                value: System.cpuUsage
-                            }
-
-                            StyledText {
-                                theme: root.theme
-                                role: "bodyMedium"
-                                weight: Font.Medium
-                                text: "RAM " + System.memoryUsedGb.toFixed(1) + " Go"
-                            }
-
-                            Meter {
-                                width: parent.width
-                                theme: root.theme
-                                value: System.memoryPercent
-                                colour: root.theme.secondary
-                            }
-                        }
-
-                        Column {
-                            width: (parent.width - root.theme.spacingMedium) / 2
-                            spacing: 4
-
-                            StyledText {
-                                theme: root.theme
-                                role: "bodyMedium"
-                                weight: Font.Medium
-                                text: System.gpuUsageAvailable
-                                    ? "GPU " + Math.round(System.gpuUsage) + " %" : "GPU N/D"
-                            }
-
-                            Meter {
-                                width: parent.width
-                                theme: root.theme
-                                value: System.gpuUsageAvailable ? System.gpuUsage : 0
-                                colour: root.theme.tertiary
-                            }
-
-                            StyledText {
-                                theme: root.theme
-                                role: "bodyMedium"
-                                weight: Font.Medium
-                                text: "Disque " + Math.round(System.diskPercent) + " %"
-                            }
-
-                            Meter {
-                                width: parent.width
-                                theme: root.theme
-                                value: System.diskPercent
-                                colour: root.theme.primary
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        width: parent.width
-                        height: 1
-                        color: root.theme.outlineVariant
-                        opacity: 0.5
-                    }
-
-                    Row {
-                        width: parent.width
-                        spacing: root.theme.spacingLarge
-
-                        Column {
-                            StyledText {
-                                theme: root.theme
-                                role: "labelSmall"
-                                color: root.theme.onSurfaceVariantColour
-                                text: "Réseau"
-                            }
-                            StyledText {
-                                theme: root.theme
-                                role: "bodyMedium"
-                                weight: Font.Medium
-                                text: Network.connected ? (Network.wifiConnected
-                                    ? Network.wifiSsid : "Ethernet") : "Hors ligne"
-                            }
-                        }
-
-                        Column {
-                            StyledText {
-                                theme: root.theme
-                                role: "labelSmall"
-                                color: root.theme.onSurfaceVariantColour
-                                text: "Débit"
-                            }
-                            StyledText {
-                                theme: root.theme
-                                role: "bodyMedium"
-                                weight: Font.Medium
-                                text: "↓ " + root.rate(System.networkDownKbps)
-                            }
-                        }
-
-                        Column {
-                            StyledText {
-                                theme: root.theme
-                                role: "labelSmall"
-                                color: root.theme.onSurfaceVariantColour
-                                text: "Audio"
-                            }
-                            StyledText {
-                                theme: root.theme
-                                role: "bodyMedium"
-                                weight: Font.Medium
-                                text: Audio.muted ? "Muet" : Audio.volume + " %"
-                            }
-                        }
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        theme: root.theme
+                        text: modelData.icon
+                        iconSize: 18
+                        color: modelData.colour
                     }
                 }
             }

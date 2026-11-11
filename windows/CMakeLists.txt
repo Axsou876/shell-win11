@@ -127,6 +127,7 @@ qt_add_qml_module(caelestia-shell
         src/qml/components/Meter.qml
         src/qml/components/RingGauge.qml
         src/qml/components/DashboardCalendar.qml
+        src/qml/components/CircularProgress.qml
         src/qml/components/PanelHeader.qml
         src/qml/bar/BarWorkspaces.qml
         src/qml/bar/BarFavorites.qml
@@ -143,6 +144,7 @@ qt_add_qml_module(caelestia-shell
         src/qml/overlay/DashboardHome.qml
         src/qml/overlay/DashboardMedia.qml
         src/qml/overlay/DashboardPerformance.qml
+        src/qml/overlay/DashboardWeather.qml
         src/qml/overlay/DashboardWorkspaces.qml
         src/qml/overlay/LauncherShell.qml
         src/qml/overlay/NotificationsShell.qml
@@ -188,6 +190,7 @@ qt_add_resources(caelestia-shell "assets"
         assets/wallpaper.webp
         assets/wallpaper.png
         assets/logo.svg
+        assets/bongocat.gif
         assets/fonts/GoogleSansFlex.ttf
         assets/fonts/MaterialSymbolsRounded.ttf
         assets/fonts/Rubik-VariableFont_wght.ttf

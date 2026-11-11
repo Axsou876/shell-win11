@@ -4,8 +4,9 @@ import QtQuick
 import ".."
 import "../components"
 
-// Functional dashboard: the four tabs are real components backed by Windows
-// services. The tab row keeps the original Caelestia indicator animation.
+// Dashboard reconstructed from the Linux composition (Content.qml / Tabs.qml):
+// stacked icon + label tabs, a content-width indicator, horizontal page slide
+// and the five Windows pages (Weather is a real tab, Workspaces is kept).
 Item {
     id: root
 
@@ -26,8 +27,11 @@ Item {
         { icon: "dashboard", label: "Dashboard" },
         { icon: "queue_music", label: "Media" },
         { icon: "speed", label: "Performance" },
+        { icon: "cloud", label: "Weather" },
         { icon: "apps", label: "Workspaces" }
     ]
+
+    focus: true
 
     MouseArea {
         anchors.fill: parent
@@ -43,12 +47,34 @@ Item {
             id: header
 
             width: parent.width
-            height: 50
+            height: 48
+
+            // Invisible text metrics so the indicator can use the active tab's
+            // real content width, like the Linux Tabs.qml indicator.
+            Item {
+                visible: false
+
+                Repeater {
+                    id: metrics
+
+                    model: root.tabs
+
+                    Text {
+                        required property var modelData
+
+                        text: modelData.label
+                        font.family: root.theme.bodyFont
+                        font.pointSize: 11
+                        font.weight: Font.Medium
+                    }
+                }
+            }
 
             Row {
                 id: tabRow
 
-                anchors.fill: parent
+                width: parent.width
+                height: 38
 
                 Repeater {
                     model: root.tabs
@@ -62,27 +88,43 @@ Item {
                         width: tabRow.width / root.tabs.length
                         height: tabRow.height
 
-                        Row {
+                        readonly property bool current: root.activeTab === tabItem.index
+                        readonly property real contentWidth: Math.max(20, tabLabel.implicitWidth)
+
+                        StateLayer {
                             anchors.centerIn: parent
-                            spacing: root.theme.spacingSmall
+                            width: Math.min(tabItem.width - 8, tabItem.contentWidth + 18)
+                            height: 34
+                            radius: root.theme.roundingMedium
+                            theme: root.theme
+                            colour: tabItem.current ? root.theme.primary : root.theme.onSurfaceColour
+                            onClicked: root.activeTab = tabItem.index
+                        }
+
+                        Column {
+                            anchors.centerIn: parent
+                            spacing: 1
 
                             MaterialIcon {
-                                anchors.verticalCenter: parent.verticalCenter
+                                id: tabIcon
+
+                                anchors.horizontalCenter: parent.horizontalCenter
                                 theme: root.theme
                                 text: tabItem.modelData.icon
-                                iconSize: 18
-                                fill: root.activeTab === tabItem.index ? 1 : 0
-                                color: root.activeTab === tabItem.index
+                                iconSize: 20
+                                fill: tabItem.current ? 1 : 0
+                                color: tabItem.current
                                     ? root.theme.primary : root.theme.onSurfaceVariantColour
                             }
 
                             StyledText {
-                                anchors.verticalCenter: parent.verticalCenter
+                                id: tabLabel
+
+                                anchors.horizontalCenter: parent.horizontalCenter
                                 theme: root.theme
-                                role: "bodySmall"
-                                weight: root.activeTab === tabItem.index
-                                    ? Font.DemiBold : Font.Medium
-                                color: root.activeTab === tabItem.index
+                                role: "labelSmall"
+                                weight: tabItem.current ? Font.DemiBold : Font.Medium
+                                color: tabItem.current
                                     ? root.theme.primary : root.theme.onSurfaceVariantColour
                                 text: tabItem.modelData.label
                             }
@@ -92,6 +134,12 @@ Item {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.activeTab = tabItem.index
+                            onWheel: event => {
+                                if (event.angleDelta.y < 0)
+                                    root.activeTab = Math.min(root.activeTab + 1, root.tabs.length - 1);
+                                else if (event.angleDelta.y > 0)
+                                    root.activeTab = Math.max(root.activeTab - 1, 0);
+                            }
                         }
                     }
                 }
@@ -101,12 +149,13 @@ Item {
                 id: indicator
 
                 readonly property real tabWidth: header.width / root.tabs.length
+                readonly property var activeMetrics: metrics.itemAt(root.activeTab)
 
-                x: root.activeTab * tabWidth + tabWidth / 2 - width / 2
-                y: header.height - 4
-                width: tabWidth - root.theme.spacingExtraLarge
+                width: activeMetrics ? Math.max(20, activeMetrics.implicitWidth) : 48
                 height: 3
                 radius: height / 2
+                x: root.activeTab * tabWidth + (tabWidth - width) / 2
+                y: header.height - 6
                 color: root.theme.primary
 
                 Behavior on x {
@@ -179,6 +228,13 @@ Item {
                 Loader {
                     width: view.width
                     height: view.height
+                    sourceComponent: weatherComponent
+                    asynchronous: false
+                }
+
+                Loader {
+                    width: view.width
+                    height: view.height
                     sourceComponent: workspaceComponent
                     asynchronous: false
                 }
@@ -191,6 +247,7 @@ Item {
 
         DashboardHome {
             theme: root.theme
+            onOpenWeather: root.activeTab = 3
         }
     }
 
@@ -206,6 +263,14 @@ Item {
         id: performanceComponent
 
         DashboardPerformance {
+            theme: root.theme
+        }
+    }
+
+    Component {
+        id: weatherComponent
+
+        DashboardWeather {
             theme: root.theme
         }
     }

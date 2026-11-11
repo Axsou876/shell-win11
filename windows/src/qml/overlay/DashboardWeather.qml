@@ -3,27 +3,21 @@ import Caelestia.Platform 1.0
 import ".."
 import "../components"
 
+// Weather tab reconstructed from WeatherTab.qml, driven by the real Open-Meteo
+// service (city, current conditions, sunrise/sunset and 5-day forecast).
 Item {
     id: root
 
     required property var theme
 
-    property bool editing: !Weather.configured
-    property string cityInput: Weather.configured ? Weather.city : ""
+    property string cityInput: Weather.city
 
-    function saveCity() {
-        if (cityInput.trim().length === 0)
-            return;
-        Weather.setCity(cityInput);
-        root.editing = false;
-    }
-
+    // --- Configuration -----------------------------------------------------
     Column {
-        anchors.fill: parent
+        anchors.centerIn: parent
+        width: Math.min(520, parent.width)
         spacing: root.theme.spacingMedium
-        visible: root.editing || !Weather.configured
-
-        Item { width: 1; height: 30 }
+        visible: !Weather.configured
 
         MaterialIcon {
             anchors.horizontalCenter: parent.horizontalCenter
@@ -39,19 +33,17 @@ Item {
             role: "bodyLarge"
             pointSize: 24
             weight: Font.DemiBold
-            text: "Configurer la mÃ©tÃ©o"
+            text: "Configurer la météo"
         }
 
         StyledText {
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: Math.min(520, parent.width)
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
+            width: parent.width
             theme: root.theme
             role: "bodyMedium"
             color: root.theme.onSurfaceVariantColour
-            text: "Indiquez une ville. Les donnÃ©es proviennent d'Open-Meteo, sans clÃ© API. "
-                + "La ville est la seule information enregistrÃ©e localement."
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            text: "Indiquez une ville. Les données proviennent d’Open-Meteo, sans clé API."
         }
 
         Rectangle {
@@ -61,7 +53,8 @@ Item {
             radius: root.theme.roundingLarge
             color: root.theme.surfaceContainerHigh
             border.width: cityField.activeFocus ? 2 : 1
-            border.color: cityField.activeFocus ? root.theme.primary : root.theme.outlineVariant
+            border.color: cityField.activeFocus
+                ? root.theme.primary : root.theme.outlineVariant
 
             TextInput {
                 id: cityField
@@ -77,16 +70,18 @@ Item {
                 font.pointSize: 14
                 text: root.cityInput
                 selectByMouse: true
-                focus: root.editing
-
+                focus: true
                 onTextChanged: root.cityInput = text
-                onAccepted: root.saveCity()
+                onAccepted: {
+                    if (cityInput.trim().length > 0)
+                        Weather.setCity(cityInput);
+                }
 
                 Text {
                     anchors.fill: parent
                     verticalAlignment: Text.AlignVCenter
                     visible: cityField.text.length === 0
-                    text: "Ex. Paris, MontrÃ©al, Tokyoâ€¦"
+                    text: "Ex. Paris, Montréal, Tokyo…"
                     color: root.theme.onSurfaceVariantColour
                     opacity: 0.65
                     font.family: root.theme.bodyFont
@@ -98,182 +93,255 @@ Item {
         M3Button {
             anchors.horizontalCenter: parent.horizontalCenter
             theme: root.theme
-            text: Weather.loading ? "Rechercheâ€¦" : "Enregistrer"
+            text: Weather.loading ? "Recherche…" : "Enregistrer"
             icon: "search"
             enabled: !Weather.loading && cityInput.trim().length > 0
-            onClicked: root.saveCity()
+            onClicked: Weather.setCity(cityInput)
         }
 
         StyledText {
             anchors.horizontalCenter: parent.horizontalCenter
-            width: Math.min(520, parent.width)
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-            visible: Weather.error !== ""
+            width: parent.width
             theme: root.theme
             role: "labelSmall"
             color: root.theme.error
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            visible: Weather.error !== ""
             text: Weather.error
-        }
-
-        M3Button {
-            anchors.horizontalCenter: parent.horizontalCenter
-            visible: Weather.configured
-            theme: root.theme
-            text: "Annuler"
-            variant: "text"
-            onClicked: root.editing = false
         }
     }
 
+    // --- Weather -----------------------------------------------------------
     Column {
         anchors.fill: parent
         spacing: root.theme.spacingMedium
-        visible: !root.editing && Weather.configured
+        visible: Weather.configured
 
+        // Header.
         Row {
             width: parent.width
-            height: 128
-            spacing: root.theme.spacingLarge
+            spacing: root.theme.spacingLargeIncreased
 
             Column {
-                width: parent.width * 0.55
                 spacing: 2
 
-                Row {
-                    spacing: root.theme.spacingSmall
-
-                    StyledText {
-                        theme: root.theme
-                        role: "bodyLarge"
-                        pointSize: 26
-                        weight: Font.DemiBold
-                        text: Weather.city
-                    }
-
-                    M3Button {
-                        anchors.verticalCenter: parent.verticalCenter
-                        theme: root.theme
-                        icon: "edit"
-                        variant: "text"
-                        implicitWidth: 34
-                        implicitHeight: 30
-                        onClicked: root.editing = true
-                    }
+                StyledText {
+                    theme: root.theme
+                    role: "bodyLarge"
+                    pointSize: 28
+                    weight: Font.DemiBold
+                    color: root.theme.onSurfaceColour
+                    text: Weather.city !== "" ? Weather.city : "Chargement…"
                 }
 
                 StyledText {
                     theme: root.theme
-                    role: "labelSmall"
+                    role: "bodySmall"
                     color: root.theme.onSurfaceVariantColour
-                    text: Qt.formatDateTime(new Date(), "dddd d MMMM")
-                        + (Weather.updatedAt !== "" ? " Â· actualisÃ© Ã  " + Weather.updatedAt : "")
+                    text: Qt.formatDate(new Date(), "dddd d MMMM")
                 }
+            }
+
+            Item { width: parent.width - 520; height: 1 }
+
+            Row {
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: root.theme.spacingLargeIncreased
 
                 Row {
-                    spacing: root.theme.spacingMedium
+                    spacing: root.theme.spacingSmall
 
                     MaterialIcon {
                         anchors.verticalCenter: parent.verticalCenter
                         theme: root.theme
-                        text: Weather.icon
-                        iconSize: 58
-                        color: root.theme.primary
+                        text: "wb_twilight"
+                        iconSize: 26
+                        color: root.theme.tertiary
                     }
 
                     Column {
-                        anchors.verticalCenter: parent.verticalCenter
-
                         StyledText {
                             theme: root.theme
-                            role: "bodyLarge"
-                            pointSize: 40
-                            weight: Font.DemiBold
-                            color: root.theme.primary
-                            text: Weather.temperature
-                        }
-
-                        StyledText {
-                            theme: root.theme
-                            role: "bodyMedium"
+                            role: "bodySmall"
                             color: root.theme.onSurfaceVariantColour
-                            text: Weather.loading ? "Mise Ã  jourâ€¦" : Weather.description
-                        }
-                    }
-                }
-            }
-
-            Row {
-                width: parent.width * 0.45
-                height: parent.height
-                spacing: root.theme.spacingMedium
-
-                Repeater {
-                    model: [
-                        { icon: "water_drop", label: "HumiditÃ©", value: Weather.humidity },
-                        { icon: "air", label: "Vent", value: Weather.wind },
-                        { icon: "wb_twilight", label: "Lever", value: Weather.sunrise },
-                        { icon: "bedtime", label: "Coucher", value: Weather.sunset }
-                    ]
-
-                    Column {
-                        required property var modelData
-
-                        width: (parent.width - root.theme.spacingMedium * 3) / 4
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 2
-
-                        MaterialIcon {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            theme: root.theme
-                            text: modelData.icon
-                            iconSize: 22
-                            color: root.theme.secondary
+                            text: "Lever"
                         }
 
                         StyledText {
-                            anchors.horizontalCenter: parent.horizontalCenter
                             theme: root.theme
                             role: "labelSmall"
+                            weight: Font.DemiBold
+                            text: Weather.sunrise !== "" ? Weather.sunrise : "--:--"
+                        }
+                    }
+                }
+
+                Row {
+                    spacing: root.theme.spacingSmall
+
+                    MaterialIcon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        theme: root.theme
+                        text: "bedtime"
+                        iconSize: 26
+                        color: root.theme.tertiary
+                    }
+
+                    Column {
+                        StyledText {
+                            theme: root.theme
+                            role: "bodySmall"
                             color: root.theme.onSurfaceVariantColour
-                            text: modelData.label
+                            text: "Coucher"
                         }
 
                         StyledText {
-                            anchors.horizontalCenter: parent.horizontalCenter
                             theme: root.theme
-                            role: "bodyMedium"
-                            weight: Font.Medium
-                            text: modelData.value
+                            role: "labelSmall"
+                            weight: Font.DemiBold
+                            text: Weather.sunset !== "" ? Weather.sunset : "--:--"
                         }
                     }
                 }
             }
         }
 
+        // Big current conditions card.
         Rectangle {
             width: parent.width
-            height: 1
-            color: root.theme.outlineVariant
-            opacity: 0.5
+            height: 150
+            radius: root.theme.roundingExtraLarge * 2
+            color: root.theme.surfaceContainer
+
+            Row {
+                anchors.centerIn: parent
+                spacing: root.theme.spacingLargeIncreased
+
+                MaterialIcon {
+                    anchors.verticalCenter: parent.verticalCenter
+                    theme: root.theme
+                    text: Weather.available ? Weather.icon : "cloud_off"
+                    iconSize: 84
+                    color: root.theme.secondary
+                }
+
+                Column {
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: -4
+
+                    StyledText {
+                        theme: root.theme
+                        role: "bodyLarge"
+                        pointSize: 56
+                        weight: Font.Medium
+                        color: root.theme.primary
+                        text: Weather.available ? Weather.temperature : "--"
+                    }
+
+                    StyledText {
+                        theme: root.theme
+                        role: "bodyMedium"
+                        color: root.theme.onSurfaceVariantColour
+                        text: Weather.available ? Weather.description : "Données indisponibles"
+                    }
+                }
+            }
         }
 
+        // Detail cards.
         Row {
             width: parent.width
             spacing: root.theme.spacingMedium
 
             Repeater {
+                model: [
+                    { icon: "water_drop", label: "Humidité",
+                        value: Weather.humidity !== "" ? Weather.humidity : "N/D",
+                        colour: root.theme.secondary },
+                    { icon: "thermostat", label: "Ressenti",
+                        value: Weather.feelsLike !== "" ? Weather.feelsLike : "N/D",
+                        colour: root.theme.primary },
+                    { icon: "air", label: "Vent",
+                        value: Weather.wind !== "" ? Weather.wind : "N/D",
+                        colour: root.theme.tertiary }
+                ]
+
+                Rectangle {
+                    id: detailCard
+
+                    required property var modelData
+
+                    width: (root.width - root.theme.spacingMedium * 2) / 3
+                    height: 66
+                    radius: root.theme.roundingMedium
+                    color: root.theme.surfaceContainer
+
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: root.theme.spacingMedium
+
+                        MaterialIcon {
+                            anchors.verticalCenter: parent.verticalCenter
+                            theme: root.theme
+                            text: detailCard.modelData.icon
+                            iconSize: 26
+                            color: detailCard.modelData.colour
+                        }
+
+                        Column {
+                            spacing: 0
+
+                            StyledText {
+                                theme: root.theme
+                                role: "bodySmall"
+                                color: root.theme.onSurfaceVariantColour
+                                opacity: 0.8
+                                text: detailCard.modelData.label
+                            }
+
+                            StyledText {
+                                theme: root.theme
+                                role: "labelSmall"
+                                weight: Font.DemiBold
+                                text: detailCard.modelData.value
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Forecast.
+        StyledText {
+            theme: root.theme
+            role: "bodyMedium"
+            weight: Font.DemiBold
+            color: root.theme.onSurfaceColour
+            visible: Weather.forecast.length > 0
+            text: "Prévisions " + Weather.forecast.length + " jours"
+        }
+
+        Row {
+            width: parent.width
+            spacing: root.theme.spacingMedium
+            visible: Weather.forecast.length > 0
+
+            Repeater {
                 model: Weather.forecast
 
                 Rectangle {
+                    id: forecastItem
+
+                    required property int index
                     required property var modelData
 
-                    width: (parent.width - root.theme.spacingMedium * 4) / 5
-                    height: 164
+                    width: (root.width - root.theme.spacingMedium
+                        * Math.max(0, Weather.forecast.length - 1))
+                        / Math.max(1, Weather.forecast.length)
+                    height: 128
                     radius: root.theme.roundingLarge
                     color: root.theme.surfaceContainer
-                    border.width: 1
-                    border.color: Qt.alpha(root.theme.outlineVariant, 0.25)
 
                     Column {
                         anchors.centerIn: parent
@@ -282,62 +350,40 @@ Item {
                         StyledText {
                             anchors.horizontalCenter: parent.horizontalCenter
                             theme: root.theme
-                            role: "labelSmall"
+                            role: "bodySmall"
                             weight: Font.DemiBold
+                            color: root.theme.primary
+                            text: forecastItem.index === 0 ? "Aujourd’hui" : forecastItem.modelData.day
+                        }
+
+                        StyledText {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            theme: root.theme
+                            role: "labelSmall"
                             color: root.theme.onSurfaceVariantColour
-                            text: modelData.day
+                            opacity: 0.75
+                            text: Qt.formatDate(new Date(forecastItem.modelData.date), "d MMM")
                         }
 
                         MaterialIcon {
                             anchors.horizontalCenter: parent.horizontalCenter
                             theme: root.theme
-                            text: modelData.icon
-                            iconSize: 34
-                            color: root.theme.primary
+                            text: forecastItem.modelData.icon
+                            iconSize: 28
+                            color: root.theme.secondary
                         }
 
                         StyledText {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            theme: root.theme
-                            role: "bodyMedium"
-                            weight: Font.Medium
-                            text: modelData.max + " / " + modelData.min
-                        }
-
-                        StyledText {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            width: parent.width - 8
-                            horizontalAlignment: Text.AlignHCenter
-                            wrapMode: Text.WordWrap
                             theme: root.theme
                             role: "labelSmall"
-                            color: root.theme.onSurfaceVariantColour
-                            text: modelData.description
+                            weight: Font.DemiBold
+                            color: root.theme.tertiary
+                            text: forecastItem.modelData.min + " / " + forecastItem.modelData.max
                         }
                     }
                 }
             }
         }
-
-        StyledText {
-            width: parent.width
-            visible: Weather.error !== ""
-            theme: root.theme
-            role: "labelSmall"
-            color: root.theme.error
-            wrapMode: Text.WordWrap
-            text: Weather.error
-        }
-
-        M3Button {
-            theme: root.theme
-            text: "Actualiser"
-            icon: "refresh"
-            variant: "text"
-            enabled: !Weather.loading
-            onClicked: Weather.refresh()
-        }
     }
 }
-
-

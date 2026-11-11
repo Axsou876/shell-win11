@@ -88,35 +88,10 @@ Item {
 
             Component.onCompleted: Platform.registerLeftAppBar(barWindow, 60)
             Component.onDestruction: Platform.unregisterAppBar(barWindow)
-            Shortcut {
-                sequence: "Ctrl+Q"
-                onActivated: Qt.quit()
-            }
 
-            Shortcut {
-                sequence: "Esc"
-                enabled: panelController.currentPanel !== ""
-                    && panelController.currentScreenName === modelData.name
-                onActivated: panelController.closePanel()
-            }
-
-            // Temporary surface preview triggers. Step 2 replaces them with
-            // the real bar entries (dashboard top-edge/bar target, sidebar
-            // notification target).
-            Shortcut {
-                sequence: "F9"
-                onActivated: panelController.togglePanel("sidebar", modelData.name, 0)
-            }
-
-            Shortcut {
-                sequence: "F10"
-                onActivated: panelController.togglePanel("dashboard", modelData.name, 0)
-            }
-
-            Shortcut {
-                sequence: "F8"
-                onActivated: appTheme.dark = !appTheme.dark
-            }
+            // Keyboard shortcuts live on the overlay window (F8/F9/F10/F1/
+            // Ctrl+Q/Esc). Duplicating them here made Qt report ambiguous
+            // shortcuts, so the bar window keeps none.
 
             Bar {
                 anchors.fill: parent

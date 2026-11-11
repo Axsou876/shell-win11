@@ -92,6 +92,26 @@ Item {
                     color: root.theme.onSurfaceVariantColour
                 }
             }
+
+            Item {
+                width: 30
+                height: 30
+
+                StateLayer {
+                    anchors.fill: parent
+                    theme: root.theme
+                    radius: width / 2
+                    onClicked: root.panelController.togglePanel("sidebar", root.screenName, 0)
+                }
+
+                MaterialIcon {
+                    anchors.centerIn: parent
+                    theme: root.theme
+                    text: "dock_to_right"
+                    iconSize: 18
+                    color: root.theme.onSurfaceVariantColour
+                }
+            }
         }
 
         BarFavorites {
