@@ -331,5 +331,5 @@ Fermeture : un cmd fermé, cinq fenêtres restantes, focus sur le cmd suivant.
 
 ## 11. Commit
 
-Commit de la phase : voir le hash final sur la branche
-`phase3-desktop-shell` (rapport inclus dans le commit).
+Commit de la phase : `03e832f` sur la branche `phase3-desktop-shell`.
+Ce rapport est inclus dans le commit de documentation.
