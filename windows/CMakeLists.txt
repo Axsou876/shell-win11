@@ -36,6 +36,8 @@ qt_add_executable(caelestia-shell
     src/platform/services/powerservice.hpp
     src/platform/services/systemservice.cpp
     src/platform/services/systemservice.hpp
+    src/platform/services/tilingengine.cpp
+    src/platform/services/tilingengine.hpp
     src/platform/services/trayservice.cpp
     src/platform/services/trayservice.hpp
     src/platform/services/userservice.cpp
@@ -44,6 +46,8 @@ qt_add_executable(caelestia-shell
     src/platform/services/virtualdesktopservice.hpp
     src/platform/services/wallpaperservice.cpp
     src/platform/services/wallpaperservice.hpp
+    src/platform/services/windowmanagerservice.cpp
+    src/platform/services/windowmanagerservice.hpp
     src/platform/services/weatherservice.cpp
     src/platform/services/weatherservice.hpp
     src/platform/services/windowsservice.cpp
@@ -75,6 +79,7 @@ target_link_libraries(caelestia-shell PRIVATE
     powrprof
     advapi32
     netapi32
+    winmm
 )
 
 target_compile_definitions(caelestia-shell PRIVATE

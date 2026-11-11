@@ -23,6 +23,22 @@ Item {
     }
 
     Connections {
+        target: WindowManager
+
+        function onLauncherRequested() {
+            panelController.togglePanel("launcher", WindowManager.screenName(), 0);
+        }
+
+        function onSidebarRequested() {
+            panelController.togglePanel("sidebar", WindowManager.screenName(), 0);
+        }
+
+        function onSessionRequested() {
+            panelController.togglePanel("power", WindowManager.screenName(), 0);
+        }
+    }
+
+    Connections {
         target: Platform
 
         function onScreensChanged() {

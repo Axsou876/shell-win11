@@ -24,6 +24,8 @@ windows/src/
   platform/services/wallpaperservice.*   fonds d’écran réels + changement Windows
   platform/services/notificationservice.* boîte de notifications du shell
   platform/services/windowsservice.*     fenêtres du bureau actuel (Workspaces)
+  platform/services/tilingengine.*       moteur Dwindle/Master/Split H/V
+  platform/services/windowmanagerservice.* tiling réel, hotkeys, focus, bordure active
   platform/services/virtualdesktopservice.* vrais bureaux virtuels (barre Workspaces)
   qml/overlay/LauncherShell.qml          panneau launcher (applications / >wal)
   qml/overlay/NotificationsShell.qml     panneau notifications + actions
@@ -63,6 +65,7 @@ sa fermeture passe par Échap, le clic extérieur ou le lancement réussi.
 | Notifications | boîte interne au shell (`NotificationService`) : titre, application, corps, heure, actions |
 | Workspaces (Dashboard) | `EnumWindows`, `IVirtualDesktopManager`, `DwmGetWindowAttribute`, `SetForegroundWindow` |
 | Workspaces (barre) | `IVirtualDesktopManagerInternal`/`IVirtualDesktop` (privés), `IVirtualDesktopManager` documenté, `IApplicationViewCollection` + `MoveViewToDesktop` (fallback privé), `EnumWindows` |
+| Tiling | `SetWinEventHook`, `RegisterHotKey`, `SetWindowPos`, `SetWindowPlacement`, `GetMonitorInfo`, `DwmFlush`, `TilingEngine` |
 | Météo | Open-Meteo Geocoding + Forecast (HTTPS, sans clé API) |
 | Session | `LockWorkStation`, `SetSuspendState`, `ExitWindowsEx`, privilège `SeShutdownPrivilege` |
 | Barre des tâches | `SHAppBarMessage(ABM_GETSTATE/ABM_SETSTATE)` (`ABS_AUTOHIDE`), `EnumWindows`, `ShowWindow(SW_HIDE/SW_SHOW)` |
@@ -73,6 +76,11 @@ et appelle `ShellExecuteExW` sur leur `.lnk` ou `shell:AppsFolder\<AUMID>`.
 ## 3. État des fonctionnalités
 
 Terminé et testé :
+
+- Tiling Windows inspiré de Hyprland : Dwindle/Master/Split H/V, floating,
+  focus directionnel, hotkeys globales, layouts par bureau/écran, bordure
+  active, coupe-circuit et restauration ; voir
+  `docs/hyprland-window-management-report.md`.
 
 - Launcher par logo, bouton recherche ou F1, recherche fuzzy insensible à la
   casse, navigation clavier, Échap, clic extérieur, favoris, icônes shell,

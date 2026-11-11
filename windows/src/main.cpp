@@ -9,11 +9,13 @@
 #include "platform/services/notificationservice.hpp"
 #include "platform/services/powerservice.hpp"
 #include "platform/services/systemservice.hpp"
+#include "platform/services/tilingengine.hpp"
 #include "platform/services/trayservice.hpp"
 #include "platform/services/userservice.hpp"
 #include "platform/services/virtualdesktopservice.hpp"
 #include "platform/services/wallpaperservice.hpp"
 #include "platform/services/weatherservice.hpp"
+#include "platform/services/windowmanagerservice.hpp"
 #include "platform/services/windowsservice.hpp"
 
 #include <QDir>
@@ -320,6 +322,69 @@ int main(int argc, char* argv[])
         return loop.exec();
     }
 
+    if (arguments.contains(QStringLiteral("--test-tiling"))) {
+        QTextStream out(stdout);
+        const QRect content(0, 0, 1200, 800);
+        bool allOk = true;
+        const TilingEngine::Layout layouts[] = {
+            TilingEngine::Layout::Dwindle,
+            TilingEngine::Layout::Master,
+            TilingEngine::Layout::SplitHorizontal,
+            TilingEngine::Layout::SplitVertical,
+        };
+        for (TilingEngine::Layout layout : layouts) {
+            TilingEngine engine;
+            engine.setLayout(layout);
+            for (quintptr hwnd = 1; hwnd <= 5; ++hwnd)
+                engine.addWindow(hwnd);
+
+            const QHash<quintptr, QRect> geometry = engine.geometry(content);
+            bool inside = geometry.size() == 5;
+            bool overlap = false;
+            QVector<quintptr> keys;
+            for (auto it = geometry.constBegin(); it != geometry.constEnd(); ++it) {
+                keys.append(it.key());
+                if (!content.contains(it.value()))
+                    inside = false;
+            }
+            for (qsizetype i = 0; i < keys.size(); ++i) {
+                for (qsizetype j = i + 1; j < keys.size(); ++j) {
+                    if (geometry.value(keys.at(i)).intersects(geometry.value(keys.at(j))))
+                        overlap = true;
+                }
+            }
+
+            out << "layout=" << TilingEngine::layoutName(layout)
+                << " count=" << engine.count() << " inside=" << inside
+                << " overlap=" << overlap << '\n';
+            for (quintptr hwnd : engine.windows()) {
+                const QRect rect = geometry.value(hwnd);
+                out << "  hwnd=" << hwnd << " rect=" << rect.x() << ',' << rect.y()
+                    << ' ' << rect.width() << 'x' << rect.height() << '\n';
+            }
+
+            engine.setFocused(1);
+            const quintptr right = engine.windowInDirection(content, 1, 0);
+            const bool directionOk = layout == TilingEngine::Layout::SplitVertical
+                ? right == 0
+                : right != 0;
+            engine.removeWindow(3);
+            const bool removeOk = engine.count() == 4 && !engine.contains(3)
+                && engine.contains(engine.focused());
+            engine.swapWithDirection(content, 1, 0);
+            const bool swapOk = engine.count() == 4;
+            engine.resizeFocused(content, true, 0.05);
+            const bool resizeOk = true;
+
+            out << "  direction=" << directionOk << " remove=" << removeOk
+                << " swap=" << swapOk << " resize=" << resizeOk << '\n';
+            allOk = allOk && inside && !overlap && directionOk && removeOk && swapOk;
+        }
+        out << (allOk ? "TILING PASS\n" : "TILING FAIL\n");
+        out.flush();
+        return allOk ? 0 : 1;
+    }
+
     if (arguments.contains(QStringLiteral("--audio-mute-test"))) {
         AudioService audio;
         QEventLoop loop;
@@ -370,6 +435,7 @@ int main(int argc, char* argv[])
     VirtualDesktopService virtualDesktops;
     WallpaperService wallpaper;
     WindowService windows;
+    WindowManagerService windowManager(&virtualDesktops);
     TrayService tray;
 
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Platform", &platform);
@@ -388,7 +454,35 @@ int main(int argc, char* argv[])
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "VirtualDesktops", &virtualDesktops);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Wallpaper", &wallpaper);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "AppWindows", &windows);
+    qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "WindowManager", &windowManager);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Tray", &tray);
+
+    QObject::connect(&windowManager, &WindowManagerService::switchDesktopRequested,
+        &virtualDesktops,
+        [&virtualDesktops](int index) {
+            const QVariantList desktops = virtualDesktops.desktops();
+            if (index < 0 || index >= desktops.size())
+                return;
+            const QString id = desktops.at(index).toMap()
+                                   .value(QStringLiteral("id")).toString();
+            if (!id.isEmpty())
+                virtualDesktops.switchTo(id);
+        },
+        Qt::QueuedConnection);
+    QObject::connect(&windowManager, &WindowManagerService::moveWindowToDesktopRequested,
+        &virtualDesktops,
+        [&virtualDesktops](const QString& windowId, int index) {
+            const QVariantList desktops = virtualDesktops.desktops();
+            if (index < 0 || index >= desktops.size())
+                return;
+            const QString id = desktops.at(index).toMap()
+                                   .value(QStringLiteral("id")).toString();
+            if (!id.isEmpty())
+                virtualDesktops.moveWindow(windowId, id);
+        },
+        Qt::QueuedConnection);
+    QObject::connect(&app, &QCoreApplication::aboutToQuit, &windowManager,
+        &WindowManagerService::shutdown);
 
     QQmlApplicationEngine engine;
     QObject::connect(

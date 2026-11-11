@@ -138,6 +138,16 @@ notification Windows native**. La barre Caelestia n'en affiche pas de copies.
   code du tray est inchangé et l'icône est enregistrée au démarrage.
 - **Icônes tierces dans la barre** : impossible avec les API documentées.
 
+## Tiling Windows (Phase 3)
+
+Le shell inclut un gestionnaire de fenêtres réel inspiré de Hyprland :
+layout Dwindle par défaut, Master, Split horizontal/vertical, tiling strict,
+floating, focus directionnel, déplacement entre bureaux et coupe-circuit.
+Les raccourcis `SUPER+…` de Caelestia sont remplacés par des alternatives
+`Ctrl+Alt+…` lorsque Windows les réserve ; `Ctrl+Alt+Shift+T` active/désactive
+le tiling et `Ctrl+Alt+Shift+Escape` restaure les fenêtres. Détails :
+`docs/hyprland-window-management-report.md`.
+
 ## Bugs / limites connus
 
 - Qt 6.9.3 émet des avertissements `QSGThreadedRenderLoop ... invalid geometry`
