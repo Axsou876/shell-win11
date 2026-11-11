@@ -40,6 +40,8 @@ qt_add_executable(caelestia-shell
     src/platform/services/trayservice.hpp
     src/platform/services/userservice.cpp
     src/platform/services/userservice.hpp
+    src/platform/services/virtualdesktopservice.cpp
+    src/platform/services/virtualdesktopservice.hpp
     src/platform/services/wallpaperservice.cpp
     src/platform/services/wallpaperservice.hpp
     src/platform/services/weatherservice.cpp

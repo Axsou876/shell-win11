@@ -24,6 +24,7 @@ windows/src/
   platform/services/wallpaperservice.*   fonds d’écran réels + changement Windows
   platform/services/notificationservice.* boîte de notifications du shell
   platform/services/windowsservice.*     fenêtres du bureau actuel (Workspaces)
+  platform/services/virtualdesktopservice.* vrais bureaux virtuels (barre Workspaces)
   qml/overlay/LauncherShell.qml          panneau launcher (applications / >wal)
   qml/overlay/NotificationsShell.qml     panneau notifications + actions
   qml/overlay/DashboardShell.qml         onglets empilés + slide horizontal
@@ -60,7 +61,8 @@ sa fermeture passe par Échap, le clic extérieur ou le lancement réussi.
 | Profil | `GetUserNameW`, `NetUserGetInfo`, `FOLDERID_AccountPictures`, `QSysInfo` |
 | Fond d’écran | `SystemParametersInfoW(SPI_SETDESKWALLPAPER)`, `QStandardPaths::PicturesLocation`, dossiers Themes/Web de Windows |
 | Notifications | boîte interne au shell (`NotificationService`) : titre, application, corps, heure, actions |
-| Workspaces | `EnumWindows`, `IVirtualDesktopManager`, `DwmGetWindowAttribute`, `SetForegroundWindow` |
+| Workspaces (Dashboard) | `EnumWindows`, `IVirtualDesktopManager`, `DwmGetWindowAttribute`, `SetForegroundWindow` |
+| Workspaces (barre) | `IVirtualDesktopManagerInternal`/`IVirtualDesktop` (privés), `IVirtualDesktopManager` documenté, `IApplicationViewCollection` + `MoveViewToDesktop` (fallback privé), `EnumWindows` |
 | Météo | Open-Meteo Geocoding + Forecast (HTTPS, sans clé API) |
 | Session | `LockWorkStation`, `SetSuspendState`, `ExitWindowsEx`, privilège `SeShutdownPrivilege` |
 | Barre des tâches | `SHAppBarMessage(ABM_GETSTATE/ABM_SETSTATE)` (`ABS_AUTOHIDE`), `EnumWindows`, `ShowWindow(SW_HIDE/SW_SHOW)` |
@@ -187,8 +189,7 @@ Partiel / non exécuté volontairement :
 - UI Release : launcher Firefox capturé ; `calc` + Entrée a lancé
   `CalculatorApp` ; Dashboard 4 onglets ; Audio/Réseau/Batterie ; F9 ;
   menu Power ; dock de la barre ; aucune erreur QML.
-- L’onglet Workspaces liste les fenêtres du **bureau virtuel actuel** et permet
-  de les activer ; il n’affiche pas encore de miniatures de tous les bureaux.
+- La barre Workspaces gère désormais les vrais bureaux virtuels Windows (création, changement, fermeture, déplacement de fenêtres, synchronisation) ; le détail est dans `docs/virtual-desktops-report.md`. L'onglet Dashboard Workspaces liste les fenêtres du **bureau virtuel actuel** et permet de les activer ; il n'affiche pas de miniatures de tous les bureaux.
 - Launcher `>wal` Release : `94 fonds d’écran`, vignettes et filtre vérifiés ;
   `Entrée` a appliqué une image réelle au bureau Windows (valeur WallPaper du
   registre changée et capture du bureau), puis le fond d’origine a été restauré.

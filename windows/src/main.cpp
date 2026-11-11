@@ -11,6 +11,7 @@
 #include "platform/services/systemservice.hpp"
 #include "platform/services/trayservice.hpp"
 #include "platform/services/userservice.hpp"
+#include "platform/services/virtualdesktopservice.hpp"
 #include "platform/services/wallpaperservice.hpp"
 #include "platform/services/weatherservice.hpp"
 #include "platform/services/windowsservice.hpp"
@@ -262,6 +263,36 @@ int main(int argc, char* argv[])
         return loop.exec();
     }
 
+    if (arguments.contains(QStringLiteral("--dump-vdesktops"))) {
+        VirtualDesktopService virtualDesktops;
+        QEventLoop loop;
+        QTimer::singleShot(2500, &loop, [&]() {
+            QTextStream out(stdout);
+            out << "VDESKTOP available=" << virtualDesktops.available()
+                << " current=" << virtualDesktops.currentId()
+                << " count=" << virtualDesktops.desktops().size() << '\n';
+            for (const QVariant& value : virtualDesktops.desktops()) {
+                const QVariantMap item = value.toMap();
+                const QVariantList windows = item.value(QStringLiteral("windows")).toList();
+                out << "  " << item.value(QStringLiteral("index")).toString()
+                    << " id=" << item.value(QStringLiteral("id")).toString()
+                    << " name=" << item.value(QStringLiteral("name")).toString()
+                    << " active=" << item.value(QStringLiteral("active")).toBool()
+                    << " windows=" << windows.size() << '\n';
+                for (const QVariant& windowValue : windows) {
+                    const QVariantMap window = windowValue.toMap();
+                    out << "      hwnd=" << window.value(QStringLiteral("id")).toString()
+                        << " app=" << window.value(QStringLiteral("app")).toString()
+                        << " title=" << window.value(QStringLiteral("title")).toString()
+                        << '\n';
+                }
+            }
+            out.flush();
+            loop.exit(0);
+        });
+        return loop.exec();
+    }
+
     if (arguments.contains(QStringLiteral("--dump-status"))) {
         AudioService audio;
         NetworkService network;
@@ -336,6 +367,7 @@ int main(int argc, char* argv[])
     WeatherService weather;
     PowerService power;
     UserService user;
+    VirtualDesktopService virtualDesktops;
     WallpaperService wallpaper;
     WindowService windows;
     TrayService tray;
@@ -353,6 +385,7 @@ int main(int argc, char* argv[])
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Weather", &weather);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Power", &power);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "User", &user);
+    qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "VirtualDesktops", &virtualDesktops);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Wallpaper", &wallpaper);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "AppWindows", &windows);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Tray", &tray);

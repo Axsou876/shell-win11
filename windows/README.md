@@ -150,7 +150,7 @@ notification Windows native**. La barre Caelestia n'en affiche pas de copies.
 - La déconnexion d'un écran recrée aussi les barres des écrans restants
   (changement de modèle `Instantiator`) ; aucun doublon ni clignotement durable
   observé.
-- Les workspaces et le bouton power restent décoratifs (état Phase 2.4).
+- Les workspaces de la barre sont réels (Phase 3, VirtualDesktopService) ; le bouton power reste décoratif (état Phase 2.4).
 - Les modules Caelestia majeurs (notifications, launcher, dashboard, OSD, lock,
   session, wallpaper, météo, média, luminosité, clavier, VPN) ne sont pas
   implémentés.
