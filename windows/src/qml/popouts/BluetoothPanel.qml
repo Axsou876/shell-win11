@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts
 import Caelestia.Platform 1.0
 import ".."
 import "../components"
@@ -52,12 +53,12 @@ Item {
             opacity: 0.6
         }
 
-        Row {
+        RowLayout {
             width: parent.width
             spacing: root.theme.spacingMedium
 
             MaterialIcon {
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
                 theme: root.theme
                 text: Bluetooth.enabled ? "bluetooth" : "bluetooth_disabled"
                 iconSize: 34
@@ -66,7 +67,7 @@ Item {
             }
 
             Column {
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
 
                 StyledText {
                     theme: root.theme
@@ -85,12 +86,12 @@ Item {
                 }
             }
 
-            Item { width: parent.width - 250; height: 1 }
+            Item { Layout.fillWidth: true }
 
             M3Switch {
                 id: toggle
 
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
                 theme: root.theme
                 checked: Bluetooth.enabled
                 enabled: Bluetooth.present && Bluetooth.known

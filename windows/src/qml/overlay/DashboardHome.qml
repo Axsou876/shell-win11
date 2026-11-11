@@ -1,26 +1,24 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Layouts
 import Caelestia.Platform 1.0
 import ".."
 import "../components"
 
-// Dashboard home rebuilt from the Linux Dash.qml grid: user card, small
-// weather, clock, calendar, resource rings and the media card. All values come
-// from the real Windows services.
-Item {
+// Dashboard home rebuilt from the Linux Dash.qml grid. Layout uses the same
+// GridLayout/span structure as the original so every card shares one visual
+// grid instead of hard-coded positions.
+GridLayout {
     id: root
 
     required property var theme
 
     signal openWeather()
 
-    readonly property real gap: theme.spacingMedium
-    readonly property real row0: 180
-    readonly property real row1: Math.max(0, height - row0 - gap)
-    readonly property real mediaWidth: 200
-    readonly property real resourceWidth: 70
-    readonly property real calendarX: 122
+    columns: 6
+    rowSpacing: theme.spacingMedium
+    columnSpacing: theme.spacingMedium
 
     Timer {
         id: clockTimer
@@ -61,10 +59,11 @@ Item {
     Tile {
         id: weatherCard
 
-        x: 0
-        y: 0
-        width: 275
-        height: root.row0
+        Layout.row: 0
+        Layout.column: 0
+        Layout.columnSpan: 2
+        Layout.preferredWidth: 275
+        Layout.preferredHeight: 180
         radius: root.theme.roundingExtraLarge * 1.5
         theme: root.theme
 
@@ -127,10 +126,11 @@ Item {
     Tile {
         id: userCard
 
-        x: 287
-        y: 0
-        width: 340
-        height: root.row0
+        Layout.row: 0
+        Layout.column: 2
+        Layout.columnSpan: 3
+        Layout.preferredWidth: 340
+        Layout.fillHeight: true
         radius: root.theme.roundingExtraLarge
         theme: root.theme
 
@@ -140,8 +140,8 @@ Item {
             x: 16
             y: 16
             width: 148
-            height: 148
-            radius: 74
+            height: Math.min(148, userCard.height - 32)
+            radius: width / 2
             color: root.theme.surfaceContainerHighest
 
             Image {
@@ -163,7 +163,6 @@ Item {
             }
         }
 
-        // Caelestia logo badge (approximates the Linux Gem shape).
         Rectangle {
             width: 46
             height: 46
@@ -180,13 +179,12 @@ Item {
             }
         }
 
-        // Window-manager chip.
         Rectangle {
             id: wmChip
 
             x: pfp.x + pfp.width + 8
             y: 12
-            width: 150
+            width: Math.min(150, userCard.width - x - 16)
             height: 28
             radius: 14
             color: root.theme.secondaryContainer
@@ -230,7 +228,6 @@ Item {
             text: User.displayName
         }
 
-        // Uptime badge.
         Rectangle {
             id: uptimeBadge
 
@@ -285,10 +282,11 @@ Item {
     Tile {
         id: mediaCard
 
-        x: root.width - root.mediaWidth
-        y: 0
-        width: root.mediaWidth
-        height: root.height
+        Layout.row: 0
+        Layout.column: 5
+        Layout.rowSpan: 2
+        Layout.preferredWidth: 200
+        Layout.fillHeight: true
         radius: root.theme.roundingExtraLarge * 2
         theme: root.theme
 
@@ -450,10 +448,10 @@ Item {
     Tile {
         id: dateCard
 
-        x: 0
-        y: root.row0 + root.gap
-        width: 110
-        height: root.row1
+        Layout.row: 1
+        Layout.column: 0
+        Layout.preferredWidth: 110
+        Layout.fillHeight: true
         radius: root.theme.roundingLarge
         theme: root.theme
 
@@ -496,11 +494,12 @@ Item {
     Tile {
         id: calendarCard
 
-        x: root.calendarX
-        y: root.row0 + root.gap
-        width: Math.max(0, root.width - root.mediaWidth - root.gap - root.resourceWidth
-            - root.gap - root.calendarX)
-        height: root.row1
+        Layout.row: 1
+        Layout.column: 1
+        Layout.columnSpan: 3
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        Layout.preferredHeight: 276
         radius: root.theme.roundingExtraLarge
         theme: root.theme
 
@@ -515,10 +514,10 @@ Item {
     Tile {
         id: resourcesCard
 
-        x: root.width - root.mediaWidth - root.gap - root.resourceWidth
-        y: root.row0 + root.gap
-        width: root.resourceWidth
-        height: root.row1
+        Layout.row: 1
+        Layout.column: 4
+        Layout.preferredWidth: 70
+        Layout.fillHeight: true
         radius: root.theme.roundingLarge
         theme: root.theme
 

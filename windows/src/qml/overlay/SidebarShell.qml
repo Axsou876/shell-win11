@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts
 import Caelestia.Platform 1.0
 import "../components"
 
@@ -50,10 +51,11 @@ Item {
             anchors.margins: root.theme.paddingLarge
             spacing: root.theme.spacingLarge
 
-            Row {
+            RowLayout {
                 width: parent.width
 
                 Column {
+                    Layout.alignment: Qt.AlignVCenter
                     spacing: 1
 
                     StyledText {
@@ -72,10 +74,10 @@ Item {
                     }
                 }
 
-                Item { width: parent.width - 90; height: 1 }
+                Item { Layout.fillWidth: true }
 
                 M3Button {
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
                     theme: root.theme
                     icon: "close"
                     variant: "text"
@@ -192,12 +194,12 @@ Item {
                 text: "AUDIO"
             }
 
-            Row {
+            RowLayout {
                 width: parent.width
                 spacing: root.theme.spacingSmall
 
                 MaterialIcon {
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
                     theme: root.theme
                     text: Audio.muted ? "volume_off" : "volume_up"
                     iconSize: 22
@@ -205,25 +207,25 @@ Item {
                 }
 
                 StyledText {
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
+                    Layout.preferredWidth: 45
                     theme: root.theme
                     role: "bodyMedium"
-                    width: 45
                     text: Audio.volume + " %"
                 }
 
                 M3Slider {
                     id: sideVolume
 
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width - 120
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignVCenter
                     theme: root.theme
                     value: Audio.volume / 100
                     onMoved: Audio.setVolumePercent(Math.round(value * 100))
                 }
 
                 M3Button {
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
                     theme: root.theme
                     icon: Audio.muted ? "volume_off" : "volume_up"
                     variant: "text"

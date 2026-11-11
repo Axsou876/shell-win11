@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts
 import Caelestia.Platform 1.0
 import ".."
 import "../components"
@@ -33,12 +34,12 @@ Item {
             opacity: 0.6
         }
 
-        Row {
+        RowLayout {
             width: parent.width
             spacing: root.theme.spacingMedium
 
             MaterialIcon {
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
                 theme: root.theme
                 text: Audio.muted ? "volume_off" : Audio.volume >= 50 ? "volume_up"
                     : Audio.volume > 0 ? "volume_down" : "volume_mute"
@@ -47,7 +48,7 @@ Item {
             }
 
             Column {
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
 
                 StyledText {
                     theme: root.theme
@@ -65,10 +66,10 @@ Item {
                 }
             }
 
-            Item { width: parent.width - 210; height: 1 }
+            Item { Layout.fillWidth: true }
 
             M3Button {
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
                 theme: root.theme
                 icon: Audio.muted ? "volume_off" : "volume_up"
                 variant: "tonal"
@@ -96,7 +97,7 @@ Item {
             when: !slider.dragging
         }
 
-        Row {
+        RowLayout {
             width: parent.width
             spacing: root.theme.spacingSmall
 
@@ -107,7 +108,7 @@ Item {
                 text: "0"
             }
 
-            Item { width: parent.width - 60; height: 1 }
+            Item { Layout.fillWidth: true }
 
             StyledText {
                 theme: root.theme

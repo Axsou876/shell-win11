@@ -83,7 +83,8 @@ Terminé et testé :
   CPU/RAM/disque, carte média), Performance en cartes Hero CPU/GPU + stockage +
   réseau + mémoire, Média réel GSMTC, Météo Open-Meteo avec ressenti et
   prévisions 7 jours. Détails, écarts et notes de parité :
-  `docs/dashboard-parity-report.md` ; audit : `docs/dashboard-parity-audit.md`.
+  `docs/dashboard-parity-report.md` ; audit : `docs/dashboard-parity-audit.md` ;
+  alignements : `docs/alignment-report.md`.
 - Panneaux Audio/Réseau/Bluetooth/Batterie réels ; Control Centre F9 ; menu
   d’alimentation vertical à droite avec photo de compte et confirmation.
 - Launcher `>wal` : 94 fonds d’écran réels trouvés dans Pictures/Themes/Web,
@@ -232,7 +233,11 @@ Partiel / non exécuté volontairement :
   `taskbar-final-hidden.png`, `parity4-home.png`, `parity4-media.png`,
   `parity4-performance.png`, `parity4-weather.png`, `parity3-workspaces.png`,
   `parity6-dashboard-f10.png`, `parity6-dashboard-light.png`,
-  `parity6-sidebar-f9.png`, `reg-launcher.png`, `reg-sidebar2.png`
+  `parity6-sidebar-f9.png`, `reg-launcher.png`, `reg-sidebar2.png`,
+  `align2-home.png`, `align2-media.png`, `align2-performance.png`,
+  `align2-weather.png`, `align1-launcher.png`, `align1-sidebar.png`,
+  `align1-popout-audio2.png`, `align1-popout-network2.png`,
+  `align1-popout-bluetooth2.png`, `align1-dpi125-home.png`
 
 Logs : `C:\Users\axsou\AppData\Local\Temp\opencode\phase3-final-ui.err.log`,
 `phase3-nonreg.err.log`, `phase3-rapid.err.log`.

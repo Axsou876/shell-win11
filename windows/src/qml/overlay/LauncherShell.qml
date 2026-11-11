@@ -119,7 +119,7 @@ Item {
             id: header
 
             width: parent.width
-            height: 38
+            height: 40
 
             Row {
                 anchors.verticalCenter: parent.verticalCenter
@@ -557,6 +557,7 @@ Item {
 
             StyledText {
                 anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
                 theme: root.theme
                 role: "labelSmall"
                 color: root.theme.onSurfaceVariantColour
@@ -566,6 +567,7 @@ Item {
 
             StyledText {
                 anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
                 theme: root.theme
                 role: "labelSmall"
                 color: root.theme.error

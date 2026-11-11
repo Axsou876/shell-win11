@@ -61,7 +61,7 @@ Item {
         Column {
             x: 132
             y: 18
-            width: hero.width - 148
+            width: Math.max(0, usageShape.x - x - 8)
             spacing: 2
 
             StyledText {
@@ -107,7 +107,7 @@ Item {
         }
 
         StyledText {
-            anchors.right: usageShape.right
+            anchors.horizontalCenter: usageShape.horizontalCenter
             anchors.bottom: usageShape.top
             anchors.bottomMargin: 2
             theme: root.theme

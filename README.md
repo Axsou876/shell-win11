@@ -33,7 +33,8 @@ Phase 3 turns the Step 1e hover foundation into a functional desktop shell:
   star in the launcher adds/removes it. Recent applications are not injected
   into the bar automatically.
 - **Dashboard** (`F10`): reconstructed from the Linux `modules/dashboard`
-  composition (see `windows/docs/dashboard-parity-report.md`). Tabs are
+  composition (see `windows/docs/dashboard-parity-report.md` and the
+  alignment audit `windows/docs/alignment-report.md`). Tabs are
   Dashboard / Media / Performance / Weather / Workspaces, with stacked
   icon + label tabs and a content-width indicator. The home page follows the
   Linux grid (user card, small weather, clock, calendar, resource rings and a

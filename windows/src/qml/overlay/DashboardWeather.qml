@@ -1,4 +1,5 @@
 ﻿import QtQuick
+import QtQuick.Layouts
 import Caelestia.Platform 1.0
 import ".."
 import "../components"
@@ -119,11 +120,12 @@ Item {
         visible: Weather.configured
 
         // Header.
-        Row {
+        RowLayout {
             width: parent.width
             spacing: root.theme.spacingLargeIncreased
 
             Column {
+                Layout.alignment: Qt.AlignVCenter
                 spacing: 2
 
                 StyledText {
@@ -143,10 +145,10 @@ Item {
                 }
             }
 
-            Item { width: parent.width - 520; height: 1 }
+            Item { Layout.fillWidth: true }
 
             Row {
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
                 spacing: root.theme.spacingLargeIncreased
 
                 Row {
@@ -250,7 +252,7 @@ Item {
         }
 
         // Detail cards.
-        Row {
+        RowLayout {
             width: parent.width
             spacing: root.theme.spacingMedium
 
@@ -272,8 +274,8 @@ Item {
 
                     required property var modelData
 
-                    width: (root.width - root.theme.spacingMedium * 2) / 3
-                    height: 66
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 66
                     radius: root.theme.roundingMedium
                     color: root.theme.surfaceContainer
 
@@ -322,7 +324,7 @@ Item {
             text: "Prévisions " + Weather.forecast.length + " jours"
         }
 
-        Row {
+        RowLayout {
             width: parent.width
             spacing: root.theme.spacingMedium
             visible: Weather.forecast.length > 0
@@ -336,10 +338,8 @@ Item {
                     required property int index
                     required property var modelData
 
-                    width: (root.width - root.theme.spacingMedium
-                        * Math.max(0, Weather.forecast.length - 1))
-                        / Math.max(1, Weather.forecast.length)
-                    height: 128
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 128
                     radius: root.theme.roundingLarge
                     color: root.theme.surfaceContainer
 
@@ -387,3 +387,4 @@ Item {
         }
     }
 }
+
