@@ -11,7 +11,9 @@ windows/src/
   platform/platform.*                   AppBar, overlay input, focus, écrans
   platform/services/applauncherservice.* découverte, recherche, favoris, lancement
   platform/services/systemservice.*      CPU, RAM, GPU, réseau, disque, historiques
-  platform/services/mediaservice.*       GSMTC C++/WinRT, artwork, contrôles
+  platform/services/mediaservice.*       GSMTC C++/WinRT, artwork, contrôles, seek
+  platform/services/audioanalyzer.*      FFT 2048, 64 bandes log, lissage
+  platform/services/audiocaptureservice.* WASAPI loopback, thread, 60 Hz QML
   platform/services/weatherservice.*     Open-Meteo, configuration ville
   platform/services/audioservice.*       Core Audio, volume, mute
   platform/services/networkservice.*     WLAN API / IPHelper
@@ -26,7 +28,8 @@ windows/src/
   qml/overlay/NotificationsShell.qml     panneau notifications + actions
   qml/overlay/DashboardShell.qml         onglets empilés + slide horizontal
   qml/overlay/DashboardHome.qml          accueil Linux (user, météo, heure, calendrier, anneaux, média)
-  qml/overlay/DashboardMedia.qml         média réel GSMTC + paroles indisponibles
+  qml/overlay/DashboardMedia.qml         média réel GSMTC + visualiseur loopback/FFT
+  qml/components/AudioVisualizer.qml     64 barres radiales temps réel
   qml/overlay/DashboardPerformance.qml   cartes Hero CPU/GPU, stockage, réseau, mémoire
   qml/overlay/DashboardWeather.qml       onglet météo Open-Meteo 7 jours
   qml/overlay/DashboardWorkspaces.qml    fenêtres réelles
@@ -52,7 +55,8 @@ sa fermeture passe par Échap, le clic extérieur ou le lancement réussi.
 | Bluetooth | `Windows.Devices.Radios` (C++/WinRT), `Radio.SetStateAsync` |
 | Batterie | `GetSystemPowerStatus`, `WM_POWERBROADCAST` |
 | Performance | `GetSystemTimes`, `GlobalMemoryStatusEx`, `GetIfTable2`, `GetDiskFreeSpaceExW`, DXGI `IDXGIAdapter3::QueryVideoMemoryInfo`, PDH `GPU Engine` |
-| Média | GSMTC `GlobalSystemMediaTransportControlsSessionManager`, `TryGetMediaPropertiesAsync`, timeline position/duration, `TryPlayAsync`/`TryPauseAsync`/`TrySkipNextAsync`/`TrySkipPreviousAsync` |
+| Média | GSMTC `GlobalSystemMediaTransportControlsSessionManager`, `TryGetMediaPropertiesAsync`, timeline position/duration, `TryPlayAsync`/`TryPauseAsync`/`TrySkipNextAsync`/`TrySkipPreviousAsync`, `TryChangePlaybackPositionAsync` |
+| Visualiseur | WASAPI loopback `IMMDeviceEnumerator`/`IAudioClient`/`IAudioCaptureClient`, FFT radix-2 2048, 64 bandes log-spacées, publication Qt 60 Hz |
 | Profil | `GetUserNameW`, `NetUserGetInfo`, `FOLDERID_AccountPictures`, `QSysInfo` |
 | Fond d’écran | `SystemParametersInfoW(SPI_SETDESKWALLPAPER)`, `QStandardPaths::PicturesLocation`, dossiers Themes/Web de Windows |
 | Notifications | boîte interne au shell (`NotificationService`) : titre, application, corps, heure, actions |
@@ -81,8 +85,9 @@ Terminé et testé :
   **Dashboard / Media / Performance / Weather / Workspaces**, accueil en grille
   Linux (carte utilisateur, petite météo, horloge, calendrier, anneaux
   CPU/RAM/disque, carte média), Performance en cartes Hero CPU/GPU + stockage +
-  réseau + mémoire, Média réel GSMTC, Météo Open-Meteo avec ressenti et
-  prévisions 7 jours. Détails, écarts et notes de parité :
+  réseau + mémoire, Média réel GSMTC avec visualiseur WASAPI/FFT, seek,
+  transitions de pochette et fond animé, Météo Open-Meteo avec ressenti et
+  prévisions 7 jours ; détail : `docs/media-report.md`. Détails, écarts et notes de parité :
   `docs/dashboard-parity-report.md` ; audit : `docs/dashboard-parity-audit.md` ;
   alignements : `docs/alignment-report.md` ; correction Weather :
   `docs/weather-alignment-report.md`.
@@ -150,6 +155,11 @@ Partiel / non exécuté volontairement :
   Arrêter ; annulation par Échap ; aucune action destructive exécutée.
 - Météo : Paris sur l’onglet Weather (Open-Meteo), ressenti 11.8 °C, lever
   07:53, coucher 17:15, prévisions 7 jours ; configuration conservée.
+- Média Release : visualiseur réel testé avec Spotify et un WAV généré
+  (100 Hz/1 kHz/8 kHz/silence) ; comptage de pixels de l’anneau 2368 en
+  lecture, 509 en pause, 3059 avec WAV, 534 en silence, 3059 après
+  fermeture/réouverture ; pause, changement de morceau, seek et 125 % testés ;
+  captures `media-final-*`, `media-125.png`, `vis-*.png`.
 - Parité dashboard Release : 5 onglets capturés, `F10` depuis le launcher,
   `F8` clair/sombre, `F9` Sidebar, `calc` lancé depuis le launcher
   (`CalculatorApp`), aucune erreur QML ; captures `parity4-*`, `parity6-*`.
@@ -240,7 +250,9 @@ Partiel / non exécuté volontairement :
   `align1-popout-audio2.png`, `align1-popout-network2.png`,
   `align1-popout-bluetooth2.png`, `align1-dpi125-home.png`,
   `weather-fixed.png`, `weather-fixed-125.png`, `weather-fixed-home.png`,
-  `weather-fixed-media.png`, `weather-fixed-performance.png`
+  `weather-fixed-media.png`, `weather-fixed-performance.png`,
+  `media-final-a.png`, `media-final-paused.png`, `media-final-playing.png`,
+  `media-final-silence.png`, `media-final-reopen.png`, `media-125.png`
 
 Logs : `C:\Users\axsou\AppData\Local\Temp\opencode\phase3-final-ui.err.log`,
 `phase3-nonreg.err.log`, `phase3-rapid.err.log`.
@@ -260,6 +272,10 @@ Logs : `C:\Users\axsou\AppData\Local\Temp\opencode\phase3-final-ui.err.log`,
 - Météo dépend d’Open-Meteo et d’une connexion réseau ; une seule ville.
 - Certaines applications UWP n’exposent pas d’icône via le shell ; icône
   générique de secours.
+- Média : paroles et sélecteur multi-lecteurs non implémentés (GSMTC n’expose
+  pas les paroles et un seul lecteur courant) ; changement de périphérique
+  audio et 60/144 Hz non testés physiquement ; pochette circulaire au lieu du
+  `Cookie9Sided` Linux.
 - Les températures CPU/GPU ne sont pas exposées par une API Windows fiable ici ;
   les anneaux affichent l’utilisation et la mémoire réelles, pas des degrés
   inventés.

@@ -1,5 +1,6 @@
 #include "platform/platform.hpp"
 #include "platform/services/applauncherservice.hpp"
+#include "platform/services/audiocaptureservice.hpp"
 #include "platform/services/audioservice.hpp"
 #include "platform/services/batteryservice.hpp"
 #include "platform/services/bluetoothservice.hpp"
@@ -328,6 +329,7 @@ int main(int argc, char* argv[])
     NetworkService network;
     BluetoothService bluetooth;
     AudioService audio;
+    AudioCaptureService audioCapture;
     MediaService media;
     NotificationService notifications;
     SystemService system;
@@ -344,6 +346,7 @@ int main(int argc, char* argv[])
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Network", &network);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Bluetooth", &bluetooth);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Audio", &audio);
+    qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "AudioCapture", &audioCapture);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Media", &media);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Notification", &notifications);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "System", &system);

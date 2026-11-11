@@ -26,6 +26,7 @@ class MediaService final : public QObject {
     Q_PROPERTY(bool canPlayPause READ canPlayPause NOTIFY changed)
     Q_PROPERTY(bool canNext READ canNext NOTIFY changed)
     Q_PROPERTY(bool canPrevious READ canPrevious NOTIFY changed)
+    Q_PROPERTY(bool canSeek READ canSeek NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
 
 public:
@@ -44,11 +45,13 @@ public:
     [[nodiscard]] bool canPlayPause() const { return m_canPlayPause; }
     [[nodiscard]] bool canNext() const { return m_canNext; }
     [[nodiscard]] bool canPrevious() const { return m_canPrevious; }
+    [[nodiscard]] bool canSeek() const { return m_canSeek; }
     [[nodiscard]] QString error() const { return m_error; }
 
     Q_INVOKABLE void playPause();
     Q_INVOKABLE void next();
     Q_INVOKABLE void previous();
+    Q_INVOKABLE void seek(qint64 positionMs);
     Q_INVOKABLE void refresh();
 
     void stop();
@@ -67,6 +70,7 @@ private:
     std::atomic<bool> m_stop { false };
     std::atomic<bool> m_started { false };
     std::atomic<int> m_command { 0 };
+    std::atomic<qint64> m_seekPositionMs { 0 };
     std::atomic<bool> m_refresh { false };
 
     bool m_available = false;
@@ -81,6 +85,7 @@ private:
     bool m_canPlayPause = false;
     bool m_canNext = false;
     bool m_canPrevious = false;
+    bool m_canSeek = false;
     QString m_error;
     int m_artworkSerial = 0;
 };

@@ -256,6 +256,7 @@ Item {
 
         DashboardMedia {
             theme: root.theme
+            pageActive: root.visible && root.activeTab === 1
         }
     }
 

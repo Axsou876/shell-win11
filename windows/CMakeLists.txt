@@ -22,6 +22,10 @@ qt_add_executable(caelestia-shell
     src/platform/services/batteryservice.hpp
     src/platform/services/bluetoothservice.cpp
     src/platform/services/bluetoothservice.hpp
+    src/platform/services/audioanalyzer.cpp
+    src/platform/services/audioanalyzer.hpp
+    src/platform/services/audiocaptureservice.cpp
+    src/platform/services/audiocaptureservice.hpp
     src/platform/services/mediaservice.cpp
     src/platform/services/mediaservice.hpp
     src/platform/services/networkservice.cpp
@@ -128,6 +132,7 @@ qt_add_qml_module(caelestia-shell
         src/qml/components/RingGauge.qml
         src/qml/components/DashboardCalendar.qml
         src/qml/components/CircularProgress.qml
+        src/qml/components/AudioVisualizer.qml
         src/qml/components/PanelHeader.qml
         src/qml/bar/BarWorkspaces.qml
         src/qml/bar/BarFavorites.qml

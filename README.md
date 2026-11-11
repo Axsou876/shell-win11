@@ -40,7 +40,10 @@ Phase 3 turns the Step 1e hover foundation into a functional desktop shell:
   Linux grid (user card, small weather, clock, calendar, resource rings and a
   media card with BongoCat); Performance uses CPU/GPU hero cards plus storage,
   network and memory cards; Media has a real GSMTC cover/progress/details
-  layout; Weather is a real Open-Meteo tab with current conditions, feels-like,
+  layout with a real WASAPI loopback + FFT radial visualiser, seekable
+  progress when the session supports it, cover crossfade and drifting
+  background shapes; Weather is a real Open-Meteo tab with current conditions,
+  feels-like,
   sunrise/sunset and a 7-day forecast; Workspaces lists the current desktop's
   windows and focuses them on click. All values are real Windows measurements;
   unavailable temperatures display `N/D`.
@@ -205,6 +208,10 @@ For a standalone folder, run `windeployqt` on that executable.
 - `SystemService`: `GetSystemTimes`, `GlobalMemoryStatusEx`, `GetIfTable2`,
   `GetDiskFreeSpaceExW`, DXGI video memory and PDH `GPU Engine` counters. GPU
   usage is marked unavailable when the PDH counter is absent.
+- `AudioCaptureService` + `AudioAnalyzer`: WASAPI loopback capture of the
+  default render endpoint in a worker thread, PCM/float down-mix, 2048-point
+  FFT, 64 smoothed log bands published at ~60 Hz. It is started only while the
+  Media dashboard tab is visible and releases everything on stop.
 - `MediaService`: Windows GSMTC via C++/WinRT, polled off the GUI thread;
   metadata, artwork cache and real play/pause/next/previous commands.
 - `WeatherService`: Open-Meteo geocoding and forecast, no API key, city stored
@@ -263,11 +270,13 @@ For a standalone folder, run `windeployqt` on that executable.
 - CPU/GPU temperature is not exposed by a reliable Windows API here; the
   Performance hero cards show real usage, memory and storage and display
   `Température N/D` rather than invented temperatures.
-- The Linux media visualiser (cava) and lyrics have no direct Windows source
-  yet: the Media tab keeps a real cover/progress/details layout, shows an honest
-  `Visualiseur audio temps réel indisponible` note and a lyrics-unavailable
-  panel. Linux `MaterialShape` accents are approximated with monochrome
-  rounded shapes.
+- The Media visualiser is not cava: it captures the default render endpoint
+  with WASAPI loopback in a worker thread, runs a 2048-point FFT and publishes
+  64 log-spaced smoothed bands to QML. It reacts to the real Windows output
+  (tested with Spotify and a generated WAV) and stops while the Media tab is
+  not visible. Lyrics are not exposed by GSMTC and keep an explicit
+  unavailable panel. Linux `MaterialShape` accents are approximated with
+  monochrome rounded shapes.
 - The dashboard profile uses the Windows account picture when one exists;
   otherwise it falls back to the system generic account picture.
 - Weather needs network access and a configured city; Open-Meteo is the only

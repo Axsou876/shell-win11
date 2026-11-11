@@ -27,6 +27,7 @@ struct MediaService::Snapshot {
     bool canPlayPause = false;
     bool canNext = false;
     bool canPrevious = false;
+    bool canSeek = false;
     qint64 positionMs = 0;
     qint64 durationMs = 0;
 };
@@ -86,6 +87,13 @@ void MediaService::previous()
     m_cv.notify_all();
 }
 
+void MediaService::seek(qint64 positionMs)
+{
+    m_seekPositionMs = qMax<qint64>(0, positionMs);
+    m_command = 4;
+    m_cv.notify_all();
+}
+
 void MediaService::refresh()
 {
     m_refresh = true;
@@ -136,6 +144,8 @@ void MediaService::run()
                         session.TrySkipNextAsync().get();
                     } else if (command == 3) {
                         session.TrySkipPreviousAsync().get();
+                    } else if (command == 4) {
+                        session.TryChangePlaybackPositionAsync(m_seekPositionMs.load()).get();
                     }
                 } catch (const winrt::hresult_error&) {
                     // The app may have closed its session between the snapshot
@@ -158,6 +168,7 @@ void MediaService::run()
                 snapshot.canPlayPause = controls && controls.IsPlayPauseToggleEnabled();
                 snapshot.canNext = controls && controls.IsNextEnabled();
                 snapshot.canPrevious = controls && controls.IsPreviousEnabled();
+                snapshot.canSeek = controls && controls.IsPlaybackPositionEnabled();
 
                 const auto timeline = session.GetTimelineProperties();
                 const auto position = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -209,6 +220,7 @@ void MediaService::run()
                 || snapshot.canPlayPause != lastPublished.canPlayPause
                 || snapshot.canNext != lastPublished.canNext
                 || snapshot.canPrevious != lastPublished.canPrevious
+                || snapshot.canSeek != lastPublished.canSeek
                 || snapshot.positionMs != lastPublished.positionMs
                 || snapshot.durationMs != lastPublished.durationMs
                 || snapshot.artworkChanged || m_refresh.exchange(false);
@@ -254,6 +266,7 @@ void MediaService::applySnapshot(const Snapshot& snapshot)
     m_canPlayPause = snapshot.canPlayPause;
     m_canNext = snapshot.canNext;
     m_canPrevious = snapshot.canPrevious;
+    m_canSeek = snapshot.canSeek;
     m_positionMs = snapshot.positionMs;
     m_durationMs = snapshot.durationMs;
     m_error.clear();
