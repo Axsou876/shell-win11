@@ -254,6 +254,8 @@ enum class WmAction {
     Launcher,
     Sidebar,
     Session,
+    Screenshot,
+    ScreenshotClip,
 };
 
 struct BindingSpec {
@@ -337,6 +339,12 @@ QVector<BindingSpec> defaultBindingSpecs()
     add(WmAction::Sidebar, 0, QStringLiteral("sidebar"), QStringLiteral("Win+N"), true);
     add(WmAction::Sidebar, 0, QStringLiteral("sidebar"), QStringLiteral("Ctrl+Alt+N"), false);
     add(WmAction::Session, 0, QStringLiteral("session"), QStringLiteral("Ctrl+Alt+Shift+M"), false);
+    // Screenshot: the area picker freezes the screen, then saves or copies the
+    // dragged region. Win+Shift+S stays with the Windows Snipping Tool.
+    add(WmAction::Screenshot, 0, QStringLiteral("screenshot"),
+        QStringLiteral("Ctrl+Alt+S"), false);
+    add(WmAction::ScreenshotClip, 0, QStringLiteral("screenshot-clip"),
+        QStringLiteral("Ctrl+Alt+X"), false);
 
     for (int i = 1; i <= 10; ++i) {
         const QString key = QString::number(i % 10);
@@ -1835,6 +1843,16 @@ struct WindowManagerService::Impl {
         if (action == WmAction::Session) {
             QMetaObject::invokeMethod(
                 q, [owner = q]() { emit owner->sessionRequested(); }, Qt::QueuedConnection);
+            return;
+        }
+        if (action == WmAction::Screenshot || action == WmAction::ScreenshotClip) {
+            const bool clipboardOnly = action == WmAction::ScreenshotClip;
+            QMetaObject::invokeMethod(
+                q,
+                [owner = q, clipboardOnly]() {
+                    emit owner->screenshotRequested(clipboardOnly);
+                },
+                Qt::QueuedConnection);
             return;
         }
         if (action == WmAction::LaunchTerminal) {

@@ -36,6 +36,11 @@ Item {
         function onSessionRequested() {
             panelController.togglePanel("power", WindowManager.screenName(), 0);
         }
+
+        function onScreenshotRequested(clipboardOnly) {
+            panelController.closePanel();
+            areaPicker.open(clipboardOnly);
+        }
     }
 
     Connections {
@@ -96,7 +101,10 @@ Item {
             y: modelData.geometry.y
             width: 60
             height: modelData.availableGeometry.height
-            visible: true
+            // The picker covers the whole monitor while a selection is being
+            // made, and the bar would fight it for the topmost slot. The
+            // frozen frame already shows the bar, so hiding it is invisible.
+            visible: !areaPicker.active
             visibility: Window.Windowed
             flags: Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint
             color: "transparent"
@@ -130,5 +138,12 @@ Item {
             theme: appTheme
             controller: panelController
         }
+    }
+
+    // Screenshot area selection (Ctrl+Alt+S saves, Ctrl+Alt+X copies).
+    AreaPicker {
+        id: areaPicker
+
+        theme: appTheme
     }
 }

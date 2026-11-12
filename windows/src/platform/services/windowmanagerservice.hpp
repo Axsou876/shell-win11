@@ -54,6 +54,9 @@ signals:
     void launcherRequested();
     void sidebarRequested();
     void sessionRequested();
+    // Emitted by the screenshot hotkeys; the picker decides between saving the
+    // region to disk and putting it on the clipboard.
+    void screenshotRequested(bool clipboardOnly);
     void switchDesktopRequested(int index);
     void moveWindowToDesktopRequested(const QString& hwnd, int index);
 

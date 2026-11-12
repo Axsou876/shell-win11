@@ -370,6 +370,72 @@ Limites assumées :
 `CAELESTIA_DEBUG_STATUS=1` journalise chaque changement de fenêtre suivie
 (titre, adresse, taille) et chaque action (`Window action: …`).
 
+## Sélecteur de zone (capture d'écran)
+
+`overlay/AreaPicker.qml` reprend `modules/areapicker`. `Ctrl+Alt+S` ouvre le
+sélecteur et enregistre la zone ; `Ctrl+Alt+X` la copie dans le
+presse-papiers. `Win+Shift+S` reste à l'outil Windows : le shell enregistre des
+raccourcis globaux `RegisterHotKey`, donc pas de conflit à gérer.
+
+- **Gel de l'écran** — `ScreenCaptureService` capture chaque moniteur avec GDI
+  (`BitBlt` depuis le DC de l'écran, `SRCCOPY | CAPTUREBLT`) *avant* qu'aucune
+  fenêtre du sélecteur n'existe. C'est ce qui empêche l'overlay de se
+  photographier lui-même et ce qui rend la sélection exacte : la zone
+  enregistrée vient de la même image que celle affichée. La version Linux
+  propose aussi un mode « live » (capture au relâchement) ; sous Windows le gel
+  est systématique, car capturer après avoir masqué l'overlay rouvre une course
+  avec le compositeur et perd l'état affiché.
+- **Une fenêtre par écran** — l'`Instantiator` crée un `Window` transparent par
+  moniteur capturé, alimenté par `Platform.fitWindowToScreen` :
+  `QWindow::setScreen` d'abord, puis la géométrie `QScreen::geometry()`.
+  L'ordre compte — une fenêtre `Qt::Tool` naît sur l'écran principal et Qt
+  résout son DPI à la création ; sans `setScreen`, un overlay de l'écran à
+  125 % est mis en page avec l'échelle de l'écran à 100 %.
+- **Image** — `Screenshots.captureScreen(screen)` renvoie un jeton ;
+  `image://screencapture/<jeton>` sert les octets via un
+  `QQuickImageProvider` (le jeton est la partie avant un éventuel `-`, réservé
+  à casser le cache). `cache: false` évite que `QQuickPixmapCache` conserve une
+  copie de la capture après la fermeture.
+- **Coordonnées** — les rectangles X11 de Windows sont en pixels physiques,
+  alors qu'un `Window` Qt raisonne en DIP. Le service reçoit donc la taille de
+  la vue QML et convertit par `largeurImage / largeurVue` : le rapport (1,25
+  sur un écran à 125 %) tombe juste sans jamais consulter `devicePixelRatio`.
+  C'est aussi ce qui rend un test externe trompeur : `GetWindowRect` appelé
+  depuis un processus *DPI-unaware* renvoie une fenêtre pleine largeur comme
+  1536×864 alors qu'elle fait réellement 1920×1080.
+- **Survol** — `Screenshots.windowAt` fait un `EnumWindows` du haut vers le
+  bas et retient la première fenêtre visible non cloaked
+  (`DWMWA_CLOAKED`), hors processus du shell, hors bureau, qui contient le
+  point. `WindowFromPoint` est inutilisable ici : le point tombe toujours sur
+  l'overlay. Le rectangle est celui de `DWMWA_EXTENDED_FRAME_BOUNDS`, sans la
+  bordure de redimensionnement invisible, donc la sélection correspond à ce que
+  l'utilisateur voit. Un clic sans glissement enregistre ainsi la fenêtre
+  cliquée, comme `checkClientRects` sous Hyprland.
+- **Enregistrement** — `Pictures\Screenshots\Capture yyyy-MM-dd HH-mm-ss.png`
+  (`QStandardPaths::PicturesLocation`). La version Linux remet la capture à
+  `swappy` pour l'annotation ; Windows n'a pas d'équivalent intégré, le fichier
+  est écrit directement. Une notification donne le chemin, ou signale l'échec.
+- **Annulation** — `Échap` (touche locale *et* raccourci global enregistré par
+  le premier overlay, pour couvrir un sélecteur ouvert alors qu'une autre
+  fenêtre garde le focus), clic droit, ou une sélection vide. Fermer rend le
+  focus à la dernière fenêtre externe (`Platform.restoreLastExternalWindow`),
+  sinon Windows active la fenêtre suivante dans l'ordre Z — souvent la console
+  de lancement.
+
+Validé sur le bureau réel, double écran 125 % / 100 % : `Ctrl+Alt+S` puis
+glissement enregistre un PNG (400×400 px pour 400 px glissés sur l'écran à
+125 %, la résolution physique est donc conservée) ; `Ctrl+Alt+X` place la même
+zone dans le presse-papiers ; `Échap`, clic droit et sélection vide ferment le
+sélecteur et rendent le focus ; `--smoke-test` sort en 0 sans alerte QML.
+
+Limites assumées :
+
+- Pas de mode « live » ni d'éditeur d'annotation (voir ci-dessus).
+- La capture GDI ne lit pas les surfaces protégées par DRM : ces zones
+  apparaissent noires, comme dans l'aperçu du panneau « Fenêtre active ».
+- La sélection par survol ignore les fenêtres UWP cloaked (autre bureau
+  virtuel, application suspendue) et les fenêtres réduites.
+
 ## Bugs / limites connus
 
 - Qt 6.9.3 émet des avertissements `QSGThreadedRenderLoop ... invalid geometry`
@@ -384,10 +450,10 @@ Limites assumées :
   observé.
 - Les workspaces de la barre sont réels (Phase 3, VirtualDesktopService) ; le bouton power reste décoratif (état Phase 2.4).
 - Modules Caelestia encore absents : écran de verrouillage, session/login,
-  clavier, VPN, panneau de réglages (Nexus), sélecteur de zone, enregistreur
-  d'écran. Notifications, launcher, dashboard, météo, média, wallpaper, OSD,
-  volume, luminosité, sélection audio, appairage Bluetooth, mode
-  d'alimentation, utilitaires et info fenêtre sont implémentés.
+  clavier, VPN, panneau de réglages (Nexus), enregistreur d'écran.
+  Notifications, launcher, dashboard, météo, média, wallpaper, OSD, volume,
+  luminosité, sélection audio, appairage Bluetooth, mode d'alimentation,
+  utilitaires, info fenêtre et sélecteur de zone sont implémentés.
 - Luminosité DDC/CI : dépend du moniteur. Les dalles d'ordinateur portable
   interne et certains écrans en DisplayPort/USB-C n'exposent pas le code VCP
   `0x10` ; l'OSD affiche alors « Luminosité indisponible ».
@@ -406,9 +472,9 @@ Limites assumées :
 ## Phase suivante
 
 Le tiling et les modules documentés ci-dessus sont en place. Restent, dans
-l'ordre prévu : sélecteur de zone, complétion du launcher (calculatrice,
-actions), dock de notifications de la sidebar, écran de verrouillage, panneau
-de réglages (Nexus).
+l'ordre prévu : complétion du launcher (calculatrice, actions), dock de
+notifications de la sidebar, écran de verrouillage, panneau de réglages
+(Nexus).
 
 L'enregistreur d'écran Linux (`utilities/cards/Record.qml`,
 `RecordingList.qml`) n'est volontairement pas porté : aucune API Win32

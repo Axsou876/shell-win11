@@ -577,6 +577,17 @@ void Platform::setEscapeHotkey(QWindow* window, bool enabled)
     }
 }
 
+void Platform::fitWindowToScreen(QWindow* window, QScreen* screen)
+{
+    if (!window || !screen)
+        return;
+
+    // setScreen is what makes Qt use that monitor's DPI for the window; the
+    // geometry is in DIPs, so QScreen::geometry is exactly the right rect.
+    window->setScreen(screen);
+    window->setGeometry(screen->geometry());
+}
+
 void Platform::refreshAppBar()
 {
     if (m_appBars.isEmpty() || m_appBarUpdating)

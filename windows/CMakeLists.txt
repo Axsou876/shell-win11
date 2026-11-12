@@ -42,6 +42,10 @@ qt_add_executable(caelestia-shell
     src/platform/services/powerprofileservice.hpp
     src/platform/services/idleinhibitservice.cpp
     src/platform/services/idleinhibitservice.hpp
+    src/platform/services/screencaptureprovider.cpp
+    src/platform/services/screencaptureprovider.hpp
+    src/platform/services/screencaptureservice.cpp
+    src/platform/services/screencaptureservice.hpp
     src/platform/services/systemservice.cpp
     src/platform/services/systemservice.hpp
     src/platform/services/tilingengine.cpp
@@ -161,6 +165,7 @@ qt_add_qml_module(caelestia-shell
         src/qml/bar/BarStatusIcons.qml
         src/qml/bar/BarPower.qml
         src/qml/overlay/OverlayWindow.qml
+        src/qml/overlay/AreaPicker.qml
         src/qml/overlay/ScreenSurface.qml
         src/qml/overlay/SpringDeform.qml
         src/qml/overlay/SidebarShell.qml

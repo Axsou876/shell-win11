@@ -12,6 +12,8 @@
 #include "platform/services/osdservice.hpp"
 #include "platform/services/powerservice.hpp"
 #include "platform/services/powerprofileservice.hpp"
+#include "platform/services/screencaptureprovider.hpp"
+#include "platform/services/screencaptureservice.hpp"
 #include "platform/services/systemservice.hpp"
 #include "platform/services/tilingengine.hpp"
 #include "platform/services/trayservice.hpp"
@@ -446,6 +448,7 @@ int main(int argc, char* argv[])
     WallpaperService wallpaper;
     WindowService windows;
     WindowManagerService windowManager(&virtualDesktops);
+    ScreenCaptureService screenshots;
     TrayService tray;
 
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Platform", &platform);
@@ -469,6 +472,7 @@ int main(int argc, char* argv[])
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Wallpaper", &wallpaper);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "AppWindows", &windows);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "WindowManager", &windowManager);
+    qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Screenshots", &screenshots);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Tray", &tray);
 
     QObject::connect(&windowManager, &WindowManagerService::switchDesktopRequested,
@@ -507,6 +511,10 @@ int main(int argc, char* argv[])
     // service owns the capture, the provider only serves the latest frame.
     engine.addImageProvider(QStringLiteral("windowpreview"),
         new WindowPreviewProvider(&windows));
+    // Frozen desktop frames for the area picker. The provider serves the
+    // image by capture token; the service owns the pixels.
+    engine.addImageProvider(QStringLiteral("screencapture"),
+        new ScreenCaptureProvider(&screenshots));
 
     engine.loadFromModule("Caelestia.Shell", "Main");
     if (engine.rootObjects().isEmpty())

@@ -85,6 +85,12 @@ public:
     // dismissed without stealing keyboard focus from the user's app.
     Q_INVOKABLE void setEscapeHotkey(QWindow* window, bool enabled);
 
+    // Sizes a window to the monitor's full bounds and makes Qt adopt that
+    // monitor's DPI. Tool windows created by the QML engine land on the
+    // primary screen first, so Qt lays them out at the primary's scale unless
+    // the screen is assigned before the geometry.
+    Q_INVOKABLE void fitWindowToScreen(QWindow* window, QScreen* screen);
+
     void setRhiBackend(const QString& backend);
     void handleWinEvent(quint32 event, quintptr hwnd, qint32 idObject, qint32 idChild);
 
