@@ -148,6 +148,44 @@ Les raccourcis `SUPER+…` de Caelestia sont remplacés par des alternatives
 le tiling et `Ctrl+Alt+Shift+Escape` restaure les fenêtres. Détails :
 `docs/hyprland-window-management-report.md`.
 
+## OSD volume et luminosité
+
+Le pilule OSD de Caelestia (volume, luminosité, message transitoire) est
+réimplémentée avec les services Windows natifs.
+
+- **Luminosité** — `BrightnessService` pilote le rétroéclairage du moniteur
+  principal en DDC/CI (`GetVCPFeatureAndVCPFeatureReply` / `SetVCPFeature`,
+  code VCP `0x10`), comme `brightnessctl` sous Linux. Les appels VCP sont des
+  transactions I2C lentes (~100 ms) : lecture et écriture tournent sur un
+  worker `QtConcurrent`, la valeur QML est publiée de façon optimiste puis
+  réconciliée avec la relecture du moniteur (certains panneaux arrondissent).
+  Un seul worker à la fois : les demandes suivantes sont coalescées et seule la
+  dernière valeur en attente est écrite. Une relecture automatique toutes les
+  20 s garde l'état aligné si le rétroéclairage change par un autre moyen.
+- **Volume** — `OsdService` écoute `AudioService::changed` et affiche l'OSD
+  correspondant. Windows n'affiche pas son propre OSD pour les changements
+  programmatiques via `IAudioEndpointVolume`, donc le retour visuel vient de la
+  pilule Caelestia.
+- **Rendu** — `OsdSurface.qml`, en haut à droite de l'écran principal, dans
+  l'overlay click-through (il ne prend jamais l'input). Il se décale de la
+  largeur de la sidebar quand celle-ci est ouverte.
+- **Anti-bruit au démarrage** — les services publient leur état initial au
+  lancement ; l'OSD ignore les changements pendant les 2 premières secondes.
+
+Raccourcis globaux (`RegisterHotKey`, `Ctrl+Alt+…` afin de ne pas heurter les
+`Ctrl+Alt+Flèches/HJKL` du tiling) :
+
+| Raccourci | Action |
+|---|---|
+| `Ctrl+Alt+F12` | Luminosité +5 % |
+| `Ctrl+Alt+F11` | Luminosité −5 % |
+| `Ctrl+Alt+F10` | Volume +5 % |
+| `Ctrl+Alt+F9` | Volume −5 % |
+
+Les raccourcis non disponibles (déjà pris par un pilote ou un autre logiciel)
+sont ignorés silencieusement ; `CAELESTIA_DEBUG_OSD=1` les journalise.
+`CAELESTIA_DEBUG_BRIGHTNESS=1` journalise chaque état DDC/CI.
+
 ## Bugs / limites connus
 
 - Qt 6.9.3 émet des avertissements `QSGThreadedRenderLoop ... invalid geometry`
@@ -161,9 +199,13 @@ le tiling et `Ctrl+Alt+Shift+Escape` restaure les fenêtres. Détails :
   (changement de modèle `Instantiator`) ; aucun doublon ni clignotement durable
   observé.
 - Les workspaces de la barre sont réels (Phase 3, VirtualDesktopService) ; le bouton power reste décoratif (état Phase 2.4).
-- Les modules Caelestia majeurs (notifications, launcher, dashboard, OSD, lock,
-  session, wallpaper, météo, média, luminosité, clavier, VPN) ne sont pas
-  implémentés.
+- Modules Caelestia encore absents : écran de verrouillage, session/login,
+  clavier, VPN, panneau de réglages (Nexus), utilitaires, info fenêtre,
+  sélecteur de zone. Notifications, launcher, dashboard, météo, média,
+  wallpaper, OSD, volume et luminosité sont implémentés.
+- Luminosité DDC/CI : dépend du moniteur. Les dalles d'ordinateur portable
+  interne et certains écrans en DisplayPort/USB-C n'exposent pas le code VCP
+  `0x10` ; l'OSD affiche alors « Luminosité indisponible ».
 
 ## Captures
 

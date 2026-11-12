@@ -317,6 +317,25 @@ Window {
         }
     }
 
+    OsdSurface {
+        id: osd
+
+        z: 30
+        width: implicitWidth
+        height: implicitHeight
+        allowed: overlay.screenName === Platform.primaryScreenName
+        x: overlay.width - width - 24
+            - (surface.sidebarVisible ? overlay.theme.sidebarWidth + 12 : 0)
+        y: 24
+        theme: overlay.theme
+
+        Behavior on x {
+            Anim {
+                type: Anim.Standard
+            }
+        }
+    }
+
     onScreenDataChanged: Qt.callLater(() => {
         overlay.syncInput();
         Platform.raiseAppBars();

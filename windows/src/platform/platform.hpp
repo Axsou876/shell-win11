@@ -34,6 +34,7 @@ class Platform final : public QObject, public QAbstractNativeEventFilter {
     Q_PROPERTY(QString activeWindowTitle READ activeWindowTitle NOTIFY activeWindowChanged)
     Q_PROPERTY(QString activeWindowIcon READ activeWindowIcon NOTIFY activeWindowChanged)
     Q_PROPERTY(QVariantList screens READ screens NOTIFY screensChanged)
+    Q_PROPERTY(QString primaryScreenName READ primaryScreenName NOTIFY primaryScreenNameChanged)
 
 public:
     explicit Platform(QObject* parent = nullptr);
@@ -55,6 +56,7 @@ public:
     [[nodiscard]] QString activeWindowTitle() const;
     [[nodiscard]] QString activeWindowIcon() const;
     [[nodiscard]] QVariantList screens() const;
+    [[nodiscard]] QString primaryScreenName() const;
 
     Q_INVOKABLE bool registerLeftAppBar(QWindow* window, int logicalWidth = 60);
     Q_INVOKABLE void unregisterAppBar();
@@ -96,6 +98,7 @@ signals:
     void appBarHeightChanged();
     void activeWindowChanged();
     void screensChanged();
+    void primaryScreenNameChanged();
     void escapePressed();
     void globalMouseMoved(const QPoint& position);
 

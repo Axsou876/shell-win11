@@ -22,6 +22,8 @@ qt_add_executable(caelestia-shell
     src/platform/services/batteryservice.hpp
     src/platform/services/bluetoothservice.cpp
     src/platform/services/bluetoothservice.hpp
+    src/platform/services/brightnessservice.cpp
+    src/platform/services/brightnessservice.hpp
     src/platform/services/audioanalyzer.cpp
     src/platform/services/audioanalyzer.hpp
     src/platform/services/audiocaptureservice.cpp
@@ -32,6 +34,8 @@ qt_add_executable(caelestia-shell
     src/platform/services/networkservice.hpp
     src/platform/services/notificationservice.cpp
     src/platform/services/notificationservice.hpp
+    src/platform/services/osdservice.cpp
+    src/platform/services/osdservice.hpp
     src/platform/services/powerservice.cpp
     src/platform/services/powerservice.hpp
     src/platform/services/systemservice.cpp
@@ -66,6 +70,7 @@ target_link_libraries(caelestia-shell PRIVATE
     dwmapi
     shell32
     user32
+    Dxva2
     wlanapi
     iphlpapi
     ws2_32
@@ -161,6 +166,7 @@ qt_add_qml_module(caelestia-shell
         src/qml/overlay/LauncherShell.qml
         src/qml/overlay/NotificationsShell.qml
         src/qml/overlay/PowerMenu.qml
+        src/qml/overlay/OsdSurface.qml
         src/qml/overlay/PanelHost.qml
         src/qml/overlay/FoundationProbe.qml
         src/qml/popouts/PopoutFrame.qml

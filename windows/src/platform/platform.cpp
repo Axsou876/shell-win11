@@ -151,6 +151,8 @@ Platform::Platform(QObject* parent)
         connect(gui, &QGuiApplication::screenAdded, this, &Platform::handleScreensChanged);
         connect(gui, &QGuiApplication::screenRemoved, this, &Platform::handleScreenRemoved);
         connect(gui, &QGuiApplication::primaryScreenChanged, this, &Platform::refreshAppBar);
+        connect(gui, &QGuiApplication::primaryScreenChanged, this,
+            [this]() { emit primaryScreenNameChanged(); });
     }
 
     if (qApp)
@@ -275,6 +277,12 @@ QVariantList Platform::screens() const
         }
     }
     return result;
+}
+
+QString Platform::primaryScreenName() const
+{
+    QScreen* primary = QGuiApplication::primaryScreen();
+    return primary ? primary->name() : QString();
 }
 
 void Platform::setRhiBackend(const QString& backend)
