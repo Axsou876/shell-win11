@@ -26,9 +26,91 @@ Item {
     }
 
     readonly property string query: searchInput.text.trim().toLowerCase()
-    readonly property bool wallpaperMode: query.startsWith(">wal")
+    // One search field, several modes, selected by a ">" prefix — the same
+    // model as the Linux shell (AppList.qml::stateForText). ">calc" and
+    // ">wallpaper" are specific modes, a bare ">" lists actions.
+    readonly property string mode: {
+        if (query.startsWith(">calc"))
+            return "calc";
+        if (query.startsWith(">wal"))
+            return "wallpaper";
+        if (query.startsWith(">"))
+            return "actions";
+        return "apps";
+    }
+
+    readonly property string expression: mode === "calc" ? query.substring(5).trim() : ""
+    readonly property var calcResult: mode === "calc"
+        ? Calculator.evaluate(root.expression)
+        : ({ ok: false, text: "", error: "" })
+
+    // The Linux action list is user-configured shell commands; on Windows the
+    // useful ones are programs and session calls, so the list is fixed. The
+    // session entries are the same calls PowerMenu.qml makes.
+    readonly property var actions: [
+        {
+            id: "calc",
+            name: "Calculatrice",
+            description: "Ouvrir la calculatrice Windows",
+            icon: "calculate",
+            target: "calc.exe"
+        },
+        {
+            id: "settings",
+            name: "Paramètres",
+            description: "Ouvrir les paramètres Windows",
+            icon: "settings",
+            target: "ms-settings:"
+        },
+        {
+            id: "terminal",
+            name: "Terminal",
+            description: "Ouvrir Windows Terminal",
+            icon: "terminal",
+            target: "wt.exe"
+        },
+        {
+            id: "files",
+            name: "Explorateur de fichiers",
+            description: "Parcourir les fichiers",
+            icon: "folder",
+            target: "explorer.exe"
+        },
+        {
+            id: "taskmanager",
+            name: "Gestionnaire des tâches",
+            description: "Voir et gérer les processus",
+            icon: "monitoring",
+            target: "taskmgr.exe"
+        },
+        {
+            id: "lock",
+            name: "Verrouiller",
+            description: "Verrouiller la session",
+            icon: "lock"
+        },
+        {
+            id: "sleep",
+            name: "Veille",
+            description: "Mettre l’ordinateur en veille",
+            icon: "bedtime"
+        }
+    ]
+
+    readonly property var actionItems: {
+        const needle = mode === "actions" ? query.substring(1).trim() : "";
+        const all = actions;
+        if (!needle)
+            return all;
+        // The id doubles as an English alias so ">terminal" works even though
+        // the labels are French.
+        return all.filter(action => action.name.toLowerCase().includes(needle)
+            || action.id.includes(needle)
+            || action.description.toLowerCase().includes(needle));
+    }
+
     readonly property var wallpaperItems: {
-        const needle = wallpaperMode ? query.substring(4).trim() : "";
+        const needle = mode === "wallpaper" ? query.substring(4).trim() : "";
         const all = Wallpaper.wallpapers;
         if (!needle)
             return all;
@@ -43,11 +125,55 @@ Item {
     }
 
     function activeList() {
-        return wallpaperMode ? wallpaperList : list;
+        if (mode === "wallpaper")
+            return wallpaperList;
+        if (mode === "actions")
+            return actionsList;
+        if (mode === "calc")
+            return null;
+        return list;
+    }
+
+    function runAction(action) {
+        if (!action)
+            return;
+
+        let ok = true;
+        if (action.id === "lock")
+            ok = Power.lock();
+        else if (action.id === "sleep")
+            ok = Power.sleep();
+        else
+            ok = Platform.openExternal(action.target);
+
+        if (!ok) {
+            root.errorText = "Action impossible : " + action.name;
+            errorTimer.restart();
+            root.focusSearch();
+            return;
+        }
+        root.controller.closePanel();
     }
 
     function launchCurrent() {
-        if (wallpaperMode) {
+        if (mode === "calc") {
+            if (!calcResult.ok)
+                return;
+            Platform.copyText(calcResult.text);
+            root.controller.closePanel();
+            return;
+        }
+
+        if (mode === "actions") {
+            const rows = actionItems;
+            if (rows.length === 0)
+                return;
+            const row = Math.max(0, Math.min(actionsList.currentIndex, rows.length - 1));
+            root.runAction(rows[row]);
+            return;
+        }
+
+        if (mode === "wallpaper") {
             const rows = wallpaperItems;
             if (rows.length === 0)
                 return;
@@ -145,9 +271,14 @@ Item {
                     theme: root.theme
                     role: "labelSmall"
                     color: root.theme.onSurfaceVariantColour
-                    text: root.wallpaperMode
+                    text: root.mode === "wallpaper"
                         ? root.wallpaperItems.length + " fonds d’écran"
-                        : (Apps.scanning ? "Recherche…" : Apps.totalCount + " applications")
+                        : root.mode === "actions"
+                            ? root.actionItems.length + " actions"
+                            : root.mode === "calc"
+                                ? "Calculatrice"
+                                : (Apps.scanning ? "Recherche…"
+                                    : Apps.totalCount + " applications")
                 }
             }
 
@@ -184,7 +315,7 @@ Item {
                 anchors.leftMargin: root.theme.paddingMedium
                 anchors.verticalCenter: parent.verticalCenter
                 theme: root.theme
-                text: "search"
+                text: root.mode === "calc" ? "calculate" : "search"
                 iconSize: 22
                 color: root.theme.onSurfaceVariantColour
             }
@@ -213,19 +344,20 @@ Item {
                     Apps.setQuery(text);
                     list.currentIndex = 0;
                     wallpaperList.currentIndex = 0;
+                    actionsList.currentIndex = 0;
                 }
                 onAccepted: root.launchCurrent()
 
                 Keys.onUpPressed: {
                     const target = root.activeList();
-                    if (target.count > 0)
+                    if (target && target.count > 0)
                         target.decrementCurrentIndex();
                     event.accepted = true;
                 }
 
                 Keys.onDownPressed: {
                     const target = root.activeList();
-                    if (target.count > 0)
+                    if (target && target.count > 0)
                         target.incrementCurrentIndex();
                     event.accepted = true;
                 }
@@ -239,7 +371,7 @@ Item {
                     anchors.fill: parent
                     verticalAlignment: Text.AlignVCenter
                     visible: searchInput.text.length === 0
-                    text: "Rechercher une application… ou >wal"
+                    text: "Rechercher une application… ou > pour les actions"
                     color: root.theme.onSurfaceVariantColour
                     opacity: 0.7
                     font.family: root.theme.bodyFont
@@ -274,7 +406,7 @@ Item {
                 id: list
 
                 anchors.fill: parent
-                visible: !root.wallpaperMode
+                visible: root.mode === "apps"
                 model: Apps.searchModel
                 clip: true
                 spacing: 2
@@ -421,7 +553,7 @@ Item {
                 id: wallpaperList
 
                 anchors.fill: parent
-                visible: root.wallpaperMode
+                visible: root.mode === "wallpaper"
                 model: root.wallpaperItems
                 clip: true
                 spacing: 2
@@ -520,17 +652,163 @@ Item {
                 }
             }
 
+            ListView {
+                id: actionsList
+
+                anchors.fill: parent
+                visible: root.mode === "actions"
+                model: root.actionItems
+                clip: true
+                spacing: 2
+                currentIndex: root.actionItems.length > 0 ? 0 : -1
+                boundsBehavior: Flickable.StopAtBounds
+
+                delegate: Item {
+                    id: actionDelegate
+
+                    required property int index
+                    required property var modelData
+
+                    width: actionsList.width
+                    height: 60
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: root.theme.roundingMedium
+                        color: actionsList.currentIndex === actionDelegate.index
+                            ? root.theme.secondaryContainer
+                            : (actionHover.hovered
+                                ? root.theme.layer(root.theme.onSurfaceColour, 0.06)
+                                : "transparent")
+
+                        Behavior on color {
+                            CAnim {}
+                        }
+                    }
+
+                    MouseArea {
+                        id: actionHover
+
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            actionsList.currentIndex = actionDelegate.index;
+                            root.launchCurrent();
+                        }
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.leftMargin: root.theme.paddingMedium
+                            anchors.rightMargin: root.theme.paddingSmall
+                            spacing: root.theme.spacingMedium
+
+                            Item {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 42
+                                height: 42
+
+                                MaterialIcon {
+                                    anchors.centerIn: parent
+                                    theme: root.theme
+                                    text: actionDelegate.modelData.icon
+                                    iconSize: 26
+                                    color: root.theme.onSurfaceVariantColour
+                                }
+                            }
+
+                            Column {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: parent.width - 42 - root.theme.spacingMedium * 2
+                                spacing: 1
+
+                                StyledText {
+                                    width: parent.width
+                                    theme: root.theme
+                                    role: "bodyMedium"
+                                    weight: Font.Medium
+                                    elide: Text.ElideRight
+                                    text: actionDelegate.modelData.name
+                                }
+
+                                StyledText {
+                                    width: parent.width
+                                    theme: root.theme
+                                    role: "labelSmall"
+                                    color: root.theme.onSurfaceVariantColour
+                                    opacity: 0.72
+                                    elide: Text.ElideRight
+                                    text: actionDelegate.modelData.description
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Item {
+                id: calcPanel
+
+                anchors.fill: parent
+                visible: root.mode === "calc"
+
+                Column {
+                    anchors.centerIn: parent
+                    width: parent.width
+                    spacing: root.theme.spacingMedium
+
+                    MaterialIcon {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        theme: root.theme
+                        text: "calculate"
+                        iconSize: 30
+                        color: root.theme.onSurfaceVariantColour
+                        opacity: 0.75
+                    }
+
+                    StyledText {
+                        width: parent.width
+                        theme: root.theme
+                        role: "bodyLarge"
+                        pointSize: 32
+                        weight: Font.DemiBold
+                        horizontalAlignment: Text.AlignHCenter
+                        elide: Text.ElideMiddle
+                        text: root.calcResult.ok ? root.calcResult.text : "—"
+                    }
+
+                    StyledText {
+                        width: parent.width
+                        theme: root.theme
+                        role: "labelSmall"
+                        horizontalAlignment: Text.AlignHCenter
+                        wrapMode: Text.Wrap
+                        opacity: 0.8
+                        color: root.expression.length === 0 || root.calcResult.ok
+                            ? root.theme.onSurfaceVariantColour : root.theme.error
+                        text: root.expression.length === 0
+                            ? "Exemple : 2^10 * pi"
+                            : root.calcResult.ok
+                                ? "Entrée copie le résultat"
+                                : root.calcResult.error
+                    }
+                }
+            }
+
             Column {
                 anchors.centerIn: parent
                 spacing: root.theme.spacingSmall
-                visible: root.wallpaperMode
+                visible: root.mode === "wallpaper"
                     ? root.wallpaperItems.length === 0
-                    : Apps.resultCount === 0
+                    : root.mode === "actions"
+                        ? root.actionItems.length === 0
+                        : root.mode === "apps" && Apps.resultCount === 0
 
                 MaterialIcon {
                     anchors.horizontalCenter: parent.horizontalCenter
                     theme: root.theme
-                    text: root.wallpaperMode ? "wallpaper"
+                    text: root.mode === "wallpaper" ? "wallpaper"
+                        : root.mode === "actions" ? "search_off"
                         : (Apps.scanning ? "hourglass_top" : "search_off")
                     iconSize: 34
                     color: root.theme.onSurfaceVariantColour
@@ -542,7 +820,8 @@ Item {
                     theme: root.theme
                     role: "bodyMedium"
                     color: root.theme.onSurfaceVariantColour
-                    text: root.wallpaperMode ? "Aucun fond d’écran trouvé"
+                    text: root.mode === "wallpaper" ? "Aucun fond d’écran trouvé"
+                        : root.mode === "actions" ? "Aucune action trouvée"
                         : (Apps.scanning ? "Chargement des applications…"
                             : "Aucune application trouvée")
                 }
@@ -562,7 +841,11 @@ Item {
                 role: "labelSmall"
                 color: root.theme.onSurfaceVariantColour
                 opacity: 0.6
-                text: "↑ ↓ naviguer  ·  Entrée lancer  ·  Échap fermer"
+                text: root.mode === "calc"
+                    ? "Entrée copier le résultat  ·  Échap fermer"
+                    : "↑ ↓ naviguer  ·  Entrée "
+                        + (root.mode === "actions" ? "exécuter" : "lancer")
+                        + "  ·  Échap fermer"
             }
 
             StyledText {

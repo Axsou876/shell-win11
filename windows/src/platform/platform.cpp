@@ -1,6 +1,7 @@
 ﻿#include "platform.hpp"
 
 #include <QBuffer>
+#include <QClipboard>
 #include <QCursor>
 #include <QDebug>
 #include <QFileInfo>
@@ -586,6 +587,29 @@ void Platform::fitWindowToScreen(QWindow* window, QScreen* screen)
     // geometry is in DIPs, so QScreen::geometry is exactly the right rect.
     window->setScreen(screen);
     window->setGeometry(screen->geometry());
+}
+
+bool Platform::openExternal(const QString& target)
+{
+    const QString trimmed = target.trimmed();
+    if (trimmed.isEmpty())
+        return false;
+
+    // ShellExecuteW is the Windows "run this" entry point: it searches PATH,
+    // honours App Paths, and dispatches registered URI schemes such as
+    // ms-settings:. Its documented success values are > 32.
+    const auto result = ShellExecuteW(nullptr, L"open",
+        reinterpret_cast<LPCWSTR>(trimmed.utf16()), nullptr, nullptr, SW_SHOWNORMAL);
+    const bool ok = reinterpret_cast<qintptr>(result) > 32;
+    if (!ok)
+        qWarning("Caelestia: ShellExecuteW failed for '%s' (%lld)", qPrintable(trimmed),
+            static_cast<long long>(reinterpret_cast<qintptr>(result)));
+    return ok;
+}
+
+void Platform::copyText(const QString& text)
+{
+    QGuiApplication::clipboard()->setText(text);
 }
 
 void Platform::refreshAppBar()

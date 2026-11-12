@@ -24,6 +24,8 @@ qt_add_executable(caelestia-shell
     src/platform/services/bluetoothservice.hpp
     src/platform/services/brightnessservice.cpp
     src/platform/services/brightnessservice.hpp
+    src/platform/services/calculatorservice.cpp
+    src/platform/services/calculatorservice.hpp
     src/platform/services/audioanalyzer.cpp
     src/platform/services/audioanalyzer.hpp
     src/platform/services/audiocaptureservice.cpp

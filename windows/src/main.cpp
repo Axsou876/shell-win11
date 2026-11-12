@@ -5,6 +5,7 @@
 #include "platform/services/batteryservice.hpp"
 #include "platform/services/bluetoothservice.hpp"
 #include "platform/services/brightnessservice.hpp"
+#include "platform/services/calculatorservice.hpp"
 #include "platform/services/idleinhibitservice.hpp"
 #include "platform/services/mediaservice.hpp"
 #include "platform/services/networkservice.hpp"
@@ -449,6 +450,7 @@ int main(int argc, char* argv[])
     WindowService windows;
     WindowManagerService windowManager(&virtualDesktops);
     ScreenCaptureService screenshots;
+    CalculatorService calculator;
     TrayService tray;
 
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Platform", &platform);
@@ -473,6 +475,7 @@ int main(int argc, char* argv[])
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "AppWindows", &windows);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "WindowManager", &windowManager);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Screenshots", &screenshots);
+    qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Calculator", &calculator);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Tray", &tray);
 
     QObject::connect(&windowManager, &WindowManagerService::switchDesktopRequested,

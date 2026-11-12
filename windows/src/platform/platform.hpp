@@ -91,6 +91,13 @@ public:
     // the screen is assigned before the geometry.
     Q_INVOKABLE void fitWindowToScreen(QWindow* window, QScreen* screen);
 
+    // ShellExecuteW resolves a bare executable through PATH and understands
+    // registered URI schemes (ms-settings:, https:, ...), which QProcess
+    // cannot do. Returns false when Windows refuses to start the target.
+    Q_INVOKABLE bool openExternal(const QString& target);
+
+    Q_INVOKABLE void copyText(const QString& text);
+
     void setRhiBackend(const QString& backend);
     void handleWinEvent(quint32 event, quintptr hwnd, qint32 idObject, qint32 idChild);
 

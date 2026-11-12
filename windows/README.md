@@ -436,6 +436,64 @@ Limites assumées :
 - La sélection par survol ignore les fenêtres UWP cloaked (autre bureau
   virtuel, application suspendue) et les fenêtres réduites.
 
+## Launcher (applications, actions, calculatrice)
+
+`overlay/LauncherShell.qml` reprend `modules/launcher`. Un seul champ de
+recherche, plusieurs modes choisis par un préfixe `>`, comme
+`AppList.qml::stateForText` sous Linux :
+
+| saisie | mode |
+| --- | --- |
+| texte libre | applications (nom, description, favoris, récents) |
+| `>` | liste d'actions, filtrable par nom, identifiant ou description |
+| `>calc <expression>` | calculatrice |
+| `>wal <texte>` | fonds d'écran |
+
+- **Applications** — `AppLauncherService` découverte, correspondance floue,
+  icônes, favoris et lancement (`Apps.launch`).
+- **Actions** — la liste Linux est configurable (`launcherconfig.hpp`,
+  commandes shell + `enableDangerousActions`) ; sous Windows les actions utiles
+  sont des programmes ou des appels système, donc la liste est fixe dans le
+  QML : Calculatrice (`calc.exe`), Paramètres (`ms-settings:`), Terminal
+  (`wt.exe`), Explorateur (`explorer.exe`), Gestionnaire des tâches
+  (`taskmgr.exe`), Verrouiller et Veille (mêmes appels `Power` que
+  `PowerMenu.qml`). Les programmes passent par `Platform.openExternal`
+  (`ShellExecuteW`), qui résout `PATH`, `App Paths` et les schémas d'URI — ce
+  que `QProcess::startDetached` ne sait pas faire. L'`id` de chaque action sert
+  d'alias : `>terminal` fonctionne alors que les libellés sont en français.
+  Éteindre et redémarrer restent volontairement absents : ils passent par la
+  confirmation de `PowerMenu`, pas par une frappe dans un champ de recherche.
+- **Calculatrice** — Linux appelle `Qalculator` (libqalculate) et copie le
+  résultat avec `wl-copy`. Windows n'a pas de bibliothèque équivalente :
+  `CalculatorService` évalue l'expression dans un `QJSEngine` où seules les
+  fonctions `Math` sont installées comme globales (`sqrt`, `log`, `min`, `pi`,
+  `e`…). Avant évaluation, l'entrée est réduite à un alphabet arithmétique
+  (`chiffres`, `lettres`, `+ - * / % . , ( )`) : sans `{`, `}`, `;`, `=`, guillemets
+  ni crochets, aucune instruction ne peut être formée, et la saisie est bornée à
+  256 caractères. Les notations de qalc sont normalisées (`^` → `**`, `×`, `÷`,
+  `−`). Le résultat est arrondi à 12 chiffres significatifs (pas de
+  `0.30000000000000004`), `Entrée` le copie dans le presse-papiers puis ferme
+  le panneau ; une expression invalide ou non finie n'écrit rien et laisse le
+  panneau ouvert.
+- **Navigation** — `↑`/`↓` parcourent la liste active (applications, actions ou
+  fonds), `Entrée` lance l'élément courant, `Échap` ferme. Une action qui échoue
+  affiche son message dans le pied du panneau.
+
+Vérifié sur le bureau réel : `>calc 2^10 * 3 + 1` donne 3073, `>calc sqrt(144) + pi`
+donne 15.1415926536, `>calc 1/0` n'écrit pas dans le presse-papiers, une
+tentative `>calc 1;while(1){}` est rejetée, `>manager` puis `Entrée` lance le
+Gestionnaire des tâches, une requête sans correspondance reste sans effet,
+`--smoke-test` sort en 0 sans alerte QML.
+
+Limites assumées :
+
+- Pas d'actions shell configurables ni d'actions « dangereuses » : la liste est
+  fixe (voir ci-dessus).
+- Pas d'unités, de conversions ni de notation symbolique (comportement propre à
+  libqalculate) ; seul le calcul numérique est porté.
+- Le séparateur décimal est toujours `.` : le panneau est un champ de recherche,
+  et une virgule reste le séparateur d'arguments de `min(1, 2)`.
+
 ## Bugs / limites connus
 
 - Qt 6.9.3 émet des avertissements `QSGThreadedRenderLoop ... invalid geometry`
@@ -472,9 +530,8 @@ Limites assumées :
 ## Phase suivante
 
 Le tiling et les modules documentés ci-dessus sont en place. Restent, dans
-l'ordre prévu : complétion du launcher (calculatrice, actions), dock de
-notifications de la sidebar, écran de verrouillage, panneau de réglages
-(Nexus).
+l'ordre prévu : dock de notifications de la sidebar, écran de verrouillage,
+panneau de réglages (Nexus).
 
 L'enregistreur d'écran Linux (`utilities/cards/Record.qml`,
 `RecordingList.qml`) n'est volontairement pas porté : aucune API Win32
