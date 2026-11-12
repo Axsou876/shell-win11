@@ -201,6 +201,11 @@ qt_add_qml_module(caelestia-shell
         src/qml/popouts/BluetoothPanel.qml
         src/qml/popouts/BatteryPanel.qml
         src/qml/popouts/WindowInfoPanel.qml
+        src/qml/nexus/NexusPanel.qml
+        src/qml/nexus/NexusAppearance.qml
+        src/qml/nexus/NexusSystem.qml
+        src/qml/nexus/NexusShell.qml
+        src/qml/nexus/NexusAbout.qml
     SOURCES
         third_party/m3shapes/src/core/Cubic.cpp
         third_party/m3shapes/src/core/Cubic.hpp

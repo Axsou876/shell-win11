@@ -340,7 +340,10 @@ Item {
                         text: "Paramètres"
                         icon: "settings"
                         variant: "text"
-                        onClicked: Qt.openUrlExternally("ms-settings:")
+                        // The shell's own settings first; they hand the rest to
+                        // Windows with ms-settings: deep links.
+                        onClicked: root.controller.openPanel("nexus", root.screenName,
+                            Screen.virtualY + Screen.height / 2, "explicit")
                     }
                 }
 

@@ -58,7 +58,7 @@ Item {
         {
             id: "settings",
             name: "Paramètres",
-            description: "Ouvrir les paramètres Windows",
+            description: "Ouvrir les réglages du shell et de Windows",
             icon: "settings",
             target: "ms-settings:"
         },
@@ -147,7 +147,13 @@ Item {
             return;
         } else if (action.id === "sleep")
             ok = Power.sleep();
-        else
+        else if (action.id === "settings") {
+            // The shell's own settings panel; everything it cannot change itself
+            // is one click away as a ms-settings: link.
+            root.controller.openPanel("nexus", root.controller.currentScreenName,
+                Screen.virtualY + Screen.height / 2, "explicit");
+            return;
+        } else
             ok = Platform.openExternal(action.target);
 
         if (!ok) {

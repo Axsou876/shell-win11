@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import ".."
+import "../nexus"
 import "../popouts"
 
 Item {
@@ -119,6 +120,8 @@ Item {
             return batteryPanel;
         case "window":
             return windowPanel;
+        case "nexus":
+            return nexusPanel;
         default:
             return foundationComponent;
         }
@@ -164,6 +167,15 @@ Item {
         id: windowPanel
 
         WindowInfoPanel {
+            theme: host.theme
+            controller: host.controller
+        }
+    }
+
+    Component {
+        id: nexusPanel
+
+        NexusPanel {
             theme: host.theme
             controller: host.controller
         }

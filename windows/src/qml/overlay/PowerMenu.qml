@@ -167,7 +167,10 @@ Item {
             MenuButton {
                 theme: root.theme
                 icon: "settings"
-                onClicked: Qt.openUrlExternally("ms-settings:")
+                // Opens the shell's own settings before falling back to Windows:
+                // the panel also offers the ms-settings: links it cannot do itself.
+                onClicked: root.controller.openPanel("nexus", root.controller.currentScreenName,
+                    Screen.virtualY + Screen.height / 2, "explicit")
             }
 
             MenuButton {

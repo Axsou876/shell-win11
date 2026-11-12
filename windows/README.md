@@ -592,6 +592,53 @@ tentative volontairement fausse « Mot de passe incorrect. » + « Tentative 1
 sur 5 ». `--smoke-test` sort en 0 sans alerte QML, y compris verrouillé (le
 processus quitte alors proprement).
 
+## Panneau de réglages (Nexus)
+
+Équivalent Windows de `modules/nexus`, ouvert par l'engrenage du menu de
+session, le bouton « Paramètres » de la barre latérale et l'action
+« Paramètres » du launcher (`controller.openPanel("nexus", …)`, donc hébergé par
+`PanelHost` comme les autres panneaux).
+
+Le module Linux pilote tout le bureau (thèmes, plugins, mises à jour, langue) ;
+ces réglages appartiennent à Windows. Le panneau se limite donc à ce que le
+shell contrôle réellement et délègue le reste par des liens `ms-settings:`.
+
+- **Apparence** : vignettes de fond d'écran issues de `Wallpaper.wallpapers`,
+  appliquées immédiatement (`Wallpaper.apply`) ; la vignette courante porte un
+  contour `primary`. Carte de thème (Caelestia suit le thème des applications
+  Windows, `F8` en prévisualise l'opposé) et raccourcis vers Couleurs et
+  Arrière-plan de Windows.
+- **Système** : profils d'alimentation (`PowerProfiles`, bouton plein sur le
+  profil actif), luminosité (`M3Slider` → `Brightness.setPercent`), puis les
+  interrupteurs garder éveillé (`IdleInhibit`), ne pas déranger
+  (`Notification.doNotDisturb`), micro coupé et son coupé (`Audio`). Liens vers
+  Alimentation, Notifications et Son de Windows.
+- **Shell** : ouverture directe du lanceur, de la barre latérale, des
+  notifications, du tableau de bord et du menu de session, puis la liste des
+  raccourcis **effectivement enregistrés** (`WindowManager.bindings`, dédoublonnée
+  par action) avec, en rouge, le nombre de raccourcis natifs que Windows réserve.
+  La liste est l'état réel, pas l'intention : le shell ne peut pas forcer un
+  raccourci déjà pris.
+- **À propos** : version, édition Windows, build, backend RHI, échelle système,
+  écrans, utilisateur et machine, plus la note sur l'enregistreur d'écran.
+
+Choix d'implémentation :
+
+- Les pages sont des `Flickable` pour que le contenu dépasse la hauteur fixe du
+  panneau (600 px) sans jamais déborder.
+- `M3Switch` et `M3Slider` s'assignent eux-mêmes leur valeur au clic ; les lier
+  par `checked:` / `value:` casserait le binding au premier clic. Le panneau les
+  pilote par un élément `Binding`, qui survit à l'assignation et se réapplique
+  quand le service change de son côté.
+- Le décalage gauche/centre est fait par ancres et non par un `RowLayout` : un
+  `ColumnLayout` imbriqué dans un `RowLayout` recevait tout l'espace restant et
+  réduisait la pile de pages à quelques pixels.
+
+Vérifié par rendu hors premier plan (`grabWindow`, crochet temporaire retiré) :
+les quatre pages, vignettes appliquées, profil d'alimentation actif marqué,
+luminosité à 90 %, les quatre interrupteurs, et les 55 raccourcis enregistrés
+face aux 36 indisponibles. `--smoke-test` sort en 0 sans alerte QML.
+
 ## Bugs / limites connus
 
 - Qt 6.9.3 émet des avertissements `QSGThreadedRenderLoop ... invalid geometry`
@@ -605,12 +652,15 @@ processus quitte alors proprement).
   (changement de modèle `Instantiator`) ; aucun doublon ni clignotement durable
   observé.
 - Les workspaces de la barre sont réels (Phase 3, VirtualDesktopService) ; le bouton power reste décoratif (état Phase 2.4).
-- Modules Caelestia encore absents : session/login, clavier, VPN, panneau de
-  réglages (Nexus), enregistreur d'écran.
+- Modules Caelestia encore absents : session/login, clavier, VPN, enregistreur
+  d'écran.
   Notifications, launcher, dashboard, météo, média, wallpaper, OSD, volume,
   luminosité, sélection audio, appairage Bluetooth, mode d'alimentation,
-  utilitaires, info fenêtre, sélecteur de zone et écran de verrouillage sont
-  implémentés.
+  utilitaires, info fenêtre, sélecteur de zone, écran de verrouillage et panneau
+  de réglages sont implémentés.
+- Le panneau de réglages ne remplace pas Nexus : les réglages qui appartiennent
+  à Windows (thèmes, langue, mises à jour, plugins) restent dans Windows et y
+  sont renvoyés par `ms-settings:`.
 - Luminosité DDC/CI : dépend du moniteur. Les dalles d'ordinateur portable
   interne et certains écrans en DisplayPort/USB-C n'exposent pas le code VCP
   `0x10` ; l'OSD affiche alors « Luminosité indisponible ».
@@ -631,8 +681,10 @@ processus quitte alors proprement).
 
 ## Phase suivante
 
-Le tiling et les modules documentés ci-dessus sont en place. Reste, dans
-l'ordre prévu : le panneau de réglages (Nexus).
+Le tiling et les modules documentés ci-dessus sont en place, y compris le
+panneau de réglages. Il reste la passe de nettoyage : titre « Phase 2.5 » du
+README face au binaire « Phase 2.6 », date des tests, affirmations devenues
+fausses, artefacts de compilation et captures temporaires.
 
 L'enregistreur d'écran Linux (`utilities/cards/Record.qml`,
 `RecordingList.qml`) n'est volontairement pas porté : aucune API Win32
