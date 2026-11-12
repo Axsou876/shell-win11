@@ -653,8 +653,9 @@ face aux 36 indisponibles. `--smoke-test` sort en 0 sans alerte QML.
   (changement de modèle `Instantiator`) ; aucun doublon ni clignotement durable
   observé.
 - Les workspaces de la barre sont réels (`VirtualDesktopService`) ; le bouton
-  power ouvre le menu de session — se déconnecter, redémarrer, arrêter (avec
-  confirmation) et l'engrenage vers le panneau de réglages.
+  power ouvre le menu de session — se déconnecter, mettre en veille,
+  redémarrer, arrêter (avec confirmation) et l'engrenage vers le panneau de
+  réglages.
 - Modules Caelestia encore absents : session/login, clavier, VPN, enregistreur
   d'écran.
   Notifications, launcher, dashboard, météo, média, wallpaper, OSD, volume,

@@ -17,7 +17,9 @@ Item {
     property string errorText: ""
 
     implicitWidth: 76
-    implicitHeight: 348
+    // Six 46 px buttons with 14 px gaps plus the same 31 px padding the
+    // five-button version used: adding a button must not squeeze the column.
+    implicitHeight: 408
 
     function iconUrl(path) {
         return path ? "file:///" + path.replace(/\\/g, "/") : "";
@@ -162,6 +164,12 @@ Item {
                     cursorShape: Qt.PointingHandCursor
                     onClicked: Qt.openUrlExternally("ms-settings:yourinfo")
                 }
+            }
+
+            MenuButton {
+                theme: root.theme
+                icon: "bedtime"
+                onClicked: root.ask("sleep", "Mettre en veille")
             }
 
             MenuButton {
