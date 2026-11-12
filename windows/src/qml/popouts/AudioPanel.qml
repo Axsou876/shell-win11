@@ -10,8 +10,24 @@ Item {
     required property var theme
     required property var controller
 
+    property string deviceError: ""
+
     implicitWidth: theme.popoutAudioWidth
     implicitHeight: content.implicitHeight
+
+    function chooseOutput(id) {
+        if (Audio.setDefaultOutput(id))
+            root.deviceError = "";
+        else
+            root.deviceError = "Windows a refusé de changer la sortie audio.";
+    }
+
+    function chooseInput(id) {
+        if (Audio.setDefaultInput(id))
+            root.deviceError = "";
+        else
+            root.deviceError = "Windows a refusé de changer l'entrée audio.";
+    }
 
     Column {
         id: content
@@ -130,10 +146,70 @@ Item {
             theme: root.theme
             role: "labelSmall"
             color: root.theme.onSurfaceVariantColour
+            text: "Périphérique de sortie"
+        }
+
+        Column {
+            id: outputList
+
+            width: parent.width
+            spacing: root.theme.spacingExtraSmall
+
+            Repeater {
+                model: Audio.outputs
+
+                delegate: M3ListItem {
+                    required property var modelData
+
+                    width: outputList.width
+                    theme: root.theme
+                    icon: "speaker"
+                    title: modelData.name
+                    selected: modelData.id === Audio.defaultOutputId
+                    onClicked: root.chooseOutput(modelData.id)
+                }
+            }
+        }
+
+        StyledText {
+            width: parent.width
+            visible: Audio.inputs.length > 0
+            theme: root.theme
+            role: "labelSmall"
+            color: root.theme.onSurfaceVariantColour
+            text: "Périphérique d'entrée"
+        }
+
+        Column {
+            id: inputList
+
+            width: parent.width
+            spacing: root.theme.spacingExtraSmall
+
+            Repeater {
+                model: Audio.inputs
+
+                delegate: M3ListItem {
+                    required property var modelData
+
+                    width: inputList.width
+                    theme: root.theme
+                    icon: "mic"
+                    title: modelData.name
+                    selected: modelData.id === Audio.defaultInputId
+                    onClicked: root.chooseInput(modelData.id)
+                }
+            }
+        }
+
+        StyledText {
+            width: parent.width
+            visible: root.deviceError !== ""
+            theme: root.theme
+            role: "labelSmall"
+            color: root.theme.error
             wrapMode: Text.WordWrap
-            text: Audio.present
-                ? "Périphérique de sortie : " + Audio.deviceName
-                : "Windows ne signale aucun périphérique de sortie actif."
+            text: root.deviceError
         }
 
         M3Button {

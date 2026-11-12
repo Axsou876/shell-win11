@@ -83,7 +83,6 @@ QtObject {
             return;
         }
 
-        console.log("PANEL_CLOSE", currentPanel, currentScreenName);
         currentPanel = "";
         currentScreenName = "";
         openReason = "";

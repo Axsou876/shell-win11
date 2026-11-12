@@ -162,15 +162,14 @@ réimplémentée avec les services Windows natifs.
   Un seul worker à la fois : les demandes suivantes sont coalescées et seule la
   dernière valeur en attente est écrite. Une relecture automatique toutes les
   20 s garde l'état aligné si le rétroéclairage change par un autre moyen.
-- **Volume** — `OsdService` écoute `AudioService::changed` et affiche l'OSD
-  correspondant. Windows n'affiche pas son propre OSD pour les changements
-  programmatiques via `IAudioEndpointVolume`, donc le retour visuel vient de la
-  pilule Caelestia.
+- **Volume** — l'OSD n'est affiché que pour les actions déclenchées par le
+  shell (raccourcis ci-dessous, appel QML explicite). Il n'écoute volontairement
+  pas `AudioService::changed` : les touches média matérielles font déjà
+  apparaître l'OSD natif de Windows, et le refléter produirait deux indicateurs
+  pour un seul geste.
 - **Rendu** — `OsdSurface.qml`, en haut à droite de l'écran principal, dans
   l'overlay click-through (il ne prend jamais l'input). Il se décale de la
   largeur de la sidebar quand celle-ci est ouverte.
-- **Anti-bruit au démarrage** — les services publient leur état initial au
-  lancement ; l'OSD ignore les changements pendant les 2 premières secondes.
 
 Raccourcis globaux (`RegisterHotKey`, `Ctrl+Alt+…` afin de ne pas heurter les
 `Ctrl+Alt+Flèches/HJKL` du tiling) :
@@ -185,6 +184,29 @@ Raccourcis globaux (`RegisterHotKey`, `Ctrl+Alt+…` afin de ne pas heurter les
 Les raccourcis non disponibles (déjà pris par un pilote ou un autre logiciel)
 sont ignorés silencieusement ; `CAELESTIA_DEBUG_OSD=1` les journalise.
 `CAELESTIA_DEBUG_BRIGHTNESS=1` journalise chaque état DDC/CI.
+
+## Sélection des périphériques audio
+
+`AudioService` énumère les endpoints actifs (`IMMDeviceEnumerator::
+EnumAudioEndpoints`, `DEVICE_STATE_ACTIVE`) et expose deux listes `{ id, name }`
+— `outputs` et `inputs` — plus les ids par défaut `defaultOutputId` /
+`defaultInputId`. Le popout Audio affiche chaque liste en `M3ListItem`
+sélectionnable, comme les `Audio.sinks` / `Audio.sources` du popout Linux.
+
+Le changement de périphérique par défaut n'a pas d'API documentée. Le service
+utilise `IPolicyConfig` (CLSID `870af99c-…`, interface
+`f8679f50-850a-41cf-9c72-430f290290c8`), l'interface employée par Explorer et
+par SoundSwitch/nircmd. Elle est déclarée avec le vtable complet dans
+`audioservice.cpp` et appliquée aux trois rôles Windows (`eConsole`,
+`eMultimedia`, `eCommunications`) : ne changer que `eConsole` laisserait les
+lecteurs multimédias sur l'ancienne sortie.
+
+Les notifications `IMMNotificationClient` (ajout, retrait, changement d'état,
+renommage, changement de défaut) rafraîchissent listes et défauts ; les
+callbacks COM arrivent sur un thread worker et repassent par
+`QMetaObject::invokeMethod` avant de toucher l'état visible en QML.
+
+`CAELESTIA_DEBUG_STATUS=1` journalise le nombre de sorties/entrées détectées.
 
 ## Bugs / limites connus
 
