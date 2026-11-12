@@ -138,7 +138,7 @@ Item {
             visibility: Window.Windowed
             flags: Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint
             color: "transparent"
-            title: "Caelestia Shell — Windows Phase 2.6"
+            title: "Caelestia Shell — Windows"
 
             Component.onCompleted: Platform.registerLeftAppBar(barWindow, 60)
             Component.onDestruction: Platform.unregisterAppBar(barWindow)

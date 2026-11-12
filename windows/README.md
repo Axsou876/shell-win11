@@ -1,11 +1,12 @@
-# Caelestia Shell — Windows 11 (Phase 2.5)
+# Caelestia Shell — Windows 11
 
 Barre Caelestia intégrée au bureau Windows 11 comme **AppBar réelle sur chaque
 écran**, avec fenêtre active réelle, status système réel et **icône System Tray
 Caelestia réelle**. Le DPI par écran est géré en Per-Monitor V2.
 
 Windows Explorer et la barre des tâches sont conservés. Le design de la barre
-reste celui de la Phase 1.5.
+reste celui de la première version ; le gestionnaire de fenêtres et les modules
+portés depuis Caelestia Linux sont documentés plus bas.
 
 ## Prérequis
 
@@ -108,12 +109,12 @@ d'une arborescence XAML instable ; elle n'est pas utilisée pour simuler le tray
 Les icônes Discord, Steam, Firefox et autres restent donc dans la **zone de
 notification Windows native**. La barre Caelestia n'en affiche pas de copies.
 
-## Tests effectués (9 novembre 2026)
+## Tests effectués (9–12 novembre 2026)
 
 | Test | Résultat |
 |---|---|
 | Build + déploiement + smoke test | OK, exit 0 |
-| qmllint (cible CMake `caelestia-shell_qmllint`) | 0 erreur ; 3 warnings d'accès non qualifié sur `Caelestia.Platform` (singletons C++ absents du qmltypes) |
+| qmllint (cible CMake `caelestia-shell_qmllint`) | 0 erreur ; warnings d'accès non qualifié sur `Caelestia.Platform` (singletons C++ absents du qmltypes) |
 | Démarrage avec deux écrans, DPI différents | 2 AppBars : 75 px physiques (60 logiques, 125 %) et 60 px (100 %) ; zones de travail réservées 75 px / 60 px |
 | Démarrage avec un seul écran | 1 AppBar 60×1032 ; zone de travail 60→1920 |
 | Déconnexion de DISPLAY1 (`ChangeDisplaySettingsEx`) | application stable, AppBar détruite, zone de travail libérée, aucune exception |
@@ -123,7 +124,7 @@ notification Windows native**. La barre Caelestia n'en affiche pas de copies.
 | Deuxième lancement | exit 0 en ~1 s, un seul processus, aucune AppBar ni icône supplémentaire |
 | Fermeture normale (WM_CLOSE) | application terminée, réservations AppBar retirées, zones de travail restaurées |
 | Absence de doublons | une seule AppBar visible par écran après chaque événement testé |
-| Phases 2.1–2.4 | icône tray enregistrée, status, fenêtre active et rendu QML toujours fonctionnels |
+| Phases précédentes | icône tray enregistrée, status, fenêtre active et rendu QML toujours fonctionnels |
 
 ## Tests non effectués
 
@@ -137,11 +138,11 @@ notification Windows native**. La barre Caelestia n'en affiche pas de copies.
 - **Arrêt forcé** (`taskkill` / `TerminateProcess`) : non validé ; la
   restauration des zones de travail n'est garantie que pour une fermeture
   normale.
-- **Menu tray et commandes** : non rejoués après les changements Phase 2.5 ; le
-  code du tray est inchangé et l'icône est enregistrée au démarrage.
+- **Menu tray et commandes** : non rejoués depuis l'ajout du menu ; le code du
+  tray est inchangé et l'icône est enregistrée au démarrage.
 - **Icônes tierces dans la barre** : impossible avec les API documentées.
 
-## Tiling Windows (Phase 3)
+## Tiling Windows
 
 Le shell inclut un gestionnaire de fenêtres réel inspiré de Hyprland :
 layout Dwindle par défaut, Master, Split horizontal/vertical, tiling strict,
@@ -346,7 +347,7 @@ dans la barre.
   suivre celle que Windows active ensuite) ; **Fermer**
   (`PostMessage(WM_CLOSE)`, l'application garde la main pour demander une
   confirmation).
-- **Flotter / Ancrer** — le gestionnaire de fenêtres de la Phase 3 possède la
+- **Flotter / Ancrer** — le gestionnaire de fenêtres possède la
   géométrie : une fenêtre pavée est re-disposée au rescan suivant, donc un
   `ShowWindow(SW_MAXIMIZE)` brut serait annulé en moins d'une seconde. Le
   bouton appelle `WindowManager.setFloating(id, …)`, qui détache la fenêtre du
@@ -641,9 +642,9 @@ face aux 36 indisponibles. `--smoke-test` sort en 0 sans alerte QML.
 
 ## Bugs / limites connus
 
-- Qt 6.9.3 émet des avertissements `QSGThreadedRenderLoop ... invalid geometry`
-  lors des changements d'écran. Ils sont cosmétiques ; aucun crash ni artefact
-  visuel observé après la correction.
+- Qt 6.9.3 a émis des avertissements `QSGThreadedRenderLoop ... invalid
+  geometry` lors de certains changements d'écran. Ils sont cosmétiques ; aucun
+  crash ni artefact visuel observé.
 - Détruire une `QQuickWindow` pendant le traitement interne de suppression
   d'écran de Qt provoquait un crash (`Qt6Gui`). La reconstruction QML est
   maintenant différée d'un tick et l'AppBar supprimée est masquée avant
@@ -651,7 +652,9 @@ face aux 36 indisponibles. `--smoke-test` sort en 0 sans alerte QML.
 - La déconnexion d'un écran recrée aussi les barres des écrans restants
   (changement de modèle `Instantiator`) ; aucun doublon ni clignotement durable
   observé.
-- Les workspaces de la barre sont réels (Phase 3, VirtualDesktopService) ; le bouton power reste décoratif (état Phase 2.4).
+- Les workspaces de la barre sont réels (`VirtualDesktopService`) ; le bouton
+  power ouvre le menu de session — se déconnecter, redémarrer, arrêter (avec
+  confirmation) et l'engrenage vers le panneau de réglages.
 - Modules Caelestia encore absents : session/login, clavier, VPN, enregistreur
   d'écran.
   Notifications, launcher, dashboard, météo, média, wallpaper, OSD, volume,
@@ -667,24 +670,15 @@ face aux 36 indisponibles. `--smoke-test` sort en 0 sans alerte QML.
 
 ## Captures
 
-- `caelestia-lock.png` : écran de verrouillage, deux notifications et un échec
-  d'authentification.
-- `caelestia-lock-empty.png` : écran de verrouillage, dock de notifications vide.
-- `caelestia-phase25-screen1-125pct.png` : barre sur DISPLAY1 à 125 %.
-- `caelestia-phase25-screen2-100pct.png` : barre sur ZOWIE XL LCD à 100 %.
-- `caelestia-phase25-secondary-corner.png` : bord gauche de l'écran secondaire.
-- `caelestia-tray-real.png`, `caelestia-tray-native.png`,
-  `caelestia-tray-overflow.png`, `caelestia-tray-menu-native.png`,
-  `caelestia-tray-menu.png`, `caelestia-tray-cleanup.png` : tray (Phase 2.4).
-- `caelestia-status-*.png`, `caelestia-activewindow-*.png`,
-  `caelestia-appbar*.png` : phases précédentes.
+Les captures de vérification (`caelestia-*.png`) servent de référence locale :
+`.gitignore` les exclut, aucune n'est versionnée. Elles couvrent le tray, le
+status, la fenêtre active, les barres à 125 % et 100 %, l'écran de verrouillage
+et le sélecteur de zone.
 
-## Phase suivante
+## Suite
 
-Le tiling et les modules documentés ci-dessus sont en place, y compris le
-panneau de réglages. Il reste la passe de nettoyage : titre « Phase 2.5 » du
-README face au binaire « Phase 2.6 », date des tests, affirmations devenues
-fausses, artefacts de compilation et captures temporaires.
+Tous les modules décrits ci-dessus sont en place. Le seul module Linux laissé de
+côté est l'enregistreur d'écran.
 
 L'enregistreur d'écran Linux (`utilities/cards/Record.qml`,
 `RecordingList.qml`) n'est volontairement pas porté : aucune API Win32
