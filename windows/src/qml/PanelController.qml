@@ -54,7 +54,6 @@ QtObject {
         openReason = requestedReason;
         currentScreenName = screenName;
         currentPanel = name;
-        console.log("PANEL_OPEN", name, screenName, Math.round(screenY), requestedReason);
         panelOpened(name);
     }
 
