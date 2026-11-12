@@ -78,7 +78,8 @@ d'arrêt brutal. Aucune seconde AppBar ni icône tray n'est créée.
 `BatteryService` (`GetSystemPowerStatus` + `WM_POWERBROADCAST`),
 `NetworkService` (WLAN + IP Helper), `BluetoothService` (WinRT Radio pour
 l'adaptateur, `bthprops` pour les appareils), `AudioService` (WASAPI +
-callbacks).
+callbacks), `PowerProfileService` (overlay d'alimentation, repli sur les power
+schemes).
 
 ### System Tray
 - `TrayService` utilise `Shell_NotifyIconW` :
@@ -249,6 +250,40 @@ Limites assumées :
 `CAELESTIA_DEBUG_STATUS=1` journalise l'état de la radio et le nombre
 d'appareils à chaque rafraîchissement.
 
+## Mode d'alimentation
+
+`PowerProfileService` expose le sélecteur à trois positions
+Économie d'énergie / Équilibré / Performances du popout Batterie — le
+`PowerProfiles.profile` du shell Linux.
+
+Windows superpose deux mécanismes, et le service suit délibérément le premier :
+
+- **Overlay** (mode d'alimentation, ce que montre l'application Paramètres de
+  Windows 11). C'est le vrai équivalent des trois profils Linux. Il est appliqué
+  par `PowerSetActiveOverlayScheme` (`powrprof.dll`), résolu dynamiquement par
+  `GetProcAddress` : la fonction n'est pas exportée par toutes les versions et
+  n'est pas déclarée dans les en-têtes du SDK.
+- **Power schemes** (modes de gestion de l'alimentation du panneau classique).
+  Énumérés par `PowerEnumerate` / `ACCESS_SCHEME`, nommés par
+  `PowerReadFriendlyName` et activés par `PowerSetActiveScheme`. Ce chemin sert
+  de repli quand l'overlay n'est pas disponible.
+
+L'état courant de l'overlay se lit dans
+`HKLM\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes`
+(`ActiveOverlayAcPowerScheme`, ou `ActiveOverlayDcPowerScheme` sur batterie).
+`PowerGetActiveOverlayScheme` n'existe qu'à partir de Windows 11 22621 et
+`PowerGetEffectiveOverlayScheme` décrit ce que produit le *plan* actif, pas ce
+que l'utilisateur a choisi : la valeur de registre est la seule lecture
+portable. Elle est relue toutes les 5 s pour suivre un changement fait dans
+Windows.
+
+Limite assumée : le plan et l'overlay restent deux réglages distincts. Le shell
+affiche l'overlay, comme le fait l'application Paramètres ; un plan
+« Haute performance » choisi dans le panneau classique n'apparaît donc pas dans
+le popout.
+
+`CAELESTIA_DEBUG_STATUS=1` journalise le mode retenu et le profil actif.
+
 ## Bugs / limites connus
 
 - Qt 6.9.3 émet des avertissements `QSGThreadedRenderLoop ... invalid geometry`
@@ -265,8 +300,8 @@ d'appareils à chaque rafraîchissement.
 - Modules Caelestia encore absents : écran de verrouillage, session/login,
   clavier, VPN, panneau de réglages (Nexus), utilitaires, info fenêtre,
   sélecteur de zone. Notifications, launcher, dashboard, météo, média,
-  wallpaper, OSD, volume, luminosité, sélection audio et appairage Bluetooth
-  sont implémentés.
+  wallpaper, OSD, volume, luminosité, sélection audio, appairage Bluetooth et
+  mode d'alimentation sont implémentés.
 - Luminosité DDC/CI : dépend du moniteur. Les dalles d'ordinateur portable
   interne et certains écrans en DisplayPort/USB-C n'exposent pas le code VCP
   `0x10` ; l'OSD affiche alors « Luminosité indisponible ».

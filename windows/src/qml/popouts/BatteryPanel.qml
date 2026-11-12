@@ -9,8 +9,26 @@ Item {
     required property var theme
     required property var controller
 
+    property string profileError: ""
+
     implicitWidth: theme.popoutBatteryWidth
     implicitHeight: content.implicitHeight
+
+    Connections {
+        target: PowerProfiles
+
+        function onActionFailed(message) {
+            root.profileError = message;
+            profileErrorTimer.restart();
+        }
+    }
+
+    Timer {
+        id: profileErrorTimer
+
+        interval: 5000
+        onTriggered: root.profileError = ""
+    }
 
     Column {
         id: content
@@ -90,6 +108,56 @@ Item {
                     + Math.floor(Battery.minutesRemaining / 60) + " h "
                     + (Battery.minutesRemaining % 60) + " min"
                 : "Windows ne fournit pas d'autonomie restante exploitable."
+        }
+
+        Rectangle {
+            width: parent.width
+            height: 1
+            color: root.theme.outlineVariant
+            opacity: 0.6
+            visible: PowerProfiles.available
+        }
+
+        StyledText {
+            width: parent.width
+            theme: root.theme
+            role: "labelSmall"
+            color: root.theme.onSurfaceVariantColour
+            visible: PowerProfiles.available
+            text: "Mode d'alimentation"
+        }
+
+        Column {
+            id: profileList
+
+            width: parent.width
+            visible: PowerProfiles.available
+            spacing: root.theme.spacingExtraSmall
+
+            Repeater {
+                model: PowerProfiles.profiles
+
+                delegate: M3ListItem {
+                    required property var modelData
+
+                    width: profileList.width
+                    theme: root.theme
+                    icon: modelData.icon
+                    title: modelData.name
+                    selected: modelData.id === PowerProfiles.activeProfileId
+                    onClicked: PowerProfiles.setProfile(modelData.id)
+                }
+            }
+        }
+
+        StyledText {
+            width: parent.width
+            theme: root.theme
+            role: "labelSmall"
+            color: root.theme.error
+            wrapMode: Text.WordWrap
+            visible: root.profileError !== ""
+            text: root.profileError
         }
 
         M3Button {

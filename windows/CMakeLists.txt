@@ -38,6 +38,8 @@ qt_add_executable(caelestia-shell
     src/platform/services/osdservice.hpp
     src/platform/services/powerservice.cpp
     src/platform/services/powerservice.hpp
+    src/platform/services/powerprofileservice.cpp
+    src/platform/services/powerprofileservice.hpp
     src/platform/services/systemservice.cpp
     src/platform/services/systemservice.hpp
     src/platform/services/tilingengine.cpp

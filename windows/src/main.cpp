@@ -10,6 +10,7 @@
 #include "platform/services/notificationservice.hpp"
 #include "platform/services/osdservice.hpp"
 #include "platform/services/powerservice.hpp"
+#include "platform/services/powerprofileservice.hpp"
 #include "platform/services/systemservice.hpp"
 #include "platform/services/tilingengine.hpp"
 #include "platform/services/trayservice.hpp"
@@ -435,6 +436,7 @@ int main(int argc, char* argv[])
     SystemService system;
     WeatherService weather;
     PowerService power;
+    PowerProfileService powerProfiles;
     UserService user;
     VirtualDesktopService virtualDesktops;
     WallpaperService wallpaper;
@@ -456,6 +458,7 @@ int main(int argc, char* argv[])
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "System", &system);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Weather", &weather);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Power", &power);
+    qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "PowerProfiles", &powerProfiles);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "User", &user);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "VirtualDesktops", &virtualDesktops);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Wallpaper", &wallpaper);
