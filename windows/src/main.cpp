@@ -5,6 +5,7 @@
 #include "platform/services/batteryservice.hpp"
 #include "platform/services/bluetoothservice.hpp"
 #include "platform/services/brightnessservice.hpp"
+#include "platform/services/idleinhibitservice.hpp"
 #include "platform/services/mediaservice.hpp"
 #include "platform/services/networkservice.hpp"
 #include "platform/services/notificationservice.hpp"
@@ -308,6 +309,7 @@ int main(int argc, char* argv[])
             QTextStream out(stdout);
             out << "AUDIO present=" << audio.present() << " known=" << audio.known()
                 << " volume=" << audio.volume() << " muted=" << audio.muted()
+                << " micMuted=" << audio.micMuted()
                 << " device=" << audio.deviceName() << '\n'
                 << "NETWORK type=" << network.connectionType()
                 << " connected=" << network.connected() << " ssid=" << network.wifiSsid()
@@ -437,6 +439,7 @@ int main(int argc, char* argv[])
     WeatherService weather;
     PowerService power;
     PowerProfileService powerProfiles;
+    IdleInhibitService idleInhibit;
     UserService user;
     VirtualDesktopService virtualDesktops;
     WallpaperService wallpaper;
@@ -459,6 +462,7 @@ int main(int argc, char* argv[])
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Weather", &weather);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Power", &power);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "PowerProfiles", &powerProfiles);
+    qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "IdleInhibit", &idleInhibit);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "User", &user);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "VirtualDesktops", &virtualDesktops);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Wallpaper", &wallpaper);

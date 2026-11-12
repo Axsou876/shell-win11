@@ -78,8 +78,9 @@ d'arrêt brutal. Aucune seconde AppBar ni icône tray n'est créée.
 `BatteryService` (`GetSystemPowerStatus` + `WM_POWERBROADCAST`),
 `NetworkService` (WLAN + IP Helper), `BluetoothService` (WinRT Radio pour
 l'adaptateur, `bthprops` pour les appareils), `AudioService` (WASAPI +
-callbacks), `PowerProfileService` (overlay d'alimentation, repli sur les power
-schemes).
+callbacks, sortie et micro), `PowerProfileService` (overlay d'alimentation,
+repli sur les power schemes), `IdleInhibitService` (demandes d'éveil système et
+écran).
 
 ### System Tray
 - `TrayService` utilise `Shell_NotifyIconW` :
@@ -284,6 +285,38 @@ le popout.
 
 `CAELESTIA_DEBUG_STATUS=1` journalise le mode retenu et le profil actif.
 
+## Utilitaires (garder éveillé, micro, ne pas déranger)
+
+La sidebar reprend la carte « Keep awake » et la rangée de bascules rapides du
+module `utilities` de Caelestia.
+
+- **Garder éveillé** — `IdleInhibitService` crée une demande d'éveil
+  (`PowerCreateRequest` + `PowerSetRequest` en `PowerRequestSystemRequired` et
+  `PowerRequestDisplayRequired`), l'équivalent Windows d'`Inhibit` sur
+  `org.freedesktop.login1`. La demande apparaît dans `powercfg /requests`, et
+  l'OS la libère de lui-même si le processus disparaît. Le service la retire
+  explicitement à la fermeture, et les deux requests sont annulées ensemble si
+  Windows n'en accepte qu'une. Un refus est remonté par `actionFailed` et
+  affiché sous la ligne : la bascule ne reste jamais allumée à tort.
+- **Micro** — `AudioService` expose `micMuted` et `toggleMicMute()` sur
+  l'endpoint de capture par défaut (`IAudioEndpointVolume::SetMute`). Un
+  `IAudioEndpointVolumeCallback` dédié garde la bascule alignée sur le
+  raccourci Windows et sur les autres applications. `refreshDefaultInput()`
+  réactive l'endpoint uniquement quand le défaut change, pour ne pas
+  réenregistrer le callback à chaque notification de périphérique.
+- **Silencieux** — `NotificationService::doNotDisturb` coupe les toasts du
+  shell sans vider la boîte de réception, comme
+  `PersistentState.doNotDisturb` sous Linux. L'état est persisté dans
+  `QSettings` (`notifications/doNotDisturb`).
+- **Bluetooth** — la bascule rapide appelle `BluetoothService::setEnabled`,
+  déjà utilisé par le popout.
+
+La sidebar défile (`Flickable`) quand la somme des modules dépasse la hauteur de
+l'écran ; la colonne de cartes est scrollable à la molette.
+
+`CAELESTIA_DEBUG_STATUS=1` journalise `Idle inhibit: on|off` avec l'heure, le
+mutisme du micro et son endpoint.
+
 ## Bugs / limites connus
 
 - Qt 6.9.3 émet des avertissements `QSGThreadedRenderLoop ... invalid geometry`
@@ -298,10 +331,10 @@ le popout.
   observé.
 - Les workspaces de la barre sont réels (Phase 3, VirtualDesktopService) ; le bouton power reste décoratif (état Phase 2.4).
 - Modules Caelestia encore absents : écran de verrouillage, session/login,
-  clavier, VPN, panneau de réglages (Nexus), utilitaires, info fenêtre,
-  sélecteur de zone. Notifications, launcher, dashboard, météo, média,
-  wallpaper, OSD, volume, luminosité, sélection audio, appairage Bluetooth et
-  mode d'alimentation sont implémentés.
+  clavier, VPN, panneau de réglages (Nexus), info fenêtre, sélecteur de zone.
+  Notifications, launcher, dashboard, météo, média, wallpaper, OSD, volume,
+  luminosité, sélection audio, appairage Bluetooth, mode d'alimentation et
+  utilitaires sont implémentés.
 - Luminosité DDC/CI : dépend du moniteur. Les dalles d'ordinateur portable
   interne et certains écrans en DisplayPort/USB-C n'exposent pas le code VCP
   `0x10` ; l'OSD affiche alors « Luminosité indisponible ».

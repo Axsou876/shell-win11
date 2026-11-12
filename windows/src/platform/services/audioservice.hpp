@@ -13,6 +13,8 @@ class AudioService final : public QObject {
     Q_PROPERTY(bool known READ known NOTIFY changed)
     Q_PROPERTY(int volume READ volume NOTIFY changed)
     Q_PROPERTY(bool muted READ muted NOTIFY changed)
+    // Mute state of the default *capture* endpoint, driven by toggleMicMute().
+    Q_PROPERTY(bool micMuted READ micMuted NOTIFY changed)
     Q_PROPERTY(QString deviceName READ deviceName NOTIFY changed)
 
     // Every active endpoint, as a list of { id, name } maps. The default
@@ -31,6 +33,7 @@ public:
     [[nodiscard]] bool known() const;
     [[nodiscard]] int volume() const;
     [[nodiscard]] bool muted() const;
+    [[nodiscard]] bool micMuted() const;
     [[nodiscard]] QString deviceName() const;
     [[nodiscard]] QVariantList outputs() const;
     [[nodiscard]] QVariantList inputs() const;
@@ -40,9 +43,11 @@ public:
     void refreshDefaultDevice();
     void refreshVolume();
     void setVolume(double scalar, bool muted);
+    void setMicMuted(bool muted);
 
     Q_INVOKABLE void setVolumePercent(int percent);
     Q_INVOKABLE void toggleMute();
+    Q_INVOKABLE void toggleMicMute();
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void refreshDevices();
     // Return false when Windows refuses the switch (device gone, policy
@@ -64,6 +69,7 @@ private:
     bool m_known = false;
     int m_volume = 0;
     bool m_muted = false;
+    bool m_micMuted = false;
     QString m_deviceName;
     QVariantList m_outputs;
     QVariantList m_inputs;

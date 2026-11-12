@@ -2,10 +2,36 @@
 
 #include <QDateTime>
 #include <QLocale>
+#include <QSettings>
 
 NotificationService::NotificationService(QObject* parent)
     : QObject(parent)
 {
+    QSettings settings;
+    m_doNotDisturb = settings.value(QStringLiteral("notifications/doNotDisturb"), false).toBool();
+}
+
+bool NotificationService::doNotDisturb() const
+{
+    return m_doNotDisturb;
+}
+
+void NotificationService::setDoNotDisturb(bool enabled)
+{
+    if (m_doNotDisturb == enabled)
+        return;
+
+    m_doNotDisturb = enabled;
+
+    QSettings settings;
+    settings.setValue(QStringLiteral("notifications/doNotDisturb"), enabled);
+
+    emit changed();
+}
+
+void NotificationService::toggleDoNotDisturb()
+{
+    setDoNotDisturb(!m_doNotDisturb);
 }
 
 QVariantList NotificationService::notifications() const

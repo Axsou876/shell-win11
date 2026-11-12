@@ -14,12 +14,19 @@ class NotificationService final : public QObject {
 
     Q_PROPERTY(QVariantList notifications READ notifications NOTIFY changed)
     Q_PROPERTY(int count READ count NOTIFY changed)
+    // Shell-level "do not disturb": notifications are still recorded in the
+    // inbox, they just stop raising the on-screen toast. Persisted, like the
+    // Linux shell's PersistentState.doNotDisturb.
+    Q_PROPERTY(bool doNotDisturb READ doNotDisturb WRITE setDoNotDisturb NOTIFY changed)
 
 public:
     explicit NotificationService(QObject* parent = nullptr);
 
     [[nodiscard]] QVariantList notifications() const;
     [[nodiscard]] int count() const { return m_items.size(); }
+    [[nodiscard]] bool doNotDisturb() const;
+    void setDoNotDisturb(bool enabled);
+    Q_INVOKABLE void toggleDoNotDisturb();
 
     Q_INVOKABLE void addNotification(const QString& app, const QString& title,
         const QString& body, const QStringList& actions = {});
@@ -44,4 +51,5 @@ private:
 
     QList<Item> m_items;
     int m_nextId = 1;
+    bool m_doNotDisturb = false;
 };

@@ -234,6 +234,32 @@ public:
 private:
     AudioService* m_owner;
 };
+
+// Capture endpoint equivalent of AudioVolumeCallback: keeps the microphone
+// toggle in step with the Windows 11 mute hotkey and with other applications.
+class AudioMicCallback final
+    : public RuntimeClass<RuntimeClassFlags<ClassicCom>, IAudioEndpointVolumeCallback> {
+public:
+    explicit AudioMicCallback(AudioService* owner)
+        : m_owner(owner)
+    {
+    }
+
+    HRESULT STDMETHODCALLTYPE OnNotify(PAUDIO_VOLUME_NOTIFICATION_DATA data) override
+    {
+        if (!data)
+            return S_OK;
+
+        AudioService* owner = m_owner;
+        const bool muted = data->bMuted != FALSE;
+        QMetaObject::invokeMethod(
+            owner, [owner, muted]() { owner->setMicMuted(muted); }, Qt::QueuedConnection);
+        return S_OK;
+    }
+
+private:
+    AudioService* m_owner;
+};
 } // namespace
 
 struct AudioService::Impl {
@@ -241,8 +267,11 @@ struct AudioService::Impl {
     ComPtr<IMMDeviceEnumerator> enumerator;
     ComPtr<IMMDevice> device;
     ComPtr<IAudioEndpointVolume> volume;
+    ComPtr<IMMDevice> micDevice;
+    ComPtr<IAudioEndpointVolume> micVolume;
     ComPtr<AudioNotificationClient> notification;
     ComPtr<AudioVolumeCallback> volumeCallback;
+    ComPtr<AudioMicCallback> micCallback;
 };
 
 AudioService::AudioService(QObject* parent)
@@ -259,6 +288,7 @@ AudioService::AudioService(QObject* parent)
 
     m_impl->notification = Make<AudioNotificationClient>(this);
     m_impl->volumeCallback = Make<AudioVolumeCallback>(this);
+    m_impl->micCallback = Make<AudioMicCallback>(this);
 
     if (FAILED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
             IID_PPV_ARGS(&m_impl->enumerator)))) {
@@ -278,14 +308,19 @@ AudioService::~AudioService()
 
     if (m_impl->volume && m_impl->volumeCallback)
         m_impl->volume->UnregisterControlChangeNotify(m_impl->volumeCallback.Get());
+    if (m_impl->micVolume && m_impl->micCallback)
+        m_impl->micVolume->UnregisterControlChangeNotify(m_impl->micCallback.Get());
     if (m_impl->enumerator && m_impl->notification)
         m_impl->enumerator->UnregisterEndpointNotificationCallback(m_impl->notification.Get());
 
     m_impl->volume.Reset();
     m_impl->device.Reset();
+    m_impl->micVolume.Reset();
+    m_impl->micDevice.Reset();
     m_impl->enumerator.Reset();
     m_impl->notification.Reset();
     m_impl->volumeCallback.Reset();
+    m_impl->micCallback.Reset();
 
     if (m_impl->comInitialized)
         CoUninitialize();
@@ -309,6 +344,11 @@ int AudioService::volume() const
 bool AudioService::muted() const
 {
     return m_muted;
+}
+
+bool AudioService::micMuted() const
+{
+    return m_micMuted;
 }
 
 QString AudioService::deviceName() const
@@ -389,11 +429,69 @@ void AudioService::refreshDefaultInput()
     if (SUCCEEDED(m_impl->enumerator->GetDefaultAudioEndpoint(eCapture, eConsole, &device)))
         id = endpointId(device.Get());
 
-    if (m_defaultInputId == id)
+    // Re-activate only when the default capture endpoint actually moved: the
+    // callback registration below is not free and would be repeated on every
+    // device notification otherwise.
+    if (id != m_defaultInputId || !m_impl->micVolume) {
+        if (m_impl->micVolume && m_impl->micCallback)
+            m_impl->micVolume->UnregisterControlChangeNotify(m_impl->micCallback.Get());
+
+        m_impl->micVolume.Reset();
+        m_impl->micDevice.Reset();
+
+        if (device) {
+            ComPtr<IAudioEndpointVolume> volume;
+            if (SUCCEEDED(device->Activate(
+                    __uuidof(IAudioEndpointVolume), CLSCTX_ALL, nullptr, &volume))) {
+                m_impl->micDevice = device;
+                m_impl->micVolume = volume;
+                if (m_impl->micCallback)
+                    m_impl->micVolume->RegisterControlChangeNotify(m_impl->micCallback.Get());
+            }
+        }
+    }
+
+    bool muted = false;
+    if (m_impl->micVolume) {
+        BOOL value = FALSE;
+        if (SUCCEEDED(m_impl->micVolume->GetMute(&value)))
+            muted = value != FALSE;
+    }
+
+    if (m_defaultInputId == id && m_micMuted == muted)
         return;
 
     m_defaultInputId = id;
+    m_micMuted = muted;
     emit changed();
+
+    if (!qEnvironmentVariableIsEmpty("CAELESTIA_DEBUG_STATUS")) {
+        qInfo().noquote() << "Audio input: muted=" << muted
+                          << "device=" << (id.isEmpty() ? QStringLiteral("(aucun)") : id);
+    }
+}
+
+void AudioService::setMicMuted(bool muted)
+{
+    if (m_micMuted == muted)
+        return;
+
+    m_micMuted = muted;
+    emit changed();
+}
+
+void AudioService::toggleMicMute()
+{
+    if (!m_impl || !m_impl->micVolume)
+        return;
+
+    m_impl->micVolume->SetMute(!m_micMuted, nullptr);
+
+    // The endpoint callback will report the new state too; reading it back
+    // here keeps the UI responsive when the callback has not fired yet.
+    BOOL value = FALSE;
+    if (SUCCEEDED(m_impl->micVolume->GetMute(&value)))
+        setMicMuted(value != FALSE);
 }
 
 void AudioService::refreshDefaultDevice()
