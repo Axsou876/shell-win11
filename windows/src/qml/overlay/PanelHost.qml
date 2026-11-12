@@ -117,6 +117,8 @@ Item {
             return bluetoothPanel;
         case "battery":
             return batteryPanel;
+        case "window":
+            return windowPanel;
         default:
             return foundationComponent;
         }
@@ -153,6 +155,15 @@ Item {
         id: batteryPanel
 
         BatteryPanel {
+            theme: host.theme
+            controller: host.controller
+        }
+    }
+
+    Component {
+        id: windowPanel
+
+        WindowInfoPanel {
             theme: host.theme
             controller: host.controller
         }

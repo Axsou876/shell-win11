@@ -317,6 +317,59 @@ l'écran ; la colonne de cartes est scrollable à la molette.
 `CAELESTIA_DEBUG_STATUS=1` journalise `Idle inhibit: on|off` avec l'heure, le
 mutisme du micro et son endpoint.
 
+## Fenêtre active (window info)
+
+`WindowInfoPanel.qml` reprend `modules/windowinfo` : aperçu, détails et actions
+sur la fenêtre active. Il s'ouvre en cliquant le titre de la fenêtre active
+dans la barre.
+
+- **Suivi** — `WindowService` (singleton `AppWindows`) décrit la dernière
+  fenêtre externe au premier plan. Ouvrir un panneau déplace le focus vers le
+  shell : `Platform.activeWindowId` conserve le HWND de la dernière fenêtre
+  externe et `trackFocused(true, id)` l'ensemence. La sonde (700 ms) et la
+  capture ne tournent que panneau ouvert, jamais pendant toute la session.
+- **Détails** — `GetWindowThreadProcessId`, `QueryFullProcessImageNameW`,
+  `DwmGetWindowAttribute(DWMWA_EXTENDED_FRAME_BOUNDS)` (le cadre perçu, sans la
+  bordure de redimensionnement invisible), `GetWindowPlacement` pour une
+  fenêtre réduite, `MonitorFromWindow` + `MONITORINFOEXW.szDevice`,
+  `GetDpiForWindow`, `IsZoomed` / `IsIconic`, `WS_EX_TOPMOST` ; l'état « Plein
+  écran » est déduit d'un cadre qui couvre le moniteur.
+- **Aperçu** — `PrintWindow(PW_RENDERFULLCONTENT)` dans un DIB 32 bits
+  top-down, exécuté sur un worker `QtConcurrent` : une capture de fenêtre
+  agrandie prend des dizaines de millisecondes et figerait l'animation du
+  panneau sur le thread GUI. `WindowPreviewProvider` sert la dernière image
+  sous `image://windowpreview/<révision>` ; la révision change à chaque capture
+  et `cache: false` empêche `QQuickPixmapCache` de grossir d'une frame toutes
+  les 700 ms.
+- **Actions** — **Réduire** (`ShowWindow(SW_MINIMIZE)`, panneau épinglé 1,5 s
+  pour qu'il continue de décrire la fenêtre qui vient d'être réduite au lieu de
+  suivre celle que Windows active ensuite) ; **Fermer**
+  (`PostMessage(WM_CLOSE)`, l'application garde la main pour demander une
+  confirmation).
+- **Flotter / Ancrer** — le gestionnaire de fenêtres de la Phase 3 possède la
+  géométrie : une fenêtre pavée est re-disposée au rescan suivant, donc un
+  `ShowWindow(SW_MAXIMIZE)` brut serait annulé en moins d'une seconde. Le
+  bouton appelle `WindowManager.setFloating(id, …)`, qui détache la fenêtre du
+  layout — ou la lui rend — sur le thread du gestionnaire.
+  `WindowManager.floating` publie la liste des HWND flottants, ce qui garde le
+  libellé du bouton et la ligne « État » exacts, y compris quand le raccourci
+  `Win+Alt+Space` fait la même opération. C'est l'équivalent du bouton
+  Float/Tile de `windowinfo/Buttons.qml` ; Linux n'a pas d'action « agrandir »
+  puisque Hyprland pave toutes les fenêtres.
+
+Limites assumées :
+
+- Une fenêtre réduite n'a pas d'aperçu (Windows ne compose plus son contenu) ;
+  l'icône de repli s'affiche.
+- `PrintWindow` ne restitue pas le contenu protégé (DRM, certaines surfaces
+  UWP en composition exclusive) : l'icône de repli s'affiche.
+- Pas de « déplacer vers un bureau » dans le panneau (le gestionnaire le fait
+  par raccourci) ni de « pin » : `WS_EX_TOPMOST` n'épingle pas une fenêtre sur
+  tous les bureaux virtuels comme Hyprland.
+
+`CAELESTIA_DEBUG_STATUS=1` journalise chaque changement de fenêtre suivie
+(titre, adresse, taille) et chaque action (`Window action: …`).
+
 ## Bugs / limites connus
 
 - Qt 6.9.3 émet des avertissements `QSGThreadedRenderLoop ... invalid geometry`
@@ -331,10 +384,10 @@ mutisme du micro et son endpoint.
   observé.
 - Les workspaces de la barre sont réels (Phase 3, VirtualDesktopService) ; le bouton power reste décoratif (état Phase 2.4).
 - Modules Caelestia encore absents : écran de verrouillage, session/login,
-  clavier, VPN, panneau de réglages (Nexus), info fenêtre, sélecteur de zone.
-  Notifications, launcher, dashboard, météo, média, wallpaper, OSD, volume,
-  luminosité, sélection audio, appairage Bluetooth, mode d'alimentation et
-  utilitaires sont implémentés.
+  clavier, VPN, panneau de réglages (Nexus), sélecteur de zone, enregistreur
+  d'écran. Notifications, launcher, dashboard, météo, média, wallpaper, OSD,
+  volume, luminosité, sélection audio, appairage Bluetooth, mode
+  d'alimentation, utilitaires et info fenêtre sont implémentés.
 - Luminosité DDC/CI : dépend du moniteur. Les dalles d'ordinateur portable
   interne et certains écrans en DisplayPort/USB-C n'exposent pas le code VCP
   `0x10` ; l'OSD affiche alors « Luminosité indisponible ».
@@ -352,4 +405,11 @@ mutisme du micro et son endpoint.
 
 ## Phase suivante
 
-Phase 2.6 non commencée. En attente de validation de la Phase 2.5.
+Le tiling et les modules documentés ci-dessus sont en place. Restent, dans
+l'ordre prévu : sélecteur de zone, complétion du launcher (calculatrice,
+actions), dock de notifications de la sidebar, écran de verrouillage, panneau
+de réglages (Nexus).
+
+L'enregistreur d'écran Linux (`utilities/cards/Record.qml`,
+`RecordingList.qml`) n'est volontairement pas porté : aucune API Win32
+documentée ne fournit l'équivalent de `wf-recorder`.

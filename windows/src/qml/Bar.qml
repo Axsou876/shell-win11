@@ -133,6 +133,9 @@ Item {
         BarActiveWindow {
             Layout.alignment: Qt.AlignHCenter
             theme: root.theme
+            panelController: root.panelController
+            screenName: root.screenName
+            screenY: root.screenY
         }
 
         Item {

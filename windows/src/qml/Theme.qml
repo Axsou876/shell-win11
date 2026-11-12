@@ -75,6 +75,7 @@ QtObject {
     readonly property int popoutAudioWidth: 320
     readonly property int popoutBluetoothWidth: 320
     readonly property int popoutBatteryWidth: 250
+    readonly property int popoutWindowWidth: 340
     readonly property int popoutTrayWidth: 300
     readonly property int popoutHeight: 192
 
@@ -87,6 +88,8 @@ QtObject {
             return popoutBluetoothWidth;
         if (name === "battery")
             return popoutBatteryWidth;
+        if (name === "window")
+            return popoutWindowWidth;
         if (name === "tray")
             return popoutTrayWidth;
         return popoutWidth;

@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QStringList>
 #include <QVariantList>
 
 #include <memory>
@@ -18,6 +19,9 @@ class WindowManagerService final : public QObject {
     Q_PROPERTY(bool strict READ strict NOTIFY changed)
     Q_PROPERTY(QString layout READ layout NOTIFY changed)
     Q_PROPERTY(int windowCount READ windowCount NOTIFY changed)
+    // HWND ids currently detached from the tiling layouts. The window info
+    // panel mirrors this to label its Float/Tile button and its state row.
+    Q_PROPERTY(QStringList floating READ floating NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
     Q_PROPERTY(QVariantList bindings READ bindings NOTIFY changed)
 
@@ -30,6 +34,7 @@ public:
     [[nodiscard]] bool strict() const { return m_strict; }
     [[nodiscard]] QString layout() const { return m_layout; }
     [[nodiscard]] int windowCount() const { return m_windowCount; }
+    [[nodiscard]] QStringList floating() const { return m_floating; }
     [[nodiscard]] QString error() const { return m_error; }
     [[nodiscard]] QVariantList bindings() const { return m_bindings; }
 
@@ -37,6 +42,10 @@ public:
     Q_INVOKABLE void setStrict(bool strict);
     Q_INVOKABLE void setLayout(const QString& layout);
     Q_INVOKABLE void cycleLayout();
+    // Detaches one window from the tiling layouts (or hands it back to them).
+    // The hotkey path only knows the active window; the window info panel can
+    // describe any window, so it addresses them by id.
+    Q_INVOKABLE void setFloating(const QString& windowId, bool floating);
     Q_INVOKABLE void shutdown();
     [[nodiscard]] Q_INVOKABLE QString screenName() const;
 
@@ -56,6 +65,7 @@ private:
     bool m_strict = true;
     QString m_layout = QStringLiteral("dwindle");
     int m_windowCount = 0;
+    QStringList m_floating;
     QString m_error;
     QVariantList m_bindings;
 

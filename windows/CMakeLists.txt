@@ -58,6 +58,8 @@ qt_add_executable(caelestia-shell
     src/platform/services/windowmanagerservice.hpp
     src/platform/services/weatherservice.cpp
     src/platform/services/weatherservice.hpp
+    src/platform/services/windowpreviewprovider.cpp
+    src/platform/services/windowpreviewprovider.hpp
     src/platform/services/windowsservice.cpp
     src/platform/services/windowsservice.hpp
 )
@@ -179,6 +181,7 @@ qt_add_qml_module(caelestia-shell
         src/qml/popouts/NetworkPanel.qml
         src/qml/popouts/BluetoothPanel.qml
         src/qml/popouts/BatteryPanel.qml
+        src/qml/popouts/WindowInfoPanel.qml
     SOURCES
         third_party/m3shapes/src/core/Cubic.cpp
         third_party/m3shapes/src/core/Cubic.hpp

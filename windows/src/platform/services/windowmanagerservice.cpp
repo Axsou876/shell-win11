@@ -409,7 +409,7 @@ void CALLBACK winEventProc(HWINEVENTHOOK, DWORD event, HWND hwnd, LONG idObject,
 } // namespace
 
 struct WindowManagerService::Impl {
-    enum class CommandType { SetEnabled, SetStrict, SetLayout, CycleLayout, SetDesktop };
+    enum class CommandType { SetEnabled, SetStrict, SetLayout, CycleLayout, SetDesktop, SetFloating };
 
     struct Command {
         CommandType type = CommandType::SetEnabled;
@@ -541,6 +541,15 @@ struct WindowManagerService::Impl {
         command.stringValue = id;
         command.index = index;
         command.count = count;
+        enqueue(std::move(command));
+    }
+
+    void setFloating(const QString& windowId, bool value)
+    {
+        Command command;
+        command.type = CommandType::SetFloating;
+        command.stringValue = windowId;
+        command.boolValue = value;
         enqueue(std::move(command));
     }
 
@@ -759,6 +768,9 @@ struct WindowManagerService::Impl {
             }
             case CommandType::SetDesktop:
                 applyDesktop(command.stringValue, command.index, command.count);
+                break;
+            case CommandType::SetFloating:
+                applyFloating(command.stringValue.toULongLong(), command.boolValue);
                 break;
             }
         }
@@ -1578,6 +1590,35 @@ struct WindowManagerService::Impl {
             qInfo().noquote() << "WM floating" << value
                               << (floating.contains(value) ? "on" : "off");
         }
+        publishState();
+    }
+
+    // Same effect as toggleFloating, but addressed by HWND so a panel can act
+    // on the window it describes instead of whatever the WM considers active.
+    void applyFloating(quintptr hwndValue, bool floatValue)
+    {
+        const HWND hwnd = reinterpret_cast<HWND>(hwndValue);
+        if (!hwndValue || !IsWindow(hwnd) || fullscreenWindow == hwnd)
+            return;
+
+        if (floatValue) {
+            if (floating.contains(hwndValue))
+                return;
+            for (auto& state : monitors)
+                state->engine.removeWindow(hwndValue);
+            floating.insert(hwndValue);
+        } else {
+            if (!floating.remove(hwndValue))
+                return;
+        }
+        freeMoved.remove(hwndValue);
+        if (enabled)
+            scheduleRescan(80);
+        if (!qEnvironmentVariableIsEmpty("CAELESTIA_DEBUG_WM")) {
+            qInfo().noquote() << "WM floating" << hwndValue
+                              << (floating.contains(hwndValue) ? "on" : "off");
+        }
+        publishState();
     }
 
     void toggleFullscreen()
@@ -1962,11 +2003,16 @@ struct WindowManagerService::Impl {
         const int countValue = count;
         const QString errorValue = error;
         const QVariantList bindingsValue = publishedBindings;
+        QStringList floatingValue;
+        floatingValue.reserve(floating.size());
+        for (quintptr value : floating)
+            floatingValue.append(QString::number(value));
+        floatingValue.sort();
 
         QMetaObject::invokeMethod(
             q,
             [owner = q, enabledValue, strictValue, layout, countValue, errorValue,
-                bindingsValue]() {
+                bindingsValue, floatingValue]() {
                 bool changed = false;
                 if (owner->m_enabled != enabledValue) {
                     owner->m_enabled = enabledValue;
@@ -1990,6 +2036,10 @@ struct WindowManagerService::Impl {
                 }
                 if (!bindingsValue.isEmpty() && owner->m_bindings != bindingsValue) {
                     owner->m_bindings = bindingsValue;
+                    changed = true;
+                }
+                if (owner->m_floating != floatingValue) {
+                    owner->m_floating = floatingValue;
                     changed = true;
                 }
                 if (changed)
@@ -2090,6 +2140,12 @@ void WindowManagerService::setLayout(const QString& layout)
 void WindowManagerService::cycleLayout()
 {
     m_impl->cycleLayout();
+}
+
+void WindowManagerService::setFloating(const QString& windowId, bool floating)
+{
+    if (m_impl)
+        m_impl->setFloating(windowId, floating);
 }
 
 void WindowManagerService::shutdown()

@@ -9,6 +9,9 @@ Item {
     id: root
 
     required property var theme
+    required property var panelController
+    required property string screenName
+    required property real screenY
 
     readonly property string windowTitle: Platform.activeWindowTitle
     readonly property string windowIcon: Platform.activeWindowIcon
@@ -68,5 +71,19 @@ Item {
                 origin.y: title.implicitHeight / 2
             }
         ]
+    }
+
+    // Windows has no "active window" popout out of the box; the title rail is
+    // the natural door into the port of the Linux windowinfo module.
+    StateLayer {
+        anchors.fill: parent
+        theme: root.theme
+        radius: width / 2
+        disabled: root.windowTitle.length === 0
+        onClicked: {
+            const centre = root.mapToItem(null, 0, root.height / 2);
+            root.panelController.togglePanel("window", root.screenName,
+                root.screenY + centre.y);
+        }
     }
 }

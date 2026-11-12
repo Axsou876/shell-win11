@@ -33,6 +33,10 @@ class Platform final : public QObject, public QAbstractNativeEventFilter {
     Q_PROPERTY(int appBarHeight READ appBarHeight NOTIFY appBarHeightChanged)
     Q_PROPERTY(QString activeWindowTitle READ activeWindowTitle NOTIFY activeWindowChanged)
     Q_PROPERTY(QString activeWindowIcon READ activeWindowIcon NOTIFY activeWindowChanged)
+    // HWND of the last external foreground window. Opening a panel moves the
+    // focus to the shell, so the window info panel needs this to know which
+    // window it should describe.
+    Q_PROPERTY(QString activeWindowId READ activeWindowId NOTIFY activeWindowChanged)
     Q_PROPERTY(QVariantList screens READ screens NOTIFY screensChanged)
     Q_PROPERTY(QString primaryScreenName READ primaryScreenName NOTIFY primaryScreenNameChanged)
 
@@ -55,6 +59,7 @@ public:
     [[nodiscard]] int appBarHeight() const;
     [[nodiscard]] QString activeWindowTitle() const;
     [[nodiscard]] QString activeWindowIcon() const;
+    [[nodiscard]] QString activeWindowId() const;
     [[nodiscard]] QVariantList screens() const;
     [[nodiscard]] QString primaryScreenName() const;
 
@@ -133,7 +138,9 @@ private:
     void stopActiveWindowTracking();
     void updateActiveWindow(quintptr hwnd, bool refreshIcon);
     void clearActiveWindow();
-    void setActiveWindowInfo(const QString& title, const QString& icon);
+    // Returns true when the change was signalled, so the caller can emit for
+    // an id change that leaves title and icon identical.
+    bool setActiveWindowInfo(const QString& title, const QString& icon);
     [[nodiscard]] QString readWindowIcon(quintptr hwnd) const;
     [[nodiscard]] static QString windowClassName(quintptr hwnd);
 

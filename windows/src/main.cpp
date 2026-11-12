@@ -20,6 +20,7 @@
 #include "platform/services/wallpaperservice.hpp"
 #include "platform/services/weatherservice.hpp"
 #include "platform/services/windowmanagerservice.hpp"
+#include "platform/services/windowpreviewprovider.hpp"
 #include "platform/services/windowsservice.hpp"
 
 #include <QDir>
@@ -501,6 +502,11 @@ int main(int argc, char* argv[])
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
         []() { QCoreApplication::exit(-1); }, Qt::QueuedConnection);
+
+    // "image://windowpreview/<revision>" feeds the window info panel; the
+    // service owns the capture, the provider only serves the latest frame.
+    engine.addImageProvider(QStringLiteral("windowpreview"),
+        new WindowPreviewProvider(&windows));
 
     engine.loadFromModule("Caelestia.Shell", "Main");
     if (engine.rootObjects().isEmpty())

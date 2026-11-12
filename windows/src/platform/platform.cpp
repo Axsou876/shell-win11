@@ -245,6 +245,11 @@ QString Platform::activeWindowIcon() const
     return m_activeWindowIcon;
 }
 
+QString Platform::activeWindowId() const
+{
+    return m_activeWindowHwnd ? QString::number(m_activeWindowHwnd) : QString();
+}
+
 QVariantList Platform::screens() const
 {
     QList<QScreen*> ordered = QGuiApplication::screens();
@@ -896,20 +901,25 @@ void Platform::updateActiveWindow(quintptr hwndValue, bool refreshIcon)
     const bool iconNeedsRefresh = refreshIcon || hwndValue != m_activeWindowHwnd;
     const QString icon = iconNeedsRefresh ? readWindowIcon(hwndValue) : m_activeWindowIcon;
 
+    const quintptr previousHwnd = m_activeWindowHwnd;
     m_activeWindowHwnd = hwndValue;
-    setActiveWindowInfo(title, icon);
+    // Two windows can share title and icon; the id still has to refresh.
+    if (!setActiveWindowInfo(title, icon) && previousHwnd != hwndValue)
+        emit activeWindowChanged();
 }
 
 void Platform::clearActiveWindow()
 {
+    const quintptr previousHwnd = m_activeWindowHwnd;
     m_activeWindowHwnd = 0;
-    setActiveWindowInfo(QString(), QString());
+    if (!setActiveWindowInfo(QString(), QString()) && previousHwnd != 0)
+        emit activeWindowChanged();
 }
 
-void Platform::setActiveWindowInfo(const QString& title, const QString& icon)
+bool Platform::setActiveWindowInfo(const QString& title, const QString& icon)
 {
     if (m_activeWindowTitle == title && m_activeWindowIcon == icon)
-        return;
+        return false;
 
     m_activeWindowTitle = title;
     m_activeWindowIcon = icon;
@@ -919,6 +929,7 @@ void Platform::setActiveWindowInfo(const QString& title, const QString& icon)
         qInfo().noquote() << "Active window:" << (title.isEmpty() ? QStringLiteral("<no title>") : title)
                           << "icon:" << !icon.isEmpty();
     }
+    return true;
 }
 
 QString Platform::readWindowIcon(quintptr hwndValue) const
