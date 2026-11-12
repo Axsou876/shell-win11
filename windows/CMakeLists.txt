@@ -44,6 +44,8 @@ qt_add_executable(caelestia-shell
     src/platform/services/powerprofileservice.hpp
     src/platform/services/idleinhibitservice.cpp
     src/platform/services/idleinhibitservice.hpp
+    src/platform/services/lockservice.cpp
+    src/platform/services/lockservice.hpp
     src/platform/services/screencaptureprovider.cpp
     src/platform/services/screencaptureprovider.hpp
     src/platform/services/screencaptureservice.cpp
@@ -184,6 +186,15 @@ qt_add_qml_module(caelestia-shell
         src/qml/overlay/OsdSurface.qml
         src/qml/overlay/PanelHost.qml
         src/qml/overlay/FoundationProbe.qml
+        src/qml/lock/LockOverlay.qml
+        src/qml/lock/LockWindow.qml
+        src/qml/lock/LockCenter.qml
+        src/qml/lock/LockPasswordInput.qml
+        src/qml/lock/LockWeather.qml
+        src/qml/lock/LockFetch.qml
+        src/qml/lock/LockMedia.qml
+        src/qml/lock/LockResources.qml
+        src/qml/lock/LockNotifDock.qml
         src/qml/popouts/PopoutFrame.qml
         src/qml/popouts/AudioPanel.qml
         src/qml/popouts/NetworkPanel.qml

@@ -524,6 +524,74 @@ l'en-tête repasse à « NOTIFICATIONS », le bouton d'effacement disparaît et
 « Tout est à jour ! » remplace les cartes. `--smoke-test` sort en 0 sans alerte
 QML.
 
+## Écran de verrouillage
+
+Portage de `modules/lock` : le bureau gelé et flouté, la boîte de verrouillage au
+centre (horloge, compte, mot de passe) et les colonnes météo / fetch / média et
+ressources / notifications autour.
+
+- **Déclenchement** — `Win+Alt+L` ou `Ctrl+Alt+Shift+U` (`WindowManagerService`
+  publie `lockRequested`), le menu power et l'action « Verrouiller » du launcher
+  (`Lock.requestLock()`). Tous les chemins finissent dans `LockOverlay`.
+- **Ouverture en deux temps** — avant qu'aucune fenêtre de verrouillage n'existe,
+  l'overlay masque les surfaces du shell (barres, panneaux), attend un tick de
+  60 ms, capture chaque moniteur avec `Screenshots.captureScreen()`, puis appelle
+  `Lock.show()`. La capture ne peut donc pas photographier l'écran de
+  verrouillage lui-même, ni un panneau resté ouvert.
+- **Rendu** — une `Window` plein moniteur par écran (`Qt.Tool` +
+  `WindowStaysOnTop`), fond `image://screencapture/<token>` flouté par
+  `MultiEffect` sous un voile `#5c000000`, puis la boîte de verrouillage : 70 %
+  de la hauteur du moniteur, ratio 16:9, colonne centrale de 600 px, mise à
+  l'échelle par la hauteur d'écran et bornée entre 0,72 et 1,1. Sans capture, le
+  papier peint Windows sert de repli.
+- **Contenu** — `LockWeather` (masqué quand la météo est indisponible),
+  `LockFetch` (version, hôte, utilisateur, uptime, batterie), `LockMedia` (GSMTC :
+  pochette, titre, artiste, boutons grisés selon `Media.can*`), `LockResources`
+  (CPU, mémoire, disque), `LockNotifDock` (lecture seule : agir sur une
+  notification est une décision de la session derrière le verrou) et
+  `LockCenter` (heures/minutes bicolores, date en français, avatar
+  `User.avatarPath`, champ mot de passe, ligne d'état).
+- **Authentification** — `LockService::authenticate()` exécute `LogonUserW`
+  (`LOGON32_LOGON_INTERACTIVE`) sur un thread du pool Qt. Le mot de passe est
+  effacé avec `SecureZeroMemory` (copie UTF-8 et copie large) et le jeton refermé
+  aussitôt. L'identité essayée est `USERNAME` sur `USERDOMAIN`, puis sur
+  `COMPUTERNAME`, puis sans domaine. Cinq tentatives au maximum (champ bloqué
+  ensuite). Le résultat revient par invocation différée et un compteur de requête
+  jette les réponses périmées.
+- **État affiché** — Caps Lock suivi par un timer de 500 ms, message d'erreur
+  français par code Win32 (1326, 1330, 1331, 1907, 1909, …) et compteur
+  « Tentative n sur 5 ».
+- **Sortie** — `Lock.unlocked` referme les fenêtres après 280 ms d'animation,
+  vide `Screenshots.clear()` et rend le focus à l'application précédente
+  (`Platform.restoreLastExternalWindow()`). `LockWindow` n'a pas de bouton de
+  fermeture : `WS_SYSMENU` est retiré dès que la fenêtre est affichée, donc
+  Alt+F4 n'a rien à poster, et une fenêtre `Qt.Tool` n'apparaît pas dans la
+  barre des tâches. Refuser `QCloseEvent` en QML aurait aussi bloqué
+  `QCoreApplication::quit()` et l'arrêt de session Windows.
+- **Passerelle Windows** — le bouton « Écran de verrouillage Windows » referme
+  l'overlay puis appelle `Lock.lockWindows()` → `LockWorkStation()`, pour ne pas
+  retomber sur un écran Caelestia encore affiché au déverrouillage de Windows.
+
+Limites assumées :
+
+- **Ce n'est pas une frontière de sécurité.** Qt n'offre pas de canal de saisie
+  sécurisé : `Win+L` et le bureau sécurisé restent les verrous autoritaires ;
+  l'overlay bloque les surfaces du shell et couvre le bureau visuellement.
+- **PIN et Windows Hello ne sont pas validables** par `LogonUserW`, et un compte
+  Microsoft se connecte avec son UPN, pas avec `USERNAME`. Le champ n'accepte
+  donc que le mot de passe du compte local ou du domaine ; l'écran propose
+  toujours la passerelle Windows pour les autres cas.
+- La vérification s'exécute sur un thread : une réponse qui arrive après la
+  fermeture de l'écran est ignorée (compteur de requête).
+
+Vérifié par rendu hors premier plan (`grabWindow`, ouverture pilotée par un
+crochet temporaire retiré depuis) : horloge et date françaises, avatar de repli,
+cartes météo / fetch / ressources, dock avec deux notifications et en-tête
+« NOTIFICATIONS · 2 », état vide « Aucune notification », puis après une
+tentative volontairement fausse « Mot de passe incorrect. » + « Tentative 1
+sur 5 ». `--smoke-test` sort en 0 sans alerte QML, y compris verrouillé (le
+processus quitte alors proprement).
+
 ## Bugs / limites connus
 
 - Qt 6.9.3 émet des avertissements `QSGThreadedRenderLoop ... invalid geometry`
@@ -537,17 +605,21 @@ QML.
   (changement de modèle `Instantiator`) ; aucun doublon ni clignotement durable
   observé.
 - Les workspaces de la barre sont réels (Phase 3, VirtualDesktopService) ; le bouton power reste décoratif (état Phase 2.4).
-- Modules Caelestia encore absents : écran de verrouillage, session/login,
-  clavier, VPN, panneau de réglages (Nexus), enregistreur d'écran.
+- Modules Caelestia encore absents : session/login, clavier, VPN, panneau de
+  réglages (Nexus), enregistreur d'écran.
   Notifications, launcher, dashboard, météo, média, wallpaper, OSD, volume,
   luminosité, sélection audio, appairage Bluetooth, mode d'alimentation,
-  utilitaires, info fenêtre et sélecteur de zone sont implémentés.
+  utilitaires, info fenêtre, sélecteur de zone et écran de verrouillage sont
+  implémentés.
 - Luminosité DDC/CI : dépend du moniteur. Les dalles d'ordinateur portable
   interne et certains écrans en DisplayPort/USB-C n'exposent pas le code VCP
   `0x10` ; l'OSD affiche alors « Luminosité indisponible ».
 
 ## Captures
 
+- `caelestia-lock.png` : écran de verrouillage, deux notifications et un échec
+  d'authentification.
+- `caelestia-lock-empty.png` : écran de verrouillage, dock de notifications vide.
 - `caelestia-phase25-screen1-125pct.png` : barre sur DISPLAY1 à 125 %.
 - `caelestia-phase25-screen2-100pct.png` : barre sur ZOWIE XL LCD à 100 %.
 - `caelestia-phase25-secondary-corner.png` : bord gauche de l'écran secondaire.
@@ -559,8 +631,8 @@ QML.
 
 ## Phase suivante
 
-Le tiling et les modules documentés ci-dessus sont en place. Restent, dans
-l'ordre prévu : écran de verrouillage, panneau de réglages (Nexus).
+Le tiling et les modules documentés ci-dessus sont en place. Reste, dans
+l'ordre prévu : le panneau de réglages (Nexus).
 
 L'enregistreur d'écran Linux (`utilities/cards/Record.qml`,
 `RecordingList.qml`) n'est volontairement pas porté : aucune API Win32

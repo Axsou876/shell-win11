@@ -54,6 +54,9 @@ signals:
     void launcherRequested();
     void sidebarRequested();
     void sessionRequested();
+    // The shell lock screen (Win+Alt+L). It is a session lock, not the Windows
+    // secure lock; the screen itself offers the handover to LockWorkStation.
+    void lockRequested();
     // Emitted by the screenshot hotkeys; the picker decides between saving the
     // region to disk and putting it on the clipboard.
     void screenshotRequested(bool clipboardOnly);

@@ -139,9 +139,13 @@ Item {
             return;
 
         let ok = true;
-        if (action.id === "lock")
-            ok = Power.lock();
-        else if (action.id === "sleep")
+        if (action.id === "lock") {
+            // Shell lock screen; its password check and the Windows handover
+            // live behind it, so this action cannot fail.
+            root.controller.closePanel();
+            Lock.requestLock();
+            return;
+        } else if (action.id === "sleep")
             ok = Power.sleep();
         else
             ok = Platform.openExternal(action.target);

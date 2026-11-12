@@ -254,6 +254,7 @@ enum class WmAction {
     Launcher,
     Sidebar,
     Session,
+    LockScreen,
     Screenshot,
     ScreenshotClip,
 };
@@ -339,6 +340,11 @@ QVector<BindingSpec> defaultBindingSpecs()
     add(WmAction::Sidebar, 0, QStringLiteral("sidebar"), QStringLiteral("Win+N"), true);
     add(WmAction::Sidebar, 0, QStringLiteral("sidebar"), QStringLiteral("Ctrl+Alt+N"), false);
     add(WmAction::Session, 0, QStringLiteral("session"), QStringLiteral("Ctrl+Alt+Shift+M"), false);
+    // Shell lock screen. Win+L belongs to Windows and cannot be registered;
+    // Win+Alt+L opens the shell's own screen, whose password field validates
+    // the local account and which always offers the Windows lock as fallback.
+    add(WmAction::LockScreen, 0, QStringLiteral("lock"), QStringLiteral("Win+Alt+L"), true);
+    add(WmAction::LockScreen, 0, QStringLiteral("lock"), QStringLiteral("Ctrl+Alt+Shift+U"), false);
     // Screenshot: the area picker freezes the screen, then saves or copies the
     // dragged region. Win+Shift+S stays with the Windows Snipping Tool.
     add(WmAction::Screenshot, 0, QStringLiteral("screenshot"),
@@ -1843,6 +1849,11 @@ struct WindowManagerService::Impl {
         if (action == WmAction::Session) {
             QMetaObject::invokeMethod(
                 q, [owner = q]() { emit owner->sessionRequested(); }, Qt::QueuedConnection);
+            return;
+        }
+        if (action == WmAction::LockScreen) {
+            QMetaObject::invokeMethod(
+                q, [owner = q]() { emit owner->lockRequested(); }, Qt::QueuedConnection);
             return;
         }
         if (action == WmAction::Screenshot || action == WmAction::ScreenshotClip) {

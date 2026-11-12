@@ -85,6 +85,12 @@ public:
     // dismissed without stealing keyboard focus from the user's app.
     Q_INVOKABLE void setEscapeHotkey(QWindow* window, bool enabled);
 
+    // Removes WS_SYSMENU so Alt+F4 has nothing to post: DefWindowProc drops
+    // SC_CLOSE when the window has no system menu. The lock surface cannot
+    // reject close events instead, because a QQuickWindow that refuses to close
+    // also blocks QCoreApplication::quit() and Windows session end.
+    Q_INVOKABLE void disableWindowClose(QWindow* window);
+
     // Sizes a window to the monitor's full bounds and makes Qt adopt that
     // monitor's DPI. Tool windows created by the QML engine land on the
     // primary screen first, so Qt lays them out at the primary's scale unless

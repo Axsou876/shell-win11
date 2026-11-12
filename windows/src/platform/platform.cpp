@@ -550,8 +550,25 @@ void Platform::setWindowInputState(QWindow* window, bool clickThrough, bool focu
         SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
 }
 
-void Platform::setEscapeHotkey(QWindow* window, bool enabled)
+void Platform::disableWindowClose(QWindow* window)
 {
+    if (!window)
+        return;
+
+    const HWND hwnd = reinterpret_cast<HWND>(window->winId());
+    if (!hwnd)
+        return;
+
+    const LONG_PTR style = GetWindowLongPtrW(hwnd, GWL_STYLE);
+    if ((style & WS_SYSMENU) == 0)
+        return;
+
+    SetWindowLongPtrW(hwnd, GWL_STYLE, style & ~WS_SYSMENU);
+    SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+}
+
+void Platform::setEscapeHotkey(QWindow* window, bool enabled){
     const HWND hwnd = window ? reinterpret_cast<HWND>(window->winId()) : nullptr;
 
     if (!enabled) {

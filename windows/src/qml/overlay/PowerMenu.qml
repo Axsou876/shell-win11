@@ -31,9 +31,12 @@ Item {
 
     function confirm() {
         let ok = true;
-        if (pendingAction === "lock")
-            ok = Power.lock();
-        else if (pendingAction === "sleep")
+        if (pendingAction === "lock") {
+            Lock.requestLock();
+            pendingAction = "";
+            root.controller.closePanel();
+            return;
+        } else if (pendingAction === "sleep")
             ok = Power.sleep();
         else if (pendingAction === "signout")
             ok = Power.signOut();
@@ -213,7 +216,9 @@ Item {
                 role: "labelSmall"
                 color: root.theme.onSurfaceVariantColour
                 wrapMode: Text.WordWrap
-                text: "Cette action quitte la session Windows."
+                text: root.pendingAction === "lock"
+                    ? "L’écran de verrouillage Caelestia va s’ouvrir."
+                    : "Cette action quitte la session Windows."
             }
 
             Row {

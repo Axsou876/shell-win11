@@ -11,7 +11,6 @@ class PowerService final : public QObject {
 public:
     explicit PowerService(QObject* parent = nullptr);
 
-    Q_INVOKABLE bool lock();
     Q_INVOKABLE bool sleep();
     Q_INVOKABLE bool restart();
     Q_INVOKABLE bool shutdown();

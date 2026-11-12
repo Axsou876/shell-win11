@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Window
 import Caelestia.Platform 1.0
 import "overlay"
+import "lock"
 
 Item {
     id: app
@@ -22,6 +23,15 @@ Item {
         id: panelController
     }
 
+    // Session lock screen (Win+Alt+L, power menu, launcher). Declared before
+    // the Instantiators so their delegates can bind to its state from the
+    // first frame.
+    LockOverlay {
+        id: lockOverlay
+
+        theme: appTheme
+    }
+
     Connections {
         target: WindowManager
 
@@ -37,9 +47,27 @@ Item {
             panelController.togglePanel("power", WindowManager.screenName(), 0);
         }
 
+        // The lock screen captures the desktop, so an open panel is closed
+        // first; LockOverlay hides the shell windows before the grab.
+        function onLockRequested() {
+            panelController.closePanel();
+            lockOverlay.begin();
+        }
+
         function onScreenshotRequested(clipboardOnly) {
             panelController.closePanel();
             areaPicker.open(clipboardOnly);
+        }
+    }
+
+    // The power menu and the launcher request the lock through LockService
+    // rather than the window manager's hotkey, so the panel they were opened
+    // from has to be dismissed here too; LockOverlay hands the rest to begin().
+    Connections {
+        target: Lock
+
+        function onLockRequested() {
+            panelController.closePanel();
         }
     }
 
@@ -104,7 +132,9 @@ Item {
             // The picker covers the whole monitor while a selection is being
             // made, and the bar would fight it for the topmost slot. The
             // frozen frame already shows the bar, so hiding it is invisible.
-            visible: !areaPicker.active
+            // The lock screen hides it for the same reason: an AppBar raised
+            // by the shell timer must never cover the lock window.
+            visible: !areaPicker.active && !lockOverlay.active && !lockOverlay.preparing
             visibility: Window.Windowed
             flags: Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint
             color: "transparent"
@@ -137,6 +167,7 @@ Item {
             screenName: modelData.name
             theme: appTheme
             controller: panelController
+            suspended: lockOverlay.preparing || lockOverlay.active
         }
     }
 

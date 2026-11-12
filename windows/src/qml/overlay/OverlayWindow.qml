@@ -12,6 +12,9 @@ Window {
     required property string screenName
     required property var theme
     required property var controller
+    // True while the lock screen is being prepared or is up. A topmost AppBar
+    // must not compete with the lock window for the highest slot.
+    property bool suspended: false
 
     readonly property var screenData: {
         const screens = Platform.screens;
@@ -35,7 +38,9 @@ Window {
     height: workHeight
     // Keep the window hidden until the no-activate style is applied, so the
     // always-visible frame never steals focus from the user's app at startup.
-    visibility: overlay.ready ? Window.Windowed : Window.Hidden
+    // The lock screen suspends it entirely so nothing of the shell is frozen
+    // into its background or drawn above it.
+    visibility: overlay.ready && !overlay.suspended ? Window.Windowed : Window.Hidden
     flags: Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint
     color: "transparent"
 

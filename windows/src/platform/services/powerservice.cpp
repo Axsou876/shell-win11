@@ -24,14 +24,6 @@ PowerService::PowerService(QObject* parent)
 {
 }
 
-bool PowerService::lock()
-{
-    if (LockWorkStation())
-        return true;
-    fail(QStringLiteral("verrouillage"), GetLastError());
-    return false;
-}
-
 bool PowerService::sleep()
 {
     if (SetSuspendState(FALSE, FALSE, FALSE))
