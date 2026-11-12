@@ -61,13 +61,13 @@ Item {
                     anchors.fill: parent
                     theme: root.theme
                     radius: width / 2
-                    onClicked: root.panelController.togglePanel("launcher", root.screenName, 0)
+                    onClicked: root.panelController.togglePanel("nexus", root.screenName, 0)
                 }
 
                 MaterialIcon {
                     anchors.centerIn: parent
                     theme: root.theme
-                    text: "search"
+                    text: "settings"
                     iconSize: 18
                     color: root.theme.onSurfaceVariantColour
                 }

@@ -40,6 +40,9 @@ namespace {
 constexpr UINT kCommandMessage = WM_APP + 1;
 constexpr UINT kWinEventMessage = WM_APP + 2;
 constexpr UINT kStopMessage = WM_APP + 3;
+// Posted by the low-level keyboard hook: wParam is an index into
+// Impl::hookBindings. The hook itself must stay fast, so the action runs here.
+constexpr UINT kHookActionMessage = WM_APP + 4;
 constexpr UINT_PTR kAnimationTimer = 1;
 constexpr UINT_PTR kRescanTimer = 2;
 constexpr UINT_PTR kDebounceTimer = 3;
@@ -329,6 +332,10 @@ QVector<BindingSpec> defaultBindingSpecs()
     add(WmAction::ResizeHeightIncrease, 0, QStringLiteral("resize-height-inc"), QStringLiteral("Ctrl+Alt+Shift+Equal"), false);
 
     add(WmAction::LaunchTerminal, 0, QStringLiteral("terminal"), QStringLiteral("Win+T"), true);
+    // Hyprland's Super+Return. Windows itself may claim Win+Enter for
+    // Narrator; registration is best-effort like every other binding, and the
+    // failure is logged rather than fatal.
+    add(WmAction::LaunchTerminal, 0, QStringLiteral("terminal"), QStringLiteral("Win+Enter"), true);
     add(WmAction::LaunchTerminal, 0, QStringLiteral("terminal"), QStringLiteral("Ctrl+Alt+T"), false);
     add(WmAction::LaunchExplorer, 0, QStringLiteral("file-manager"), QStringLiteral("Win+E"), true);
     add(WmAction::LaunchExplorer, 0, QStringLiteral("file-manager"), QStringLiteral("Ctrl+Alt+E"), false);
@@ -376,6 +383,18 @@ struct ActiveBinding {
     bool custom = false;
     int id = 0;
     bool registered = false;
+};
+
+// A Win+key combination Windows refused to RegisterHotKey because Explorer
+// owns it (Win+Q, Win+1…0, Win+E, Win+Enter, Win+arrows, …). A low-level
+// keyboard hook sees the key before Explorer's hotkey processing, so the
+// shell can claim it exactly like Hyprland's SUPER bindings.
+struct HookBinding {
+    UINT mods = 0;
+    UINT vk = 0;
+    WmAction action = WmAction::FocusLeft;
+    int argument = 0;
+    QString name;
 };
 
 struct SavedWindow {
@@ -480,6 +499,12 @@ struct WindowManagerService::Impl {
     QHash<quintptr, qint64> suppressUntil;
     QVector<ActiveBinding> activeBindings;
     QHash<int, int> hotkeyMap;
+    QVector<HookBinding> hookBindings;
+    QSet<UINT> hookHeldKeys;
+    HHOOK keyboardHook = nullptr;
+    bool swallowWinUp = false;
+    // The low-level hook is a free function; this points it at the one Impl.
+    static inline Impl* s_hookImpl = nullptr;
     QVariantList publishedBindings;
     QString error;
 
@@ -627,6 +652,13 @@ struct WindowManagerService::Impl {
         case WM_HOTKEY:
             handleHotkey(static_cast<int>(wParam));
             return 0;
+        case kHookActionMessage:
+            if (static_cast<int>(wParam) >= 0
+                && static_cast<int>(wParam) < hookBindings.size()) {
+                const HookBinding& binding = hookBindings.at(static_cast<int>(wParam));
+                handleAction(binding.action, binding.argument);
+            }
+            return 0;
         case WM_TIMER:
             handleTimer(static_cast<UINT_PTR>(wParam));
             return 0;
@@ -689,6 +721,7 @@ struct WindowManagerService::Impl {
 
         installHooks();
         registerHotkeys();
+        installKeyboardHook();
         SetTimer(messageWindow, kRescanTimer, 1000, nullptr);
 
         g_messageWindow = messageWindow;
@@ -926,6 +959,7 @@ struct WindowManagerService::Impl {
         specs = customSpecs + specs;
 
         QSet<QString> registeredKeys;
+        QSet<QString> hookKeys;
         int fallbackFailures = 0;
         for (const BindingSpec& spec : std::as_const(specs)) {
             const ParsedKey key = parseKeyBinding(spec.key);
@@ -970,6 +1004,14 @@ struct WindowManagerService::Impl {
                                       << "error" << GetLastError();
                 }
             }
+            // A Win combination Explorer owns cannot be registered, but the
+            // low-level hook can still deliver it. Only combinations Windows
+            // reserves need this; the Ctrl+Alt+… fallbacks register normally.
+            if (!ok && (key.mods & MOD_WIN) && !hookKeys.contains(canonical)) {
+                hookKeys.insert(canonical);
+                hookBindings.append({ key.mods, key.vk, spec.action, spec.argument, spec.name });
+                binding.registered = true;
+            }
             activeBindings.append(binding);
         }
 
@@ -1001,11 +1043,112 @@ struct WindowManagerService::Impl {
     void unregisterHotkeys()
     {
         for (const ActiveBinding& binding : std::as_const(activeBindings)) {
-            if (binding.registered)
+            if (binding.registered && binding.id != 0)
                 UnregisterHotKey(messageWindow, binding.id);
         }
         activeBindings.clear();
         hotkeyMap.clear();
+    }
+
+    void installKeyboardHook()
+    {
+        if (keyboardHook || hookBindings.isEmpty())
+            return;
+
+        s_hookImpl = this;
+        keyboardHook = SetWindowsHookExW(WH_KEYBOARD_LL, &Impl::keyboardProc,
+            GetModuleHandleW(nullptr), 0);
+        if (!keyboardHook) {
+            if (!qEnvironmentVariableIsEmpty("CAELESTIA_DEBUG_WM")) {
+                qInfo().noquote() << "WM keyboard hook failed, error" << GetLastError();
+            }
+            s_hookImpl = nullptr;
+        } else if (!qEnvironmentVariableIsEmpty("CAELESTIA_DEBUG_WM")) {
+            qInfo().noquote() << "WM keyboard hook installed for"
+                              << hookBindings.size() << "Win combinations";
+        }
+    }
+
+    void uninstallKeyboardHook()
+    {
+        if (keyboardHook) {
+            UnhookWindowsHookEx(keyboardHook);
+            keyboardHook = nullptr;
+        }
+        s_hookImpl = nullptr;
+        hookHeldKeys.clear();
+        swallowWinUp = false;
+    }
+
+    static LRESULT CALLBACK keyboardProc(int code, WPARAM wParam, LPARAM lParam)
+    {
+        Impl* self = s_hookImpl;
+        if (code == HC_ACTION && self
+            && self->consumeKey(static_cast<int>(wParam),
+                   reinterpret_cast<const KBDLLHOOKSTRUCT*>(lParam))) {
+            return 1;
+        }
+        return CallNextHookEx(nullptr, code, wParam, lParam);
+    }
+
+    // Called from the hook, on the window-manager thread before the key enters
+    // any message queue. Returns true when the shell claims the key.
+    bool consumeKey(int message, const KBDLLHOOKSTRUCT* info)
+    {
+        if (!info)
+            return false;
+
+        const UINT vk = info->vkCode;
+        const bool up = message == WM_KEYUP || message == WM_SYSKEYUP;
+
+        // Repeats and the key-up of a combination already claimed: swallow
+        // them so neither Explorer nor the focused app sees a stray key.
+        if (hookHeldKeys.contains(vk)) {
+            if (up)
+                hookHeldKeys.remove(vk);
+            return true;
+        }
+
+        if (vk == VK_LWIN || vk == VK_RWIN) {
+            if (up && swallowWinUp) {
+                swallowWinUp = false;
+                return true;
+            }
+            return false;
+        }
+
+        if (up || !enabled || hookBindings.isEmpty())
+            return false;
+
+        const bool win = (GetAsyncKeyState(VK_LWIN) & 0x8000)
+            || (GetAsyncKeyState(VK_RWIN) & 0x8000);
+        if (!win)
+            return false;
+
+        UINT mods = MOD_WIN;
+        if (GetAsyncKeyState(VK_MENU) & 0x8000)
+            mods |= MOD_ALT;
+        if (GetAsyncKeyState(VK_CONTROL) & 0x8000)
+            mods |= MOD_CONTROL;
+        if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
+            mods |= MOD_SHIFT;
+
+        for (int i = 0; i < hookBindings.size(); ++i) {
+            const HookBinding& binding = hookBindings.at(i);
+            if (binding.vk != vk || binding.mods != mods)
+                continue;
+            hookHeldKeys.insert(vk);
+            if (!qEnvironmentVariableIsEmpty("CAELESTIA_DEBUG_WM")) {
+                qInfo().noquote() << "WM hook claimed" << binding.name;
+            }
+            // Explorer opens the Start menu on the Win key-up; claim it too,
+            // or every intercepted combination would also open Start.
+            swallowWinUp = true;
+            PostMessageW(messageWindow, kHookActionMessage,
+                static_cast<WPARAM>(i), 0);
+            return true;
+        }
+        return false;
     }
 
     void handleHotkey(int id)
@@ -2095,6 +2238,7 @@ struct WindowManagerService::Impl {
         if (fullscreen.valid)
             exitFullscreen();
         restoreAllWindows();
+        uninstallKeyboardHook();
         unregisterHotkeys();
         uninstallHooks();
         if (borderWindow) {

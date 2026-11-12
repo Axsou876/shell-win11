@@ -117,9 +117,92 @@ Flickable {
         Rectangle {
             Layout.fillWidth: true
             Layout.topMargin: 4
-            height: 1
+            Layout.preferredHeight: 1
             color: root.theme.outlineVariant
             opacity: 0.6
+        }
+
+        StyledText {
+            theme: root.theme
+            role: "titleSmall"
+            text: "Couleurs du shell"
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            theme: root.theme
+            role: "labelSmall"
+            color: root.theme.onSurfaceVariantColour
+            wrapMode: Text.WordWrap
+            text: "Teinte les accents de Caelestia. Les surfaces restent neutres, "
+                + "comme dans le thème d'origine."
+        }
+
+        // One pill per preset. The whole grid is rebuilt when the palette
+        // list changes, which only happens when the system accent moves.
+        GridLayout {
+            Layout.fillWidth: true
+            columns: 3
+            rowSpacing: root.theme.spacingSmall
+            columnSpacing: root.theme.spacingSmall
+
+            Repeater {
+                model: root.theme.schemes
+
+                Rectangle {
+                    id: schemePill
+
+                    required property var modelData
+
+                    readonly property bool current: root.theme.scheme === modelData.key
+
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 54
+                    radius: root.theme.roundingMedium
+                    color: schemePill.current
+                        ? root.theme.secondaryContainer : "transparent"
+                    border.width: 1
+                    border.color: schemePill.current
+                        ? root.theme.primary : root.theme.outlineVariant
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: root.theme.spacingMedium
+                        anchors.rightMargin: root.theme.spacingMedium
+                        spacing: root.theme.spacingSmall
+
+                        Rectangle {
+                            Layout.preferredWidth: 22
+                            Layout.preferredHeight: 22
+                            radius: 11
+                            color: schemePill.modelData.colour
+                            border.width: 1
+                            border.color: root.theme.outline
+                            opacity: schemePill.current ? 1 : 0.85
+                        }
+
+                        StyledText {
+                            Layout.fillWidth: true
+                            theme: root.theme
+                            role: "labelSmall"
+                            weight: schemePill.current ? Font.DemiBold : Font.Normal
+                            elide: Text.ElideRight
+                            text: schemePill.modelData.label
+                        }
+                    }
+
+                    StateLayer {
+                        anchors.fill: parent
+                        theme: root.theme
+                        radius: parent.radius
+                        onClicked: {
+                            root.theme.scheme = schemePill.modelData.key;
+                            Platform.setShellSetting("appearance/scheme",
+                                schemePill.modelData.key);
+                        }
+                    }
+                }
+            }
         }
 
         StyledText {
@@ -144,7 +227,7 @@ Flickable {
 
             M3Button {
                 theme: root.theme
-                text: "Couleurs et effets"
+                text: "Couleurs Windows"
                 icon: "palette"
                 variant: "tonal"
                 onClicked: Qt.openUrlExternally("ms-settings:personalization-colors")

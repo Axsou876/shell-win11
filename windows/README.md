@@ -4,9 +4,11 @@ Barre Caelestia intégrée au bureau Windows 11 comme **AppBar réelle sur chaqu
 écran**, avec fenêtre active réelle, status système réel et **icône System Tray
 Caelestia réelle**. Le DPI par écran est géré en Per-Monitor V2.
 
-Windows Explorer et la barre des tâches sont conservés. Le design de la barre
-reste celui de la première version ; le gestionnaire de fenêtres et les modules
-portés depuis Caelestia Linux sont documentés plus bas.
+Windows Explorer continue de fournir le bureau, mais la barre des tâches et
+les icônes du bureau sont masquées tant que le shell tourne, pour laisser la
+place au bureau Caelestia ; leur état d'origine est restauré à la fermeture.
+Le design de la barre reste celui de la première version ; le gestionnaire de
+fenêtres et les modules portés depuis Caelestia Linux sont documentés plus bas.
 
 ## Prérequis
 
@@ -70,6 +72,29 @@ termine immédiatement avec le code 0.
 ### Instance unique
 Mutex Win32 nommé `Local\CaelestiaShellWindows`, libéré par l'OS même en cas
 d'arrêt brutal. Aucune seconde AppBar ni icône tray n'est créée.
+
+### Bureau Windows masqué
+`Platform` masque la barre des tâches (`Shell_TrayWnd` /
+`Shell_SecondaryTrayWnd`) et les icônes du bureau (`SysListView32` sous
+`SHELLDLL_DefView`) tant que le shell tourne :
+
+- la barre passe en auto-hide (`ABM_SETSTATE`) puis `ShowWindow(SW_HIDE)` ;
+  l'auto-hide élargit la zone de travail, la visibilité la retire de l'écran ;
+- la liste d'icônes est simplement cachée (`ShowWindow`), ce que fait aussi la
+  case « Afficher les icônes du bureau » de Windows — aucune suppression de
+  raccourci, donc rien à recréer ;
+- un timer de 250 ms réapplique les deux si Explorer les recrée (rafraîchissement,
+  redémarrage du shell) et retente tant qu'elles n'existent pas encore au login ;
+- `aboutToQuit` restaure l'état exact (visibilité d'origine et état AppBar),
+  avec un drapeau dans `QSettings` (`shell/taskbarHeld`,
+  `shell/desktopIconsHeld`) qui répare aussi une session précédente tuée
+  brutalement.
+
+Après un `taskkill /F`, la barre et les icônes restent donc masquées jusqu'au
+prochain lancement du shell (qui restaure puis masque à nouveau) ou jusqu'au
+redémarrage d'Explorer. `F8` et les panneaux restent utilisables ; pour
+récupérer le bureau sans relancer, `taskkill /f /im explorer.exe` puis relancer
+`explorer.exe` suffit.
 
 ### Fenêtre active
 `SetWinEventHook` foreground/name/minimize/destroy, `GetWindowTextW`, icône
@@ -151,6 +176,23 @@ Les raccourcis `SUPER+…` de Caelestia sont remplacés par des alternatives
 `Ctrl+Alt+…` lorsque Windows les réserve ; `Ctrl+Alt+Shift+T` active/désactive
 le tiling et `Ctrl+Alt+Shift+Escape` restaure les fenêtres. Détails :
 `docs/hyprland-window-management-report.md`.
+
+Les raccourcis Hyprland les plus courants sont disponibles avec la touche
+Windows comme `SUPER` : `Win+Entrée` ouvre le terminal, `Win+Q` ferme la
+fenêtre active, `Win+1`…`Win+0` changent de bureau (avec `Win+Maj` pour
+déplacer la fenêtre), `Win+E` ouvre l'explorateur et `Win+N` la barre latérale.
+
+`RegisterHotKey` ne peut pas prendre ces combinaisons : Explorer les possède
+déjà (`Win+Q`, `Win+1`…`0`, `Win+E`, `Win+T`, `Win+Flèches`…) et
+l'enregistrement échoue. Les combinaisons `Win+…` restantes sont donc
+capturées par un hook clavier bas niveau (`WH_KEYBOARD_LL`) installé par
+`WindowManagerService` : le hook voit la touche avant Explorer, avale la
+combinaison et poste l'action à la boucle Qt, puis avale aussi le relâchement
+de la touche Windows pour que le menu Démarrer ne s'ouvre pas. Les répétitions
+automatiques sont filtrées et l'état `enabled` du service coupe le hook, ce
+qui reste le moyen de secours si `Ctrl+Alt+Shift+Escape` est lui aussi pris.
+Un `Win+Entrée` déjà détenu par Narrator suit le même chemin ; la liste de
+Nexus > Shell affiche l'état réel de chaque raccourci.
 
 ## OSD volume et luminosité
 
@@ -606,9 +648,13 @@ shell contrôle réellement et délègue le reste par des liens `ms-settings:`.
 
 - **Apparence** : vignettes de fond d'écran issues de `Wallpaper.wallpapers`,
   appliquées immédiatement (`Wallpaper.apply`) ; la vignette courante porte un
-  contour `primary`. Carte de thème (Caelestia suit le thème des applications
-  Windows, `F8` en prévisualise l'opposé) et raccourcis vers Couleurs et
-  Arrière-plan de Windows.
+  contour `primary`. Section « Couleurs du shell » : neuf pastilles
+  (`Monochrome`, `Bleu`, `Violet`, `Vert`, `Ambre`, `Rose`, `Cyan`, `Rouge`,
+  `Windows`) qui teintent les rôles d'accent de `Theme.qml` en direct. Le choix
+  est écrit dans `QSettings` via `Platform.setShellSetting` et relu au
+  démarrage ; les surfaces restent neutres. Carte de thème (Caelestia suit le
+  thème des applications Windows, `F8` en prévisualise l'opposé) et raccourcis
+  vers Couleurs et Arrière-plan de Windows.
 - **Système** : profils d'alimentation (`PowerProfiles`, bouton plein sur le
   profil actif), luminosité (`M3Slider` → `Brightness.setPercent`), puis les
   interrupteurs garder éveillé (`IdleInhibit`), ne pas déranger
@@ -616,10 +662,11 @@ shell contrôle réellement et délègue le reste par des liens `ms-settings:`.
   Alimentation, Notifications et Son de Windows.
 - **Shell** : ouverture directe du lanceur, de la barre latérale, des
   notifications, du tableau de bord et du menu de session, puis la liste des
-  raccourcis **effectivement enregistrés** (`WindowManager.bindings`, dédoublonnée
-  par action) avec, en rouge, le nombre de raccourcis natifs que Windows réserve.
-  La liste est l'état réel, pas l'intention : le shell ne peut pas forcer un
-  raccourci déjà pris.
+  raccourcis **effectivement actifs** (`WindowManager.bindings`, dédoublonnée
+  par action) avec, en rouge, le nombre de raccourcis natifs que Windows
+  réserve. La liste est l'état réel, pas l'intention : un raccourci ne peut y
+  apparaître que si `RegisterHotKey` a réussi ou si le hook clavier bas niveau
+  le capture.
 - **À propos** : version, édition Windows, build, backend RHI, échelle système,
   écrans, utilisateur et machine, plus la note sur l'enregistreur d'écran.
 
@@ -637,8 +684,10 @@ Choix d'implémentation :
 
 Vérifié par rendu hors premier plan (`grabWindow`, crochet temporaire retiré) :
 les quatre pages, vignettes appliquées, profil d'alimentation actif marqué,
-luminosité à 90 %, les quatre interrupteurs, et les 55 raccourcis enregistrés
-face aux 36 indisponibles. `--smoke-test` sort en 0 sans alerte QML.
+luminosité à 90 %, les quatre interrupteurs, et la liste des raccourcis telle
+que le service l'expose. `--smoke-test` sort en 0 sans alerte QML et le hook
+clavier s'installe (37 combinaisons `Win+…` capturées par le hook sur le poste
+de test).
 
 ## Bugs / limites connus
 

@@ -17,6 +17,11 @@ Item {
         id: appTheme
 
         dark: Platform.darkMode
+        // Persisted in Nexus > Apparence. Reading it here (instead of inside
+        // Theme) keeps Theme free of the platform singleton, so it stays a
+        // plain palette object.
+        scheme: Platform.shellSetting("appearance/scheme", "monochrome")
+        systemAccent: Platform.accentColor
     }
 
     PanelController {

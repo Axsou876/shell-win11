@@ -104,6 +104,13 @@ public:
 
     Q_INVOKABLE void copyText(const QString& text);
 
+    // Small persistent store for shell preferences owned by QML (the colour
+    // scheme today). Keys live under HKCU\Software\<app>\shell and survive
+    // restarts; QSettings handles the encoding of colours and lists.
+    [[nodiscard]] Q_INVOKABLE QVariant shellSetting(const QString& key,
+        const QVariant& fallback = QVariant()) const;
+    Q_INVOKABLE void setShellSetting(const QString& key, const QVariant& value);
+
     void setRhiBackend(const QString& backend);
     void handleWinEvent(quint32 event, quintptr hwnd, qint32 idObject, qint32 idChild);
 
@@ -153,6 +160,13 @@ private:
     void restoreTaskbar();
     void enforceTaskbarHidden();
 
+    // Desktop icon list view, hidden while the shell runs for the same reason
+    // as the taskbar. Explorer recreates it on refresh, so visibility is
+    // re-applied by the same timer.
+    void hideDesktopIcons();
+    void restoreDesktopIcons();
+    void enforceDesktopIconsHidden();
+
     void startActiveWindowTracking();
     void stopActiveWindowTracking();
     void updateActiveWindow(quintptr hwnd, bool refreshIcon);
@@ -186,6 +200,9 @@ private:
     bool m_taskbarHidden = false;
     bool m_taskbarWasVisible = false;
     quint32 m_taskbarState = 0;
+
+    bool m_desktopIconsHidden = false;
+    bool m_desktopIconsWereVisible = false;
 
     bool m_activeWindowTracking = false;
     quintptr m_activeWindowHwnd = 0;

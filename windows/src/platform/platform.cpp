@@ -74,6 +74,31 @@ QList<HWND> taskbarWindows()
     return result;
 }
 
+// The desktop icons are a SysListView32 owned by Explorer, either directly
+// under Progman or under one of the WorkerW windows depending on the build
+// and on whether a slideshow wallpaper is active. Hiding that list view is
+// what the "Show desktop icons" toggle does, and unlike deleting shortcuts it
+// is undone by ShowWindow alone.
+HWND desktopIconWindow()
+{
+    HWND defView = FindWindowExW(FindWindowW(L"Progman", nullptr), nullptr,
+        L"SHELLDLL_DefView", nullptr);
+
+    if (!defView) {
+        EnumWindows(
+            [](HWND top, LPARAM lParam) -> BOOL {
+                HWND* out = reinterpret_cast<HWND*>(lParam);
+                if (*out)
+                    return FALSE;
+                *out = FindWindowExW(top, nullptr, L"SHELLDLL_DefView", nullptr);
+                return TRUE;
+            },
+            reinterpret_cast<LPARAM>(&defView));
+    }
+
+    return defView ? FindWindowExW(defView, nullptr, L"SysListView32", nullptr) : nullptr;
+}
+
 QString readRegistryString(const QString& path, const QString& key)
 {
     const QSettings settings(path, QSettings::NativeFormat);
@@ -135,8 +160,16 @@ Platform::Platform(QObject* parent)
     // work area so the shell can fill it. The window itself is kept hidden
     // while the shell runs and the previous state is restored when it quits.
     m_taskbarTimer.setInterval(250);
-    connect(&m_taskbarTimer, &QTimer::timeout, this, &Platform::enforceTaskbarHidden);
+    connect(&m_taskbarTimer, &QTimer::timeout, this, [this]() {
+        enforceTaskbarHidden();
+        enforceDesktopIconsHidden();
+    });
     hideTaskbar();
+    hideDesktopIcons();
+    // Start regardless of the first attempt: Explorer may not have created
+    // the taskbar or the icon list view yet at login, and the same timer
+    // retries until both are found.
+    m_taskbarTimer.start();
     QTimer::singleShot(1200, this, &Platform::refreshAppBar);
 
     m_refreshTimer.setInterval(1500);
@@ -145,6 +178,7 @@ Platform::Platform(QObject* parent)
 
     connect(qApp, &QCoreApplication::aboutToQuit, this, [this]() {
         restoreTaskbar();
+        restoreDesktopIcons();
         unregisterAppBar();
     });
     connect(qApp, &QCoreApplication::aboutToQuit, this, &Platform::stopActiveWindowTracking);
@@ -165,6 +199,7 @@ Platform::Platform(QObject* parent)
 Platform::~Platform()
 {
     restoreTaskbar();
+    restoreDesktopIcons();
     unregisterAppBar();
     stopActiveWindowTracking();
     if (qApp)
@@ -352,8 +387,10 @@ void Platform::hideTaskbar()
 
 void Platform::enforceTaskbarHidden()
 {
-    if (!m_taskbarHidden)
+    if (!m_taskbarHidden) {
+        hideTaskbar();
         return;
+    }
 
     // Explorer can re-show the taskbar for the Start menu or after a shell
     // refresh; put it back off-screen immediately. The auto-hide state above
@@ -364,10 +401,10 @@ void Platform::enforceTaskbarHidden()
 
 void Platform::restoreTaskbar()
 {
+    m_taskbarTimer.stop();
     if (!m_taskbarHidden)
         return;
 
-    m_taskbarTimer.stop();
     const QList<HWND> bars = taskbarWindows();
     APPBARDATA abd = {};
     abd.cbSize = sizeof(APPBARDATA);
@@ -383,6 +420,60 @@ void Platform::restoreTaskbar()
     settings.setValue(QStringLiteral("shell/taskbarHeld"), false);
     settings.sync();
     m_taskbarHidden = false;
+}
+
+void Platform::hideDesktopIcons()
+{
+    if (m_desktopIconsHidden)
+        return;
+
+    const HWND list = desktopIconWindow();
+    if (!list)
+        return;
+
+    QSettings settings;
+    // A previous run that was killed may have left the icons hidden with no
+    // record of their original state; reveal them once so the new session
+    // starts from a known state before hiding them again.
+    if (settings.value(QStringLiteral("shell/desktopIconsHeld"), false).toBool())
+        ShowWindow(list, SW_SHOW);
+
+    m_desktopIconsWereVisible = IsWindowVisible(list);
+
+    settings.setValue(QStringLiteral("shell/desktopIconsHeld"), true);
+    settings.sync();
+
+    ShowWindow(list, SW_HIDE);
+    m_desktopIconsHidden = true;
+    m_taskbarTimer.start();
+}
+
+void Platform::enforceDesktopIconsHidden()
+{
+    if (!m_desktopIconsHidden) {
+        hideDesktopIcons();
+        return;
+    }
+
+    // Explorer rebuilds the list view after a refresh; hide the new one too.
+    if (const HWND list = desktopIconWindow())
+        ShowWindow(list, SW_HIDE);
+}
+
+void Platform::restoreDesktopIcons()
+{
+    if (!m_desktopIconsHidden)
+        return;
+
+    if (const HWND list = desktopIconWindow()) {
+        if (m_desktopIconsWereVisible)
+            ShowWindow(list, SW_SHOW);
+    }
+
+    QSettings settings;
+    settings.setValue(QStringLiteral("shell/desktopIconsHeld"), false);
+    settings.sync();
+    m_desktopIconsHidden = false;
 }
 
 bool Platform::registerLeftAppBar(QWindow* window, int logicalWidth)
@@ -627,6 +718,19 @@ bool Platform::openExternal(const QString& target)
 void Platform::copyText(const QString& text)
 {
     QGuiApplication::clipboard()->setText(text);
+}
+
+QVariant Platform::shellSetting(const QString& key, const QVariant& fallback) const
+{
+    QSettings settings;
+    return settings.value(QStringLiteral("shell/") + key, fallback);
+}
+
+void Platform::setShellSetting(const QString& key, const QVariant& value)
+{
+    QSettings settings;
+    settings.setValue(QStringLiteral("shell/") + key, value);
+    settings.sync();
 }
 
 void Platform::refreshAppBar()

@@ -6,18 +6,81 @@ QtObject {
     // The shell follows the Windows app theme; F8 previews the other one.
     property bool dark: true
 
-    readonly property color primary: dark ? "#ffffff" : "#000000"
-    readonly property color onPrimaryColour: dark ? "#000000" : "#ffffff"
-    readonly property color primaryContainer: dark ? "#1f1f1f" : "#e6e6e6"
-    readonly property color onPrimaryContainerColour: dark ? "#ffffff" : "#000000"
-    readonly property color secondary: dark ? "#d0d0d0" : "#333333"
-    readonly property color onSecondaryColour: dark ? "#000000" : "#ffffff"
-    readonly property color secondaryContainer: dark ? "#2a2a2a" : "#e0e0e0"
-    readonly property color onSecondaryContainerColour: dark ? "#ffffff" : "#000000"
-    readonly property color tertiary: dark ? "#bdbdbd" : "#444444"
-    readonly property color onTertiaryColour: dark ? "#000000" : "#ffffff"
-    readonly property color tertiaryContainer: dark ? "#333333" : "#dddddd"
-    readonly property color onTertiaryContainerColour: dark ? "#ffffff" : "#000000"
+    // Accent scheme chosen in Nexus > Apparence. "monochrome" keeps the
+    // original strict palette; the other presets tint the accent roles only,
+    // so surfaces and text contrast stay exactly as designed.
+    property string scheme: "monochrome"
+    // Windows' own accent, used by the "windows" preset.
+    property color systemAccent: "#ffb0ca"
+
+    readonly property var schemes: [
+        { key: "monochrome", label: "Monochrome", colour: dark ? "#ffffff" : "#000000" },
+        { key: "blue", label: "Bleu", colour: "#5b9dff" },
+        { key: "violet", label: "Violet", colour: "#b18cff" },
+        { key: "green", label: "Vert", colour: "#4fd18b" },
+        { key: "amber", label: "Ambre", colour: "#f0b45a" },
+        { key: "pink", label: "Rose", colour: "#f47fb4" },
+        { key: "cyan", label: "Cyan", colour: "#46c8d8" },
+        { key: "red", label: "Rouge", colour: "#f27272" },
+        { key: "windows", label: "Windows", colour: systemAccent }
+    ]
+
+    readonly property bool coloured: scheme !== "monochrome"
+    readonly property color baseAccent: {
+        for (let i = 0; i < schemes.length; ++i) {
+            if (schemes[i].key === scheme)
+                return schemes[i].colour;
+        }
+        return dark ? "#ffffff" : "#000000";
+    }
+
+    // Tint helper: overlay `colour` on `base` at `alpha` (0..1).
+    function tint(base, colour, alpha) {
+        return Qt.tint(base, Qt.rgba(colour.r, colour.g, colour.b, alpha));
+    }
+
+    function accentTone(level) {
+        // level < 1 darkens toward the light surface, > 1 lightens for dark
+        // mode. The presets are mid-tone, so both directions stay readable.
+        return dark ? Qt.lighter(baseAccent, level) : Qt.darker(baseAccent, level);
+    }
+
+    readonly property color primary: coloured
+        ? (dark ? Qt.lighter(baseAccent, 1.15) : Qt.darker(baseAccent, 1.35))
+        : (dark ? "#ffffff" : "#000000")
+    readonly property color onPrimaryColour: coloured
+        ? (dark ? "#0d0d0d" : "#ffffff")
+        : (dark ? "#000000" : "#ffffff")
+    readonly property color primaryContainer: coloured
+        ? tint(dark ? "#1f1f1f" : "#e6e6e6", baseAccent, dark ? 0.38 : 0.32)
+        : (dark ? "#1f1f1f" : "#e6e6e6")
+    readonly property color onPrimaryContainerColour: coloured
+        ? accentTone(dark ? 1.55 : 1.9)
+        : (dark ? "#ffffff" : "#000000")
+    readonly property color secondary: coloured
+        ? tint(dark ? "#d0d0d0" : "#333333", baseAccent, 0.45)
+        : (dark ? "#d0d0d0" : "#333333")
+    readonly property color onSecondaryColour: coloured
+        ? (dark ? "#0d0d0d" : "#ffffff")
+        : (dark ? "#000000" : "#ffffff")
+    readonly property color secondaryContainer: coloured
+        ? tint(dark ? "#2a2a2a" : "#e0e0e0", baseAccent, dark ? 0.26 : 0.26)
+        : (dark ? "#2a2a2a" : "#e0e0e0")
+    readonly property color onSecondaryContainerColour: coloured
+        ? accentTone(dark ? 1.6 : 2.0)
+        : (dark ? "#ffffff" : "#000000")
+    readonly property color tertiary: coloured
+        ? tint(dark ? "#bdbdbd" : "#444444", baseAccent, 0.7)
+        : (dark ? "#bdbdbd" : "#444444")
+    readonly property color onTertiaryColour: coloured
+        ? (dark ? "#0d0d0d" : "#ffffff")
+        : (dark ? "#000000" : "#ffffff")
+    readonly property color tertiaryContainer: coloured
+        ? tint(dark ? "#333333" : "#dddddd", baseAccent, dark ? 0.2 : 0.22)
+        : (dark ? "#333333" : "#dddddd")
+    readonly property color onTertiaryContainerColour: coloured
+        ? accentTone(dark ? 1.7 : 2.1)
+        : (dark ? "#ffffff" : "#000000")
     readonly property color error: dark ? "#ffffff" : "#000000"
     readonly property color onErrorColour: dark ? "#000000" : "#ffffff"
     readonly property color surface: dark ? "#000000" : "#ffffff"
@@ -37,8 +100,10 @@ QtObject {
     readonly property color outlineVariant: dark ? "#2e2e2e" : "#d0d0d0"
     readonly property color shadow: "#000000"
     readonly property color scrim: "#000000"
-    readonly property color surfaceTint: dark ? "#ffffff" : "#000000"
-    readonly property color inversePrimary: dark ? "#000000" : "#ffffff"
+    readonly property color surfaceTint: coloured ? primary : (dark ? "#ffffff" : "#000000")
+    readonly property color inversePrimary: coloured
+        ? (dark ? Qt.darker(baseAccent, 1.35) : Qt.lighter(baseAccent, 1.15))
+        : (dark ? "#000000" : "#ffffff")
 
     // Names used by the Phase 1 prototype; kept for compatibility.
     readonly property color primaryText: onPrimaryColour

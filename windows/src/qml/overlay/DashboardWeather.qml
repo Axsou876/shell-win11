@@ -235,6 +235,7 @@ Item {
                     spacing: -4
 
                     StyledText {
+                        anchors.horizontalCenter: parent.horizontalCenter
                         theme: root.theme
                         role: "bodyLarge"
                         pointSize: 56
@@ -244,6 +245,7 @@ Item {
                     }
 
                     StyledText {
+                        anchors.horizontalCenter: parent.horizontalCenter
                         theme: root.theme
                         role: "bodyMedium"
                         color: root.theme.onSurfaceVariantColour
