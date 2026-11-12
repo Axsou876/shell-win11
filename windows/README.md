@@ -114,7 +114,7 @@ notification Windows native**. La barre Caelestia n'en affiche pas de copies.
 | Test | Résultat |
 |---|---|
 | Build + déploiement + smoke test | OK, exit 0 |
-| qmllint (cible CMake `caelestia-shell_qmllint`) | 0 erreur ; warnings d'accès non qualifié sur `Caelestia.Platform` (singletons C++ absents du qmltypes) |
+| qmllint (cible CMake `caelestia-shell_qmllint`) | 0 erreur ; warnings d'accès non qualifié sur `Caelestia.Platform` (singletons C++ absents du qmltypes) et 5 `missing-property` sur des objets `var` (faux positifs) |
 | Démarrage avec deux écrans, DPI différents | 2 AppBars : 75 px physiques (60 logiques, 125 %) et 60 px (100 %) ; zones de travail réservées 75 px / 60 px |
 | Démarrage avec un seul écran | 1 AppBar 60×1032 ; zone de travail 60→1920 |
 | Déconnexion de DISPLAY1 (`ChangeDisplaySettingsEx`) | application stable, AppBar détruite, zone de travail libérée, aucune exception |

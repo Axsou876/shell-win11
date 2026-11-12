@@ -210,7 +210,10 @@ GridLayout {
                     role: "labelSmall"
                     color: root.theme.onSecondaryContainerColour
                     elide: Text.ElideRight
-                    text: User.windowsVersion
+                    // The chip only has room for the product name; the full
+                    // build string ("Windows 11 Version 24H2") is elided, so
+                    // strip the build and keep the readable name.
+                    text: User.windowsVersion.split(" Version ")[0]
                 }
             }
         }
@@ -374,7 +377,10 @@ GridLayout {
             color: root.theme.secondary
             horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideRight
-            text: Media.available ? Media.artist : "—"
+            // The empty state below already says there is no media session;
+            // a lone dash here only reads as a rendering artifact.
+            visible: Media.available
+            text: Media.artist
         }
 
         Row {

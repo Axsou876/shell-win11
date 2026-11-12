@@ -155,8 +155,8 @@ Window {
         onActivated: overlay.controller.closePanel()
     }
 
-    // Temporary panel-preview triggers while the overlay owns the keyboard.
-    // The bar keeps its own copies for the closed/bar-focused state.
+    // Panel keys while the overlay owns the keyboard. The bar keeps its own F1
+    // for the closed and bar-focused state; these copies cover an open panel.
     Shortcut {
         sequence: "F9"
         enabled: overlay.interactive
@@ -239,7 +239,7 @@ Window {
         onClicked: overlay.controller.closePanel()
     }
 
-        SidebarShell {
+    SidebarShell {
         x: surface.sidebarX
         y: surface.sidebarY
         width: surface.sidebarW
@@ -346,5 +346,3 @@ Window {
         Platform.raiseAppBars();
     })
 }
-
-

@@ -441,7 +441,7 @@ Item {
                         radius: root.theme.roundingMedium
                         color: list.currentIndex === delegate.index
                             ? root.theme.secondaryContainer
-                            : (hover.hovered ? root.theme.layer(root.theme.onSurfaceColour, 0.06)
+                            : (hover.containsMouse ? root.theme.layer(root.theme.onSurfaceColour, 0.06)
                                 : "transparent")
 
                         Behavior on color {
@@ -584,7 +584,7 @@ Item {
                         radius: root.theme.roundingMedium
                         color: wallpaperList.currentIndex === wallpaperDelegate.index
                             ? root.theme.secondaryContainer
-                            : (wallpaperHover.hovered
+                            : (wallpaperHover.containsMouse
                                 ? root.theme.layer(root.theme.onSurfaceColour, 0.06)
                                 : "transparent")
                     }
@@ -687,7 +687,7 @@ Item {
                         radius: root.theme.roundingMedium
                         color: actionsList.currentIndex === actionDelegate.index
                             ? root.theme.secondaryContainer
-                            : (actionHover.hovered
+                            : (actionHover.containsMouse
                                 ? root.theme.layer(root.theme.onSurfaceColour, 0.06)
                                 : "transparent")
 

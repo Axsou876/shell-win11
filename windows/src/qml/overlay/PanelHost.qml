@@ -123,7 +123,7 @@ Item {
         case "nexus":
             return nexusPanel;
         default:
-            return foundationComponent;
+            return null;
         }
     }
 
@@ -176,16 +176,6 @@ Item {
         id: nexusPanel
 
         NexusPanel {
-            theme: host.theme
-            controller: host.controller
-        }
-    }
-
-    Component {
-        id: foundationComponent
-
-        FoundationProbe {
-            panelName: host.loadedPanel
             theme: host.theme
             controller: host.controller
         }

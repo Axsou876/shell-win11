@@ -142,22 +142,18 @@ qt_add_qml_module(caelestia-shell
         src/qml/PanelController.qml
         src/qml/Bar.qml
         src/qml/components/StyledText.qml
-        src/qml/components/StyledRect.qml
         src/qml/components/StateLayer.qml
         src/qml/components/TimeAgo.qml
         src/qml/components/Logo.qml
         src/qml/components/MaterialIcon.qml
         src/qml/components/RoundedMask.qml
         src/qml/components/RoundedClip.qml
-        src/qml/components/PanelSurface.qml
         src/qml/components/M3Switch.qml
         src/qml/components/M3Slider.qml
         src/qml/components/M3Button.qml
         src/qml/components/M3ListItem.qml
-        src/qml/components/DashCard.qml
         src/qml/components/Sparkline.qml
         src/qml/components/Meter.qml
-        src/qml/components/RingGauge.qml
         src/qml/components/DashboardCalendar.qml
         src/qml/components/CircularProgress.qml
         src/qml/components/AudioVisualizer.qml
@@ -185,7 +181,6 @@ qt_add_qml_module(caelestia-shell
         src/qml/overlay/PowerMenu.qml
         src/qml/overlay/OsdSurface.qml
         src/qml/overlay/PanelHost.qml
-        src/qml/overlay/FoundationProbe.qml
         src/qml/lock/LockOverlay.qml
         src/qml/lock/LockWindow.qml
         src/qml/lock/LockCenter.qml

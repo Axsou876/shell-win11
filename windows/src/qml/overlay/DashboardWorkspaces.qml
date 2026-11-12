@@ -48,6 +48,8 @@ Item {
         }
 
         Grid {
+            id: grid
+
             width: parent.width
             height: parent.height - 42
             columns: 3
@@ -62,7 +64,7 @@ Item {
                 Rectangle {
                     required property var modelData
 
-                    width: parent.cellWidth
+                    width: grid.cellWidth
                     height: 94
                     radius: root.theme.roundingLarge
                     color: root.theme.surfaceContainer
