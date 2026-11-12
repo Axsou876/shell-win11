@@ -76,8 +76,9 @@ d'arrêt brutal. Aucune seconde AppBar ni icône tray n'est créée.
 
 ### Status
 `BatteryService` (`GetSystemPowerStatus` + `WM_POWERBROADCAST`),
-`NetworkService` (WLAN + IP Helper), `BluetoothService` (WinRT Radio),
-`AudioService` (WASAPI + callbacks).
+`NetworkService` (WLAN + IP Helper), `BluetoothService` (WinRT Radio pour
+l'adaptateur, `bthprops` pour les appareils), `AudioService` (WASAPI +
+callbacks).
 
 ### System Tray
 - `TrayService` utilise `Shell_NotifyIconW` :
@@ -208,6 +209,46 @@ callbacks COM arrivent sur un thread worker et repassent par
 
 `CAELESTIA_DEBUG_STATUS=1` journalise le nombre de sorties/entrées détectées.
 
+## Appairage Bluetooth
+
+`BluetoothService` combine deux API, chacune pour ce qu'elle fait le mieux :
+
+- **Radio** — WinRT `Windows.Devices.Radios` fournit l'état de l'adaptateur et
+  son activation/désactivation (`SetStateAsync`), plus une notification
+  `StateChanged` quand un autre logiciel ou le mode avion le bascule. WinRT
+  exige son propre appartement COM, d'où un thread worker dédié.
+- **Appareils** — l'énumération WinRT des appareils Bluetooth ne retourne rien
+  pour les périphériques classiques tant que l'application n'est pas empaquetée
+  (capacités `bluetooth` absentes du manifeste). Le service utilise donc
+  `bluetoothapis.h` (`bthprops`), qui fonctionne pour un exécutable non
+  empaqueté : `BluetoothFindFirstDevice` (`fReturnRemembered`,
+  `fReturnAuthenticated`, `fReturnConnected`), `BluetoothAuthenticateDeviceEx`
+  pour l'appairage et `BluetoothRemoveDevice` pour la dissociation.
+
+Toutes les commandes passent par une file traitée par le worker
+(`SetRadio`, `Refresh`, `Scan`, `Pair`, `Unpair`) : une recherche classique
+bloque plusieurs secondes et ne peut jamais tourner sur le thread GUI. Chaque
+résultat est republié via `QMetaObject::invokeMethod(..., Qt::QueuedConnection)`.
+
+Le popout Bluetooth affiche `Bluetooth.devices` (`{ address, name, connected,
+paired }`), un bouton **Rechercher** (`scanDevices`, enquête d'environ 5 s) et
+un bouton d'action par ligne — **Appairer** ou **Dissocier**, la ligne entière
+étant cliquable. Les échecs (appairage refusé, adaptateur verrouillé par une
+stratégie) remontent dans `toggleFailed` et s'affichent en rouge dans le popout
+plutôt que d'échouer silencieusement.
+
+Limites assumées :
+
+- L'enquête Win32 est l'enquête Bluetooth **classique** ; les appareils
+  exclusivement BLE non encore appairés n'apparaissent pas. Ils restent
+  appairables depuis les Paramètres Windows, et le popout y renvoie.
+- `BluetoothAuthenticateDeviceEx` déclenche l'UI d'appairage sécurisé de
+  Windows quand un code doit être confirmé. Les appareils à PIN fixe échouent
+  avec le message Win32 d'origine.
+
+`CAELESTIA_DEBUG_STATUS=1` journalise l'état de la radio et le nombre
+d'appareils à chaque rafraîchissement.
+
 ## Bugs / limites connus
 
 - Qt 6.9.3 émet des avertissements `QSGThreadedRenderLoop ... invalid geometry`
@@ -224,7 +265,8 @@ callbacks COM arrivent sur un thread worker et repassent par
 - Modules Caelestia encore absents : écran de verrouillage, session/login,
   clavier, VPN, panneau de réglages (Nexus), utilitaires, info fenêtre,
   sélecteur de zone. Notifications, launcher, dashboard, météo, média,
-  wallpaper, OSD, volume et luminosité sont implémentés.
+  wallpaper, OSD, volume, luminosité, sélection audio et appairage Bluetooth
+  sont implémentés.
 - Luminosité DDC/CI : dépend du moniteur. Les dalles d'ordinateur portable
   interne et certains écrans en DisplayPort/USB-C n'exposent pas le code VCP
   `0x10` ; l'OSD affiche alors « Luminosité indisponible ».

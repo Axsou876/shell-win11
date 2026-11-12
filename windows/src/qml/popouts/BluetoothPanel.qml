@@ -12,8 +12,36 @@ Item {
 
     property string errorText: ""
 
+    // Address awaiting a confirmation click before it is unpaired.
+    property string confirmUnpair: ""
+
     implicitWidth: theme.popoutBluetoothWidth
     implicitHeight: content.implicitHeight
+
+    function activate(device) {
+        if (!device.paired) {
+            Bluetooth.pairDevice(device.address);
+            return;
+        }
+        // Removing a pairing cannot be undone from the shell: being in range
+        // again does not re-pair, the device must be put back in pairing mode.
+        // A click on a paired row therefore only arms the action, and the very
+        // same row performs it on the second click.
+        if (root.confirmUnpair === device.address) {
+            root.confirmUnpair = "";
+            Bluetooth.unpairDevice(device.address);
+        } else {
+            root.confirmUnpair = device.address;
+            confirmTimer.restart();
+        }
+    }
+
+    Timer {
+        id: confirmTimer
+
+        interval: 4000
+        onTriggered: root.confirmUnpair = ""
+    }
 
     Connections {
         target: Bluetooth
@@ -116,14 +144,70 @@ Item {
             text: root.errorText
         }
 
-        StyledText {
+        RowLayout {
             width: parent.width
-            theme: root.theme
-            role: "labelSmall"
-            color: root.theme.onSurfaceVariantColour
-            wrapMode: Text.WordWrap
-            text: "La liste des appareils associés n'est pas encore exposée. "
-                + "Windows gère l'appairage dans ses paramètres."
+            spacing: root.theme.spacingSmall
+
+            StyledText {
+                Layout.fillWidth: true
+                theme: root.theme
+                role: "labelSmall"
+                color: root.theme.onSurfaceVariantColour
+                text: Bluetooth.scanning ? "Recherche en cours…"
+                    : Bluetooth.devices.length > 0
+                        ? Bluetooth.devices.length + " appareil(s)"
+                        : "Aucun appareil connu"
+            }
+
+            M3Button {
+                theme: root.theme
+                text: "Rechercher"
+                icon: "bluetooth_searching"
+                variant: "text"
+                enabled: Bluetooth.enabled && !Bluetooth.scanning
+                onClicked: Bluetooth.scanDevices()
+            }
+        }
+
+        // The popout height follows its content, so a long device list would
+        // otherwise push the panel past the bottom of the screen. Cap it and
+        // let the list scroll instead.
+        Flickable {
+            id: deviceScroll
+
+            width: parent.width
+            height: Math.min(contentHeight, 240)
+            contentWidth: width
+            contentHeight: deviceList.height
+            clip: true
+            interactive: contentHeight > height
+            boundsBehavior: Flickable.StopAtBounds
+
+            Column {
+                id: deviceList
+
+                width: deviceScroll.width
+                spacing: root.theme.spacingExtraSmall
+
+                Repeater {
+                    model: Bluetooth.devices
+
+                    delegate: M3ListItem {
+                        required property var modelData
+
+                        width: deviceList.width
+                        theme: root.theme
+                        icon: modelData.connected ? "bluetooth_connected" : "bluetooth"
+                        title: modelData.name
+                        subtitle: modelData.address
+                            + (modelData.paired ? " · appairé" : " · non appairé")
+                        trailingText: !modelData.paired ? "Appairer"
+                            : root.confirmUnpair === modelData.address
+                                ? "Confirmer ?" : "Dissocier"
+                        onClicked: root.activate(modelData)
+                    }
+                }
+            }
         }
 
         M3Button {

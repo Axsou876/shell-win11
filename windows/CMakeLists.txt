@@ -71,6 +71,7 @@ target_link_libraries(caelestia-shell PRIVATE
     shell32
     user32
     Dxva2
+    bthprops
     wlanapi
     iphlpapi
     ws2_32
