@@ -142,6 +142,7 @@ qt_add_qml_module(caelestia-shell
         src/qml/components/StyledText.qml
         src/qml/components/StyledRect.qml
         src/qml/components/StateLayer.qml
+        src/qml/components/TimeAgo.qml
         src/qml/components/Logo.qml
         src/qml/components/MaterialIcon.qml
         src/qml/components/RoundedMask.qml

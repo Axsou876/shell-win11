@@ -1,7 +1,6 @@
 #include "notificationservice.hpp"
 
 #include <QDateTime>
-#include <QLocale>
 #include <QSettings>
 
 NotificationService::NotificationService(QObject* parent)
@@ -43,7 +42,7 @@ QVariantList NotificationService::notifications() const
         map.insert(QStringLiteral("app"), item.app);
         map.insert(QStringLiteral("title"), item.title);
         map.insert(QStringLiteral("body"), item.body);
-        map.insert(QStringLiteral("time"), item.time);
+        map.insert(QStringLiteral("timestamp"), item.createdAt);
         map.insert(QStringLiteral("actions"), item.actions);
         result.append(map);
     }
@@ -58,7 +57,7 @@ void NotificationService::addNotification(const QString& app, const QString& tit
     item.app = app;
     item.title = title;
     item.body = body;
-    item.time = QStringLiteral("maintenant");
+    item.createdAt = QDateTime::currentMSecsSinceEpoch();
     item.actions = actions;
     m_items.prepend(item);
     if (m_items.size() > 50)

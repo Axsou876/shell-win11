@@ -45,7 +45,10 @@ private:
         QString app;
         QString title;
         QString body;
-        QString time;
+        // Milliseconds since the epoch. The label is derived where it is shown
+        // (components/TimeAgo.qml), so it stays relative instead of freezing
+        // at the moment the notification arrived.
+        qint64 createdAt = 0;
         QStringList actions;
     };
 

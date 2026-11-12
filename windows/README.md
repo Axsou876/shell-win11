@@ -494,6 +494,36 @@ Limites assumées :
 - Le séparateur décimal est toujours `.` : le panneau est un champ de recherche,
   et une virgule reste le séparateur d'arguments de `min(1, 2)`.
 
+## Dock de notifications (sidebar)
+
+Sous Linux, la liste de notifications *est* la sidebar (`modules/notifications`).
+La sidebar Windows est le centre de contrôle, donc le dock reprend la même
+liste en tête de panneau, sous l'horloge.
+
+- **Contenu** — `Repeater` sur `Notification.notifications` : application,
+  horodatage relatif, bouton de fermeture, titre, corps (3 lignes maximum,
+  retour à la ligne compris) et un bouton par action exposée par la
+  notification. L'en-tête affiche `NOTIFICATIONS · <n>` et un bouton
+  « tout effacer » (`clear_all`) qui disparaît quand la liste est vide ; l'état
+  vide affiche `check_circle` et « Tout est à jour ! », comme le dock Linux.
+- **Horodatage** — `NotificationService` publie `timestamp` en millisecondes
+  depuis l'époque au lieu d'une chaîne. `components/TimeAgo.qml` la transforme
+  en « à l'instant », « il y a N min », « il y a N h » puis en date, et se
+  rafraîchit toutes les 20 s : un panneau laissé ouvert ne fige donc pas
+  l'étiquette, et le panneau de notifications comme le dock partagent le même
+  composant.
+- **Actions** — `Notification.dismiss(id)` et `Notification.invokeAction(...)`
+  sont les mêmes appels que dans `NotificationsShell.qml` : aucune logique
+  dupliquée entre les deux vues.
+
+Vérifié par rendu hors premier plan (`grabWindow` de l'overlay, l'ouverture
+automatique du panneau étant pilotée par un crochet temporaire, retiré depuis) :
+deux notifications attachées à une action donnent deux cartes avec leur bouton
+d'action et un en-tête « NOTIFICATIONS · 2 » ; après `Notification.clear()`,
+l'en-tête repasse à « NOTIFICATIONS », le bouton d'effacement disparaît et
+« Tout est à jour ! » remplace les cartes. `--smoke-test` sort en 0 sans alerte
+QML.
+
 ## Bugs / limites connus
 
 - Qt 6.9.3 émet des avertissements `QSGThreadedRenderLoop ... invalid geometry`
@@ -530,8 +560,7 @@ Limites assumées :
 ## Phase suivante
 
 Le tiling et les modules documentés ci-dessus sont en place. Restent, dans
-l'ordre prévu : dock de notifications de la sidebar, écran de verrouillage,
-panneau de réglages (Nexus).
+l'ordre prévu : écran de verrouillage, panneau de réglages (Nexus).
 
 L'enregistreur d'écran Linux (`utilities/cards/Record.qml`,
 `RecordingList.qml`) n'est volontairement pas porté : aucune API Win32

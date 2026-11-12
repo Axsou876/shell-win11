@@ -163,12 +163,14 @@ Item {
                                     text: delegate.modelData.app
                                 }
 
-                                StyledText {
+                                Item { width: root.theme.spacingExtraSmall; height: 1 }
+
+                                TimeAgo {
                                     anchors.verticalCenter: parent.verticalCenter
                                     theme: root.theme
                                     role: "labelSmall"
                                     color: root.theme.onSurfaceVariantColour
-                                    text: " · " + delegate.modelData.time
+                                    timestamp: delegate.modelData.timestamp
                                 }
 
                                 Item { width: parent.width - 200; height: 1 }

@@ -127,6 +127,170 @@ Item {
                     opacity: 0.5
                 }
 
+                // Notification dock. On Linux this list *is* the sidebar; the
+                // Windows sidebar is the control centre, so the dock sits at
+                // the top where the notifications panel's toasts land.
+                RowLayout {
+                    width: parent.width
+
+                    StyledText {
+                        theme: root.theme
+                        role: "labelSmall"
+                        weight: Font.DemiBold
+                        color: root.theme.onSurfaceVariantColour
+                        text: Notification.count > 0
+                            ? "NOTIFICATIONS · " + Notification.count : "NOTIFICATIONS"
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    M3Button {
+                        visible: Notification.count > 0
+                        theme: root.theme
+                        icon: "clear_all"
+                        variant: "text"
+                        implicitWidth: 34
+                        implicitHeight: 28
+                        onClicked: Notification.clear()
+                    }
+                }
+
+                Column {
+                    width: parent.width
+                    spacing: root.theme.spacingSmall
+
+                    Repeater {
+                        model: Notification.notifications
+
+                        Rectangle {
+                            id: notifCard
+
+                            required property var modelData
+
+                            width: parent.width
+                            height: notifColumn.implicitHeight + root.theme.paddingMedium * 2
+                            radius: root.theme.roundingMedium
+                            color: root.theme.surfaceContainer
+                            border.width: 1
+                            border.color: Qt.alpha(root.theme.outlineVariant, 0.2)
+
+                            Column {
+                                id: notifColumn
+
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                anchors.margins: root.theme.paddingMedium
+                                spacing: 2
+
+                                RowLayout {
+                                    width: parent.width
+
+                                    StyledText {
+                                        theme: root.theme
+                                        role: "labelSmall"
+                                        weight: Font.DemiBold
+                                        color: root.theme.primary
+                                        text: notifCard.modelData.app
+                                    }
+
+                                    TimeAgo {
+                                        Layout.fillWidth: true
+                                        Layout.leftMargin: root.theme.spacingExtraSmall
+                                        theme: root.theme
+                                        role: "labelSmall"
+                                        color: root.theme.onSurfaceVariantColour
+                                        elide: Text.ElideRight
+                                        timestamp: notifCard.modelData.timestamp
+                                    }
+
+                                    MaterialIcon {
+                                        Layout.alignment: Qt.AlignVCenter
+                                        theme: root.theme
+                                        text: "close"
+                                        iconSize: 14
+                                        color: root.theme.onSurfaceVariantColour
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            anchors.margins: -6
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: Notification.dismiss(
+                                                notifCard.modelData.id)
+                                        }
+                                    }
+                                }
+
+                                StyledText {
+                                    width: parent.width
+                                    theme: root.theme
+                                    role: "bodyMedium"
+                                    weight: Font.Medium
+                                    elide: Text.ElideRight
+                                    text: notifCard.modelData.title
+                                }
+
+                                StyledText {
+                                    width: parent.width
+                                    visible: text !== ""
+                                    theme: root.theme
+                                    role: "bodySmall"
+                                    color: root.theme.onSurfaceVariantColour
+                                    wrapMode: Text.WordWrap
+                                    maximumLineCount: 3
+                                    elide: Text.ElideRight
+                                    text: notifCard.modelData.body
+                                }
+
+                                Row {
+                                    width: parent.width
+                                    spacing: root.theme.spacingSmall
+                                    visible: notifCard.modelData.actions.length > 0
+
+                                    Repeater {
+                                        model: notifCard.modelData.actions
+
+                                        M3Button {
+                                            required property string modelData
+
+                                            theme: root.theme
+                                            text: modelData
+                                            variant: "tonal"
+                                            implicitHeight: 28
+                                            onClicked: Notification.invokeAction(
+                                                notifCard.modelData.id, modelData)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Same intent as the Linux dock's empty state.
+                    Row {
+                        width: parent.width
+                        height: 44
+                        spacing: root.theme.spacingSmall
+                        visible: Notification.count === 0
+
+                        MaterialIcon {
+                            anchors.verticalCenter: parent.verticalCenter
+                            theme: root.theme
+                            text: "check_circle"
+                            iconSize: 18
+                            color: root.theme.onSurfaceVariantColour
+                        }
+
+                        StyledText {
+                            anchors.verticalCenter: parent.verticalCenter
+                            theme: root.theme
+                            role: "bodySmall"
+                            color: root.theme.onSurfaceVariantColour
+                            text: "Tout est à jour !"
+                        }
+                    }
+                }
+
                 StyledText {
                     theme: root.theme
                     role: "labelSmall"
