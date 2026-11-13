@@ -38,7 +38,7 @@ Win32 worker thread (un seul thread, boucle de messages)
   │   ├─ SetWinEventHook (création/destruction/show/minimize/move/focus/cloak)
   │   ├─ timers : animation 7 ms, rescan de secours 1 s, debounce
   │   └─ WM_HOTKEY / commandes venant de Qt
-  ├─ fenêtre native de bordure active (layered, topmost, click-through)
+  ├─ hook souris (WH_MOUSE_LL) : Win + clic gauche = déplacement
   ├─ IVirtualDesktopManager (documenté) : bureau courant des fenêtres
   └─ TilingEngine par écran + par bureau
         │
@@ -51,8 +51,10 @@ WindowManagerService (façade QML) ── signaux vers VirtualDesktopService
 
 - Le moteur `TilingEngine` est **pur** : il ne connaît que des HWND et des
   rectangles. Il est testé sans déplacer de fenêtre (`--test-tiling`).
-- Le service Win32 fait le suivi réel, les appels `SetWindowPos`, les hooks,
-  les hotkeys, les animations et la bordure.
+- Le service Win32 fait le suivi réel, les appels `SetWindowPos`, les hooks et
+  les hotkeys. La bordure de fenêtre active et les boutons de légende ont été
+  retirés depuis (voir `windows/README.md`, « Déplacer, fermer, encadrer ») :
+  déplacer se fait avec `Win` + bouton gauche, fermer avec `Win+C`.
 - Un thread dédié possède le message loop. Le thread QML ne fait que publier
   l’état et envoyer des commandes.
 - **Aucun deuxième système de bureaux virtuels** : les changements, créations,
@@ -276,7 +278,7 @@ Fermeture : un cmd fermé, cinq fenêtres restantes, focus sur le cmd suivant.
 - Les Workspaces, le Dashboard, la Sidebar, le Launcher, Media, Weather,
   Performance, D3D11, les flags `WS_EX_NOACTIVATE`/`WS_EX_TRANSPARENT`, la
   barre des tâches et le multi-écrans n’ont pas été modifiés.
-- Le shell n’est jamais tilé : ses fenêtres (barres, overlays, bordures) sont
+- Le shell n’est jamais tilé : ses fenêtres (barres, overlays) sont
   exclues par PID et par classe.
 - Aucune erreur QML (`qrc:`, `TypeError`, `ReferenceError`) dans les journaux
   des tests finaux.

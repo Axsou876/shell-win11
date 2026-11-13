@@ -742,6 +742,7 @@ void Platform::setShellSetting(const QString& key, const QVariant& value)
     QSettings settings;
     settings.setValue(QStringLiteral("shell/") + key, value);
     settings.sync();
+    emit shellSettingChanged(key);
 }
 
 void Platform::refreshAppBar()

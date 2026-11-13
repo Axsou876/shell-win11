@@ -13,6 +13,11 @@ Item {
     width: 1
     height: 1
 
+    // The palette is one shared object and every window binds to it, so a
+    // scheme change repaints the bar, the panels, the popouts and the lock
+    // screen at once instead of only the surface that picked it.
+    property string schemeKey: Platform.shellSetting("appearance/scheme", "monochrome")
+
     Theme {
         id: appTheme
 
@@ -20,8 +25,21 @@ Item {
         // Persisted in Nexus > Apparence. Reading it here (instead of inside
         // Theme) keeps Theme free of the platform singleton, so it stays a
         // plain palette object.
-        scheme: Platform.shellSetting("appearance/scheme", "monochrome")
+        scheme: app.schemeKey
         systemAccent: Platform.accentColor
+    }
+
+    // shellSetting() is an invokable, so a binding on it has nothing to
+    // invalidate. The store signals the write instead and the key is re-read
+    // here; that also keeps Nexus from assigning theme.scheme directly, which
+    // used to break the binding and lose the value.
+    Connections {
+        target: Platform
+
+        function onShellSettingChanged(key) {
+            if (key === "appearance/scheme")
+                app.schemeKey = Platform.shellSetting(key, "monochrome");
+        }
     }
 
     PanelController {

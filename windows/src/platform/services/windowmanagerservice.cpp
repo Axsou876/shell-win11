@@ -43,6 +43,12 @@ constexpr UINT kStopMessage = WM_APP + 3;
 // Posted by the low-level keyboard hook: wParam is an index into
 // Impl::hookBindings. The hook itself must stay fast, so the action runs here.
 constexpr UINT kHookActionMessage = WM_APP + 4;
+// Posted by the low-level mouse hook while Win + left button drags a window.
+// wParam is one of the kDrag* phases below.
+constexpr UINT kDragMessage = WM_APP + 5;
+constexpr WPARAM kDragBegin = 0;
+constexpr WPARAM kDragMove = 1;
+constexpr WPARAM kDragEnd = 2;
 constexpr UINT_PTR kAnimationTimer = 1;
 constexpr UINT_PTR kRescanTimer = 2;
 constexpr UINT_PTR kDebounceTimer = 3;
@@ -89,16 +95,9 @@ QRect windowRect(HWND hwnd)
     return QRect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
 }
 
-QRect visibleFrameRect(HWND hwnd)
-{
-    RECT rect = {};
-    if (SUCCEEDED(DwmGetWindowAttribute(
-            hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, &rect, sizeof(rect)))) {
-        return QRect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
-    }
-    return windowRect(hwnd);
-}
-
+// The active-window outline is gone on purpose. The Hyprland-style shell has
+// no focus ring: the white 2 px frame that used to follow the active window
+// read as an artefact while the pointer moved across windows.
 struct MonitorInfo {
     QString key;
     QRect work;
@@ -468,7 +467,6 @@ struct WindowManagerService::Impl {
     std::thread thread;
     DWORD threadId = 0;
     HWND messageWindow = nullptr;
-    HWND borderWindow = nullptr;
     HINSTANCE instance = nullptr;
     std::atomic<bool> stopRequested { false };
     std::atomic<bool> ready { false };
@@ -506,6 +504,14 @@ struct WindowManagerService::Impl {
     QVector<HookBinding> hookBindings;
     QSet<UINT> hookHeldKeys;
     HHOOK keyboardHook = nullptr;
+    HHOOK mouseHook = nullptr;
+    // Win + left button drag state. The hook and the message loop share the
+    // window-manager thread, so these need no locking.
+    bool dragActive = false;
+    HWND dragWindow = nullptr;
+    POINT dragGrab = {};
+    POINT dragCursor = {};
+    QPoint dragOffset;
     bool swallowWinUp = false;
     // The low-level hook is a free function; this points it at the one Impl.
     static inline Impl* s_hookImpl = nullptr;
@@ -612,35 +618,6 @@ struct WindowManagerService::Impl {
 
     LRESULT handleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
-        if (hwnd == borderWindow) {
-            switch (message) {
-            case WM_ERASEBKGND:
-                return 1;
-            case WM_NCHITTEST:
-                return HTTRANSPARENT;
-            case WM_MOUSEACTIVATE:
-                return MA_NOACTIVATE;
-            case WM_PAINT: {
-                PAINTSTRUCT paint = {};
-                HDC dc = BeginPaint(hwnd, &paint);
-                RECT rect = {};
-                GetClientRect(hwnd, &rect);
-                HBRUSH key = CreateSolidBrush(RGB(255, 0, 255));
-                FillRect(dc, &rect, key);
-                DeleteObject(key);
-                HBRUSH frame = CreateSolidBrush(RGB(245, 245, 245));
-                FrameRect(dc, &rect, frame);
-                InflateRect(&rect, -1, -1);
-                FrameRect(dc, &rect, frame);
-                DeleteObject(frame);
-                EndPaint(hwnd, &paint);
-                return 0;
-            }
-            default:
-                break;
-            }
-        }
-
         switch (message) {
         case kCommandMessage:
             drainCommands();
@@ -662,6 +639,9 @@ struct WindowManagerService::Impl {
                 const HookBinding& binding = hookBindings.at(static_cast<int>(wParam));
                 handleAction(binding.action, binding.argument);
             }
+            return 0;
+        case kDragMessage:
+            handleDrag(wParam);
             return 0;
         case WM_TIMER:
             handleTimer(static_cast<UINT_PTR>(wParam));
@@ -709,23 +689,13 @@ struct WindowManagerService::Impl {
         }
         threadId = GetCurrentThreadId();
 
-        borderWindow = CreateWindowExW(WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW
-                | WS_EX_NOACTIVATE | WS_EX_TOPMOST,
-            windowClass.lpszClassName, L"Caelestia Active Window", WS_POPUP, 0, 0, 8, 8,
-            nullptr, nullptr, instance, this);
-        if (borderWindow) {
-            SetLayeredWindowAttributes(borderWindow, RGB(255, 0, 255), 0, LWA_COLORKEY);
-            ShowWindow(borderWindow, SW_HIDE);
-        } else {
-            error = QStringLiteral("Bordure de fenêtre active indisponible");
-        }
-
         CoCreateInstance(CLSID_VirtualDesktopManager, nullptr, CLSCTX_ALL,
             IID_PPV_ARGS(&desktopManager));
 
         installHooks();
         registerHotkeys();
         installKeyboardHook();
+        installMouseHook();
         SetTimer(messageWindow, kRescanTimer, 1000, nullptr);
 
         g_messageWindow = messageWindow;
@@ -741,10 +711,6 @@ struct WindowManagerService::Impl {
 
         if (!cleaned)
             cleanupResources();
-        if (borderWindow) {
-            DestroyWindow(borderWindow);
-            borderWindow = nullptr;
-        }
         if (messageWindow) {
             DestroyWindow(messageWindow);
             messageWindow = nullptr;
@@ -862,7 +828,6 @@ struct WindowManagerService::Impl {
         if (enabled) {
             scheduleRescan(500);
         } else {
-            updateBorder();
             publishState();
         }
     }
@@ -1095,6 +1060,138 @@ struct WindowManagerService::Impl {
         return CallNextHookEx(nullptr, code, wParam, lParam);
     }
 
+    // Hyprland's Super + left button: the window under the cursor moves with
+    // the pointer. The gesture is claimed so the click never reaches the app.
+    void installMouseHook()
+    {
+        if (mouseHook)
+            return;
+
+        s_hookImpl = this;
+        mouseHook = SetWindowsHookExW(WH_MOUSE_LL, &Impl::mouseProc,
+            GetModuleHandleW(nullptr), 0);
+        if (!mouseHook && !qEnvironmentVariableIsEmpty("CAELESTIA_DEBUG_WM")) {
+            qInfo().noquote() << "WM mouse hook failed, error" << GetLastError();
+        }
+    }
+
+    void uninstallMouseHook()
+    {
+        if (mouseHook) {
+            UnhookWindowsHookEx(mouseHook);
+            mouseHook = nullptr;
+        }
+        dragActive = false;
+        dragWindow = nullptr;
+    }
+
+    static LRESULT CALLBACK mouseProc(int code, WPARAM wParam, LPARAM lParam)
+    {
+        Impl* self = s_hookImpl;
+        if (code == HC_ACTION && self
+            && self->handleMouse(static_cast<UINT>(wParam),
+                   *reinterpret_cast<const MSLLHOOKSTRUCT*>(lParam))) {
+            return 1;
+        }
+        return CallNextHookEx(nullptr, code, wParam, lParam);
+    }
+
+    static bool winHeld()
+    {
+        return (GetAsyncKeyState(VK_LWIN) & 0x8000) != 0
+            || (GetAsyncKeyState(VK_RWIN) & 0x8000) != 0;
+    }
+
+    // Runs inside the hook, on the window-manager thread, so it only records
+    // the gesture and the cursor; every window operation is posted to the
+    // message loop to stay clear of the low-level hook timeout.
+    bool handleMouse(UINT message, const MSLLHOOKSTRUCT& info)
+    {
+        if (dragActive) {
+            if (message == WM_MOUSEMOVE) {
+                dragCursor = info.pt;
+                PostMessageW(messageWindow, kDragMessage, kDragMove, 0);
+                return true;
+            }
+            if (message == WM_LBUTTONUP) {
+                dragActive = false;
+                PostMessageW(messageWindow, kDragMessage, kDragEnd, 0);
+                return true;
+            }
+            // A second press or a wheel turn during the drag must not reach
+            // the application either.
+            return message == WM_LBUTTONDOWN || message == WM_MOUSEWHEEL;
+        }
+
+        if (message != WM_LBUTTONDOWN || !winHeld())
+            return false;
+
+        HWND target = WindowFromPoint(info.pt);
+        if (!target)
+            return false;
+        target = GetAncestor(target, GA_ROOT);
+        if (!target || !isEligible(target))
+            return false;
+
+        dragActive = true;
+        dragWindow = target;
+        dragGrab = info.pt;
+        dragCursor = info.pt;
+        PostMessageW(messageWindow, kDragMessage, kDragBegin, 0);
+        return true;
+    }
+
+    void handleDrag(WPARAM phase)
+    {
+        HWND hwnd = dragWindow;
+        if (!hwnd || !IsWindow(hwnd)) {
+            endDrag();
+            return;
+        }
+
+        switch (phase) {
+        case kDragBegin: {
+            if (!isEligible(hwnd)) {
+                endDrag();
+                return;
+            }
+            if (fullscreenWindow == hwnd)
+                exitFullscreen();
+            saveWindowState(hwnd);
+            const QRect rect = windowRect(hwnd);
+            dragOffset = QPoint(dragGrab.x - rect.x(), dragGrab.y - rect.y());
+            // Dragging is an explicit placement: the window leaves the tiling
+            // layout and keeps the spot it was dropped on, exactly like a
+            // tiled window dragged in Hyprland becomes floating.
+            const quintptr value = reinterpret_cast<quintptr>(hwnd);
+            floating.insert(value);
+            animations.remove(value);
+            freeMoved.remove(value);
+            focusWindow(hwnd);
+            publishState();
+            if (!qEnvironmentVariableIsEmpty("CAELESTIA_DEBUG_WM")) {
+                qInfo().noquote() << "WM drag" << value;
+            }
+            break;
+        }
+        case kDragMove:
+            SetWindowPos(hwnd, nullptr, dragCursor.x - dragOffset.x(),
+                dragCursor.y - dragOffset.y(), 0, 0,
+                SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+            break;
+        default:
+            endDrag();
+            break;
+        }
+    }
+
+    void endDrag()
+    {
+        dragActive = false;
+        dragWindow = nullptr;
+        scheduleRescan(120);
+    }
+
     // Called from the hook, on the window-manager thread before the key enters
     // any message queue. Returns true when the shell claims the key.
     bool consumeKey(int message, const KBDLLHOOKSTRUCT* info)
@@ -1166,7 +1263,7 @@ struct WindowManagerService::Impl {
 
     bool isOwnWindow(HWND hwnd) const
     {
-        return hwnd == messageWindow || hwnd == borderWindow;
+        return hwnd == messageWindow;
     }
 
     bool isExternalWindow(HWND hwnd) const
@@ -1261,7 +1358,6 @@ struct WindowManagerService::Impl {
             break;
         case EVENT_OBJECT_LOCATIONCHANGE:
             if (hwnd == activeWindow)
-                updateBorder();
             onLocationChange(hwnd);
             break;
         case EVENT_OBJECT_CLOAKED:
@@ -1290,7 +1386,6 @@ struct WindowManagerService::Impl {
                     state->engine.setFocused(reinterpret_cast<quintptr>(activeWindow));
             }
         }
-        updateBorder();
         if (!qEnvironmentVariableIsEmpty("CAELESTIA_DEBUG_WM")) {
             qInfo().noquote() << "WM focus"
                               << (activeWindow ? QString::number(
@@ -1318,7 +1413,6 @@ struct WindowManagerService::Impl {
             SetTimer(messageWindow, kFocusTimer, 180, nullptr);
         }
         scheduleRescan(80);
-        updateBorder();
     }
 
     void onLocationChange(HWND hwnd)
@@ -1377,7 +1471,6 @@ struct WindowManagerService::Impl {
     void rescan()
     {
         if (!enabled || currentDesktopId.isEmpty()) {
-            updateBorder();
             return;
         }
         updateActiveWindow();
@@ -1405,6 +1498,14 @@ struct WindowManagerService::Impl {
         for (HWND hwnd : std::as_const(eligible)) {
             if (hwnd != activeWindow)
                 ordered.append(hwnd);
+        }
+
+        // Every managed window loses its caption buttons. It runs before the
+        // geometry pass so the frame change is already in place when the tiler
+        // measures the window.
+        for (HWND hwnd : std::as_const(eligible)) {
+            saveWindowState(hwnd);
+            stripCaptionButtons(hwnd);
         }
 
         QHash<QString, QVector<HWND>> byMonitor;
@@ -1467,7 +1568,6 @@ struct WindowManagerService::Impl {
             applyMonitor(*state);
         }
 
-        updateBorder();
         publishState();
     }
 
@@ -1545,7 +1645,6 @@ struct WindowManagerService::Impl {
                 qRound(from.height() + (to.height() - from.height()) * eased));
             setWindowRect(hwnd, current);
             if (hwnd == activeWindow)
-                updateBorder();
             if (progress >= 1.0)
                 finished.append(it.key());
         }
@@ -1565,6 +1664,24 @@ struct WindowManagerService::Impl {
         suppressUntil.insert(reinterpret_cast<quintptr>(hwnd), nowMs() + 250);
         SetWindowPos(hwnd, nullptr, rect.x(), rect.y(), rect.width(), rect.height(),
             SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    }
+
+    // The shell closes windows with Win+C and tiles them itself, so the three
+    // caption buttons are dead weight and a way to fight the layout. Clearing
+    // the matching style bits removes them from the title bar; WS_CAPTION
+    // stays (the title bar still drags) and so does WS_THICKFRAME, which the
+    // window needs to stay resizable and eligible. The original style is kept
+    // in savedWindows, so disabling the manager gives the buttons back.
+    void stripCaptionButtons(HWND hwnd)
+    {
+        const LONG style = static_cast<LONG>(GetWindowLongPtrW(hwnd, GWL_STYLE));
+        const LONG wanted = style
+            & ~(WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU);
+        if (wanted == style)
+            return;
+        SetWindowLongPtrW(hwnd, GWL_STYLE, wanted);
+        SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
     }
 
     void saveWindowState(HWND hwnd)
@@ -1629,14 +1746,12 @@ struct WindowManagerService::Impl {
             for (auto& state : monitors)
                 state->engine.clear();
             savedLayouts.clear();
-            updateBorder();
             publishState();
             if (!qEnvironmentVariableIsEmpty("CAELESTIA_DEBUG_WM"))
                 qInfo("WM disabled; original window geometry restored");
             return;
         }
         freeMoved.clear();
-        updateBorder();
         scheduleRescan(400);
         publishState();
         if (!qEnvironmentVariableIsEmpty("CAELESTIA_DEBUG_WM"))
@@ -1644,33 +1759,6 @@ struct WindowManagerService::Impl {
     }
 
     void setEnabledOnWorker(bool value) { applyEnabled(value); }
-
-    void updateBorder()
-    {
-        if (!borderWindow)
-            return;
-        if (!enabled || !activeWindow || !isExternalWindow(activeWindow)
-            || fullscreenWindow == activeWindow
-            || !isWindowOnCurrentDesktop(activeWindow)) {
-            ShowWindow(borderWindow, SW_HIDE);
-            return;
-        }
-        BOOL cloaked = FALSE;
-        if (SUCCEEDED(DwmGetWindowAttribute(activeWindow, DWMWA_CLOAKED,
-                &cloaked, sizeof(cloaked))) && cloaked) {
-            ShowWindow(borderWindow, SW_HIDE);
-            return;
-        }
-        const QRect frame = visibleFrameRect(activeWindow);
-        if (!frame.isValid() || frame.width() < 10 || frame.height() < 10) {
-            ShowWindow(borderWindow, SW_HIDE);
-            return;
-        }
-        SetWindowPos(borderWindow, HWND_TOPMOST, frame.x() - 1, frame.y() - 1,
-            frame.width() + 2, frame.height() + 2,
-            SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_SHOWWINDOW);
-        InvalidateRect(borderWindow, nullptr, FALSE);
-    }
 
     void focusWindow(HWND hwnd)
     {
@@ -1722,7 +1810,6 @@ struct WindowManagerService::Impl {
             if (state->engine.contains(reinterpret_cast<quintptr>(hwnd)))
                 state->engine.setFocused(reinterpret_cast<quintptr>(hwnd));
         }
-        updateBorder();
     }
 
     void toggleFloating()
@@ -1818,7 +1905,6 @@ struct WindowManagerService::Impl {
         fullscreen = state;
         fullscreen.valid = true;
         fullscreenWindow = activeWindow;
-        ShowWindow(borderWindow, SW_HIDE);
         if (!qEnvironmentVariableIsEmpty("CAELESTIA_DEBUG_WM"))
             qInfo().noquote() << "WM fullscreen" << reinterpret_cast<quintptr>(activeWindow);
     }
@@ -1861,7 +1947,6 @@ struct WindowManagerService::Impl {
         }
         fullscreen = {};
         fullscreenWindow = nullptr;
-        updateBorder();
     }
 
     MonitorState* monitorStateFor(HWND hwnd)
@@ -2242,14 +2327,10 @@ struct WindowManagerService::Impl {
         if (fullscreen.valid)
             exitFullscreen();
         restoreAllWindows();
+        uninstallMouseHook();
         uninstallKeyboardHook();
         unregisterHotkeys();
         uninstallHooks();
-        if (borderWindow) {
-            ShowWindow(borderWindow, SW_HIDE);
-            DestroyWindow(borderWindow);
-            borderWindow = nullptr;
-        }
         g_messageWindow = nullptr;
         if (messageWindow) {
             ShowWindow(messageWindow, SW_HIDE);

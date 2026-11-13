@@ -200,6 +200,29 @@ qui reste le moyen de secours si `Ctrl+Alt+Shift+Escape` est lui aussi pris.
 Un `Win+Entrée` déjà détenu par Narrator suit le même chemin ; la liste de
 Nexus > Shell affiche l'état réel de chaque raccourci.
 
+### Déplacer, fermer, encadrer
+
+Trois choix rapprochent les fenêtres natives de Hyprland :
+
+- **Déplacer : `Win` + bouton gauche.** Un hook souris bas niveau
+  (`WH_MOUSE_LL`) voit le clic avant l'application visée. Si `Win` est tenu et
+  que le clic tombe sur une fenêtre gérée, le shell avale le bouton, sort la
+  fenêtre du tiling (`floating`) et la déplace lui-même avec `SetWindowPos` au
+  fil des mouvements. Le relâchement rend la main au tiling et la fenêtre reste
+  flottante, comme sous Hyprland. Sans `Win`, clics et molette passent
+  inchangés : aucune application ne perd son glisser-déposer interne.
+- **Pas de boutons de légende.** Fermer se fait avec `Win+C`. Chaque fenêtre
+  gérée perd `WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU` en conservant
+  `WS_CAPTION` et `WS_THICKFRAME` : elle reste déplaçable, redimensionnable et
+  éligible au tiling, mais les trois glyphes ne sont plus dessinés et le menu
+  système n'est plus accessible. Le retrait est appliqué pendant le scan, avant
+  la passe de géométrie, pour que le tiling mesure déjà le bon cadre.
+- **Pas de contour de focus.** Caelestia dessine une bordure `primary` de 2 px
+  autour de la fenêtre active ; sous Windows, la fenêtre de bordure séparée
+  apparaissait comme un liseré blanc qui suivait la souris. Elle a été
+  supprimée : le focus se lit dans la barre (icône et titre de la fenêtre
+  active), pas autour des fenêtres natives.
+
 ## OSD volume et luminosité
 
 Le pilule OSD de Caelestia (volume, luminosité, message transitoire) est
@@ -661,8 +684,14 @@ shell contrôle réellement et délègue le reste par des liens `ms-settings:`.
   proportion de l'accent aux gris de base, assez pour que la barre, les
   panneaux, les popouts et les cartes suivent la palette, trop peu pour
   dégrader le contraste du texte). Le choix est écrit dans `QSettings` via
-  `Platform.setShellSetting` et relu au démarrage. La teinte ne s'applique
-  qu'au shell : les applications Windows gardent leurs propres couleurs. Carte
+  `Platform.setShellSetting` et relu au démarrage. Il s'applique aussi **sans
+  redémarrer** : `setShellSetting` émet `shellSettingChanged`, `Main.qml`
+  réextrait la clé dans `schemeKey`, et l'unique objet `Theme` partagé repaint
+  d'un coup la barre, les panneaux, les popouts et l'écran de verrouillage.
+  (Lire `Platform.shellSetting(...)` directement dans une liaison ne suffit
+  pas : c'est un `Q_INVOKABLE` sans dépendance notifiable, la liaison ne se
+  réévalue jamais.) La teinte ne s'applique qu'au shell : les applications
+  Windows gardent leurs propres couleurs. Carte
   de thème (Caelestia suit le thème des applications Windows, `F8` en
   prévisualise l'opposé) et raccourcis vers Couleurs et Arrière-plan de
   Windows.

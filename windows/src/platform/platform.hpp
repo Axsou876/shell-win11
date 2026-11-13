@@ -109,6 +109,11 @@ public:
     // restarts; QSettings handles the encoding of colours and lists.
     [[nodiscard]] Q_INVOKABLE QVariant shellSetting(const QString& key,
         const QVariant& fallback = QVariant()) const;
+    // Emits shellSettingChanged so QML can rebind after the write. The settings
+    // are read through an invokable, so a plain binding on shellSetting() has
+    // no dependency to invalidate: without this signal a scheme picked in Nexus
+    // only reached the palette if the panel also assigned theme.scheme itself,
+    // which broke the binding and lost the value on the next read.
     Q_INVOKABLE void setShellSetting(const QString& key, const QVariant& value);
 
     void setRhiBackend(const QString& backend);
@@ -119,6 +124,7 @@ public:
 signals:
     void darkModeChanged();
     void accentColorChanged();
+    void shellSettingChanged(const QString& key);
     void wallpaperPathChanged();
     void wallpaperAvailableChanged();
     void animationsEnabledChanged();

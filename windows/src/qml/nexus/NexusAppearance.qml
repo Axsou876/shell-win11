@@ -195,11 +195,8 @@ Flickable {
                         anchors.fill: parent
                         theme: root.theme
                         radius: parent.radius
-                        onClicked: {
-                            root.theme.scheme = schemePill.modelData.key;
-                            Platform.setShellSetting("appearance/scheme",
-                                schemePill.modelData.key);
-                        }
+                        onClicked: Platform.setShellSetting("appearance/scheme",
+                            schemePill.modelData.key)
                     }
                 }
             }
