@@ -11,6 +11,10 @@ Item {
 
     required property var theme
 
+    // False while the dashboard is closed: the page stays loaded, but its
+    // gauges must not animate off-screen (see CircularProgress.animate).
+    property bool animations: true
+
     function formatRate(kbps) {
         if (kbps >= 1000)
             return (kbps / 1000).toFixed(1) + " Mb/s";
@@ -36,6 +40,7 @@ Item {
         required property color accent
         required property real usage
         required property bool usageAvailable
+        property bool animations: true
 
         radius: root.theme.roundingExtraLarge
 
@@ -45,6 +50,7 @@ Item {
             width: 100
             height: 100
             theme: root.theme
+            animate: hero.animations
             value: hero.usageAvailable ? hero.usage / 100 : 0
             strokeWidth: 4
             fgColour: hero.accent
@@ -145,6 +151,7 @@ Item {
         width: System.gpuUsageAvailable ? (root.width - root.theme.spacingMedium) / 2 : root.width
         height: 180
         theme: root.theme
+        animations: root.animations
         icon: "memory"
         label: "CPU"
         subLabel: System.cpuName
@@ -160,6 +167,7 @@ Item {
         width: (root.width - root.theme.spacingMedium) / 2
         height: 180
         theme: root.theme
+        animations: root.animations
         icon: "desktop_windows"
         label: "GPU"
         subLabel: System.gpuName !== "" ? System.gpuName : "Aucun GPU détecté"
@@ -185,6 +193,7 @@ Item {
             width: 132
             height: 132
             theme: root.theme
+            animate: root.animations
             value: System.diskPercent / 100
             startAngle: -225
             sweepAngle: 270
@@ -433,6 +442,7 @@ Item {
             width: 150
             height: 150
             theme: root.theme
+            animate: root.animations
             value: System.memoryPercent / 100
             startAngle: -225
             sweepAngle: 270

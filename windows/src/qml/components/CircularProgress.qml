@@ -18,7 +18,13 @@ Item {
     implicitWidth: 100
     implicitHeight: 100
 
+    // Pages that are kept alive but off-screen (the dashboard tabs) pass false
+    // here: a running Behaviour repaints the whole overlay window every frame
+    // even though nothing is visible, which kept the shell busy while idle.
+    property bool animate: true
+
     Behavior on animatedValue {
+        enabled: root.animate
         NumberAnimation {
             duration: root.theme.durationDefaultSpatial
             easing.type: Easing.BezierSpline

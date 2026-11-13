@@ -311,7 +311,11 @@ QVector<BindingSpec> defaultBindingSpecs()
     add(WmAction::ToggleFloating, 0, QStringLiteral("toggle-floating"), QStringLiteral("Ctrl+Alt+V"), false);
     add(WmAction::ToggleFullscreen, 0, QStringLiteral("toggle-fullscreen"), QStringLiteral("Win+F"), true);
     add(WmAction::ToggleFullscreen, 0, QStringLiteral("toggle-fullscreen"), QStringLiteral("Ctrl+Alt+F"), false);
-    add(WmAction::CloseWindow, 0, QStringLiteral("close-window"), QStringLiteral("Win+Q"), true);
+    // Hyprland muscle memory as requested: Super+C closes the active window,
+    // Super+Q opens the terminal. This intentionally swaps Caelestia's own
+    // SUPER+Q (close) / SUPER+C (editor) defaults; those actions stay
+    // reachable through Ctrl+Alt+Q and Ctrl+Alt+C.
+    add(WmAction::CloseWindow, 0, QStringLiteral("close-window"), QStringLiteral("Win+C"), true);
     add(WmAction::CloseWindow, 0, QStringLiteral("close-window"), QStringLiteral("Ctrl+Alt+Q"), false);
     add(WmAction::CycleLayout, 0, QStringLiteral("layout-cycle"), QStringLiteral("Ctrl+Alt+P"), false);
     add(WmAction::CycleLayoutBack, 0, QStringLiteral("layout-back"), QStringLiteral("Ctrl+Alt+Shift+P"), false);
@@ -336,12 +340,12 @@ QVector<BindingSpec> defaultBindingSpecs()
     // Narrator; registration is best-effort like every other binding, and the
     // failure is logged rather than fatal.
     add(WmAction::LaunchTerminal, 0, QStringLiteral("terminal"), QStringLiteral("Win+Enter"), true);
+    add(WmAction::LaunchTerminal, 0, QStringLiteral("terminal"), QStringLiteral("Win+Q"), true);
     add(WmAction::LaunchTerminal, 0, QStringLiteral("terminal"), QStringLiteral("Ctrl+Alt+T"), false);
     add(WmAction::LaunchExplorer, 0, QStringLiteral("file-manager"), QStringLiteral("Win+E"), true);
     add(WmAction::LaunchExplorer, 0, QStringLiteral("file-manager"), QStringLiteral("Ctrl+Alt+E"), false);
     add(WmAction::LaunchBrowser, 0, QStringLiteral("browser"), QStringLiteral("Win+W"), true);
     add(WmAction::LaunchBrowser, 0, QStringLiteral("browser"), QStringLiteral("Ctrl+Alt+W"), false);
-    add(WmAction::LaunchEditor, 0, QStringLiteral("editor"), QStringLiteral("Win+C"), true);
     add(WmAction::LaunchEditor, 0, QStringLiteral("editor"), QStringLiteral("Ctrl+Alt+C"), false);
     add(WmAction::Launcher, 0, QStringLiteral("launcher"), QStringLiteral("Ctrl+Alt+Space"), false);
     add(WmAction::Sidebar, 0, QStringLiteral("sidebar"), QStringLiteral("Win+N"), true);

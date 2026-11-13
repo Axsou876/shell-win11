@@ -7,8 +7,9 @@ QtObject {
     property bool dark: true
 
     // Accent scheme chosen in Nexus > Apparence. "monochrome" keeps the
-    // original strict palette; the other presets tint the accent roles only,
-    // so surfaces and text contrast stay exactly as designed.
+    // original strict palette; the other presets tint the accent roles *and*
+    // wash the neutral surfaces with the same colour, so the whole shell
+    // follows the scheme while text contrast stays intact.
     property string scheme: "monochrome"
     // Windows' own accent, used by the "windows" preset.
     property color systemAccent: "#ffb0ca"
@@ -37,6 +38,14 @@ QtObject {
     // Tint helper: overlay `colour` on `base` at `alpha` (0..1).
     function tint(base, colour, alpha) {
         return Qt.tint(base, Qt.rgba(colour.r, colour.g, colour.b, alpha));
+    }
+
+    // Surfaces follow the chosen scheme too, not just the accent roles: the
+    // whole shell (bar, panels, popouts, cards) takes a faint wash of the
+    // accent. The alphas stay low because the design depends on near-black /
+    // near-white surfaces for contrast; anything stronger greys out the text.
+    function tinted(base, alpha) {
+        return coloured ? tint(base, baseAccent, alpha) : base;
     }
 
     function accentTone(level) {
@@ -83,21 +92,21 @@ QtObject {
         : (dark ? "#ffffff" : "#000000")
     readonly property color error: dark ? "#ffffff" : "#000000"
     readonly property color onErrorColour: dark ? "#000000" : "#ffffff"
-    readonly property color surface: dark ? "#000000" : "#ffffff"
-    readonly property color surfaceDim: dark ? "#000000" : "#d9d9d9"
-    readonly property color surfaceBright: dark ? "#262626" : "#ffffff"
-    readonly property color surfaceContainerLowest: dark ? "#000000" : "#ffffff"
-    readonly property color surfaceContainerLow: dark ? "#0a0a0a" : "#f7f7f7"
-    readonly property color surfaceContainer: dark ? "#121212" : "#efefef"
-    readonly property color surfaceContainerHigh: dark ? "#1c1c1c" : "#e7e7e7"
-    readonly property color surfaceContainerHighest: dark ? "#262626" : "#dedede"
+    readonly property color surface: tinted(dark ? "#000000" : "#ffffff", dark ? 0.05 : 0.03)
+    readonly property color surfaceDim: tinted(dark ? "#000000" : "#d9d9d9", dark ? 0.045 : 0.035)
+    readonly property color surfaceBright: tinted(dark ? "#262626" : "#ffffff", dark ? 0.1 : 0.05)
+    readonly property color surfaceContainerLowest: tinted(dark ? "#000000" : "#ffffff", dark ? 0.035 : 0.025)
+    readonly property color surfaceContainerLow: tinted(dark ? "#0a0a0a" : "#f7f7f7", dark ? 0.055 : 0.035)
+    readonly property color surfaceContainer: tinted(dark ? "#121212" : "#efefef", dark ? 0.07 : 0.045)
+    readonly property color surfaceContainerHigh: tinted(dark ? "#1c1c1c" : "#e7e7e7", dark ? 0.085 : 0.055)
+    readonly property color surfaceContainerHighest: tinted(dark ? "#262626" : "#dedede", dark ? 0.1 : 0.065)
     readonly property color onSurfaceColour: dark ? "#ffffff" : "#000000"
-    readonly property color surfaceVariant: dark ? "#2e2e2e" : "#d0d0d0"
+    readonly property color surfaceVariant: tinted(dark ? "#2e2e2e" : "#d0d0d0", dark ? 0.12 : 0.08)
     readonly property color onSurfaceVariantColour: dark ? "#b3b3b3" : "#4d4d4d"
     readonly property color inverseSurface: dark ? "#ffffff" : "#1a1a1a"
     readonly property color inverseOnSurface: dark ? "#000000" : "#ffffff"
-    readonly property color outline: dark ? "#8a8a8a" : "#6b6b6b"
-    readonly property color outlineVariant: dark ? "#2e2e2e" : "#d0d0d0"
+    readonly property color outline: tinted(dark ? "#8a8a8a" : "#6b6b6b", dark ? 0.08 : 0.06)
+    readonly property color outlineVariant: tinted(dark ? "#2e2e2e" : "#d0d0d0", dark ? 0.1 : 0.07)
     readonly property color shadow: "#000000"
     readonly property color scrim: "#000000"
     readonly property color surfaceTint: coloured ? primary : (dark ? "#ffffff" : "#000000")

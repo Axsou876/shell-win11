@@ -31,6 +31,22 @@ Item {
         { icon: "apps", label: "Workspaces" }
     ]
 
+    // Pages are instantiated the first time their tab is opened. Building all
+    // five transparent, fullscreen pages at start-up meant every per-second
+    // system reading re-evaluated the bindings of four invisible pages and
+    // repainted the whole overlay window for nothing.
+    property var visited: [true, false, false, false, false]
+
+    function visit(tab) {
+        if (tab < 0 || tab >= root.visited.length || root.visited[tab])
+            return;
+        const next = root.visited.slice();
+        next[tab] = true;
+        root.visited = next;
+    }
+
+    onActiveTabChanged: root.visit(root.activeTab)
+
     focus: true
 
     MouseArea {
@@ -209,6 +225,7 @@ Item {
                     height: view.height
                     sourceComponent: homeComponent
                     asynchronous: false
+                    active: root.visited[0]
                 }
 
                 Loader {
@@ -216,6 +233,7 @@ Item {
                     height: view.height
                     sourceComponent: mediaComponent
                     asynchronous: false
+                    active: root.visited[1]
                 }
 
                 Loader {
@@ -223,6 +241,7 @@ Item {
                     height: view.height
                     sourceComponent: performanceComponent
                     asynchronous: false
+                    active: root.visited[2]
                 }
 
                 Loader {
@@ -230,6 +249,7 @@ Item {
                     height: view.height
                     sourceComponent: weatherComponent
                     asynchronous: false
+                    active: root.visited[3]
                 }
 
                 Loader {
@@ -237,6 +257,7 @@ Item {
                     height: view.height
                     sourceComponent: workspaceComponent
                     asynchronous: false
+                    active: root.visited[4]
                 }
             }
         }
@@ -247,6 +268,7 @@ Item {
 
         DashboardHome {
             theme: root.theme
+            animations: root.visible
             onOpenWeather: root.activeTab = 3
         }
     }
@@ -265,6 +287,7 @@ Item {
 
         DashboardPerformance {
             theme: root.theme
+            animations: root.visible
         }
     }
 

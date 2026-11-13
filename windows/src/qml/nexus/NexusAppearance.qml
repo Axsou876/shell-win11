@@ -134,8 +134,8 @@ Flickable {
             role: "labelSmall"
             color: root.theme.onSurfaceVariantColour
             wrapMode: Text.WordWrap
-            text: "Teinte les accents de Caelestia. Les surfaces restent neutres, "
-                + "comme dans le thème d'origine."
+            text: "Teinte tout le shell : accents, barre, panneaux et surfaces. "
+                + "Seules les applications Windows gardent leurs propres couleurs."
         }
 
         // One pill per preset. The whole grid is rebuilt when the palette

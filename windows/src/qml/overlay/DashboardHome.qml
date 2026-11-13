@@ -14,6 +14,11 @@ GridLayout {
 
     required property var theme
 
+    // False while the dashboard is closed: the page stays loaded, but nothing
+    // here may keep repainting the fullscreen overlay while it is off-screen
+    // (see CircularProgress.animate).
+    property bool animations: true
+
     signal openWeather()
 
     columns: 6
@@ -24,7 +29,7 @@ GridLayout {
         id: clockTimer
 
         interval: 1000
-        running: true
+        running: root.animations
         repeat: true
         triggeredOnStart: true
         onTriggered: root.now = new Date()
@@ -330,6 +335,7 @@ GridLayout {
             width: 170
             height: 170
             theme: root.theme
+            animate: root.animations
             value: mediaCard.progress
             startAngle: -180
             sweepAngle: 180
@@ -432,7 +438,9 @@ GridLayout {
             anchors.rightMargin: 28
             anchors.bottomMargin: 16
             visible: Media.available
-            playing: Media.playing
+            // A playing GIF is a 60 fps repaint source; keep it frozen while
+            // the dashboard is closed.
+            playing: root.animations && Media.playing
             source: "qrc:/assets/bongocat.gif"
             fillMode: Image.PreserveAspectFit
             asynchronous: true
@@ -547,6 +555,7 @@ GridLayout {
                     CircularProgress {
                         anchors.fill: parent
                         theme: root.theme
+                        animate: root.animations
                         value: modelData.value / 100
                         strokeWidth: 6
                         fgColour: modelData.colour

@@ -17,11 +17,15 @@ Item {
         anchors.fill: parent
     }
 
+    // live must stay false: a live source re-renders its item into a texture
+    // every frame and, because these clips exist in eagerly built panels (the
+    // dashboard, lock screen), it kept every window repainting at the refresh
+    // rate while the shell was idle. Without live, the texture is refreshed
+    // whenever the content actually changes, which is all a clip mask needs.
     ShaderEffectSource {
         id: source
 
         hideSource: true
-        live: true
         sourceItem: content
     }
 

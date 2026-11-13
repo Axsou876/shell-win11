@@ -178,9 +178,15 @@ le tiling et `Ctrl+Alt+Shift+Escape` restaure les fenêtres. Détails :
 `docs/hyprland-window-management-report.md`.
 
 Les raccourcis Hyprland les plus courants sont disponibles avec la touche
-Windows comme `SUPER` : `Win+Entrée` ouvre le terminal, `Win+Q` ferme la
-fenêtre active, `Win+1`…`Win+0` changent de bureau (avec `Win+Maj` pour
-déplacer la fenêtre), `Win+E` ouvre l'explorateur et `Win+N` la barre latérale.
+Windows comme `SUPER` : `Win+Entrée` ou `Win+Q` ouvrent le terminal, `Win+C`
+ferme la fenêtre active, `Win+1`…`Win+0` changent de bureau (avec `Win+Maj`
+pour déplacer la fenêtre), `Win+E` ouvre l'explorateur et `Win+N` la barre
+latérale.
+
+Ce choix de touches est un écart volontaire par rapport à Caelestia : le
+`SUPER+Q` d'origine (fermer) devient `SUPER+C`, et le `SUPER+C` d'origine
+(éditeur) n'existe plus en `Win+…`, comme sous Hyprland. Les deux actions
+restent joignables par `Ctrl+Alt+Q` (fermer) et `Ctrl+Alt+C` (éditeur).
 
 `RegisterHotKey` ne peut pas prendre ces combinaisons : Explorer les possède
 déjà (`Win+Q`, `Win+1`…`0`, `Win+E`, `Win+T`, `Win+Flèches`…) et
@@ -650,11 +656,16 @@ shell contrôle réellement et délègue le reste par des liens `ms-settings:`.
   appliquées immédiatement (`Wallpaper.apply`) ; la vignette courante porte un
   contour `primary`. Section « Couleurs du shell » : neuf pastilles
   (`Monochrome`, `Bleu`, `Violet`, `Vert`, `Ambre`, `Rose`, `Cyan`, `Rouge`,
-  `Windows`) qui teintent les rôles d'accent de `Theme.qml` en direct. Le choix
-  est écrit dans `QSettings` via `Platform.setShellSetting` et relu au
-  démarrage ; les surfaces restent neutres. Carte de thème (Caelestia suit le
-  thème des applications Windows, `F8` en prévisualise l'opposé) et raccourcis
-  vers Couleurs et Arrière-plan de Windows.
+  `Windows`) qui teintent tout le shell en direct : rôles d'accent, puis les
+  surfaces, contours et conteneurs (`Theme.tinted()` applique une faible
+  proportion de l'accent aux gris de base, assez pour que la barre, les
+  panneaux, les popouts et les cartes suivent la palette, trop peu pour
+  dégrader le contraste du texte). Le choix est écrit dans `QSettings` via
+  `Platform.setShellSetting` et relu au démarrage. La teinte ne s'applique
+  qu'au shell : les applications Windows gardent leurs propres couleurs. Carte
+  de thème (Caelestia suit le thème des applications Windows, `F8` en
+  prévisualise l'opposé) et raccourcis vers Couleurs et Arrière-plan de
+  Windows.
 - **Système** : profils d'alimentation (`PowerProfiles`, bouton plein sur le
   profil actif), luminosité (`M3Slider` → `Brightness.setPercent`), puis les
   interrupteurs garder éveillé (`IdleInhibit`), ne pas déranger
@@ -688,6 +699,39 @@ luminosité à 90 %, les quatre interrupteurs, et la liste des raccourcis telle
 que le service l'expose. `--smoke-test` sort en 0 sans alerte QML et le hook
 clavier s'installe (37 combinaisons `Win+…` capturées par le hook sur le poste
 de test).
+
+## Performances au repos
+
+Le shell dessine deux overlays transparents plein écran (un par moniteur), donc
+tout élément qui se rafraîchit en continu coûte une recomposition de 1080p.
+Trois causes ont été trouvées et corrigées ; mesure sur le poste de test avec
+`QT_LOGGING_RULES=qt.scenegraph.renderloop.debug=true` (les demandes de rendu de
+démarrage sont exclues) :
+
+| Mesure au repos | Avant | Après |
+|---|---|---|
+| Images rendues par seconde | 60 fps pendant 500 ms à chaque seconde, en continu | 3 à 6 |
+| Demandes de rendu par seconde | en rafale à chaque image de l'animation | ~120, un seul pic à 1 Hz |
+| CPU | — | 3,5 % d'un cœur (0,44 % des 8 cœurs logiques) |
+
+- **`CircularProgress`** — les jauges du tableau de bord animent leur valeur via
+  un `Behavior` de 500 ms ; les données système arrivent à 1 Hz, donc elles
+  tournaient 60 fps en permanence, même tableau de bord fermé. La propriété
+  `animate` coupe l'animation, et les pages passent
+  `animations: root.visible`.
+- **Pages du tableau de bord** — les cinq pages étaient construites au
+  démarrage. Elles sont maintenant instanciées à la première ouverture de leur
+  onglet (`DashboardShell.visited`), ce qui divise aussi les demandes de rendu
+  du rafraîchissement système.
+- **Effets et GIF** — `ShaderEffectSource.live` reste à `false` dans
+  `RoundedClip`, `layer.live: false` sur la surface teintée de `ScreenSurface`
+  (une couche avec effet est live par défaut et re-floutait l'ombre plein écran
+  à chaque image), et le bongocat ne joue que tableau de bord ouvert.
+
+Le reste du coût au repos est le rafraîchissement à 1 Hz des services système
+(CPU, mémoire, disque, réseau) : chaque valeur modifie un texte ou une jauge et
+provoque une à deux images par seconde et par écran, ce qui est le plancher
+attendu pour des indicateurs vivants.
 
 ## Bugs / limites connus
 

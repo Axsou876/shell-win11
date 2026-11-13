@@ -159,7 +159,7 @@ Platform::Platform(QObject* parent)
     // The shell replaces the Windows taskbar; auto-hide expands each monitor's
     // work area so the shell can fill it. The window itself is kept hidden
     // while the shell runs and the previous state is restored when it quits.
-    m_taskbarTimer.setInterval(250);
+    m_taskbarTimer.setInterval(500);
     connect(&m_taskbarTimer, &QTimer::timeout, this, [this]() {
         enforceTaskbarHidden();
         enforceDesktopIconsHidden();
@@ -172,7 +172,7 @@ Platform::Platform(QObject* parent)
     m_taskbarTimer.start();
     QTimer::singleShot(1200, this, &Platform::refreshAppBar);
 
-    m_refreshTimer.setInterval(1500);
+    m_refreshTimer.setInterval(4000);
     connect(&m_refreshTimer, &QTimer::timeout, this, &Platform::refresh);
     m_refreshTimer.start();
 
@@ -395,6 +395,15 @@ void Platform::enforceTaskbarHidden()
     // Explorer can re-show the taskbar for the Start menu or after a shell
     // refresh; put it back off-screen immediately. The auto-hide state above
     // is what keeps the work area full, not the visibility of the window.
+    // Cheap visibility probe first: the common case is "already hidden", and
+    // EnumWindows every tick was pure overhead.
+    const HWND primary = FindWindowW(L"Shell_TrayWnd", nullptr);
+    const HWND secondary = FindWindowW(L"Shell_SecondaryTrayWnd", nullptr);
+    const bool anyVisible = (primary && IsWindowVisible(primary))
+        || (secondary && IsWindowVisible(secondary));
+    if (!anyVisible)
+        return;
+
     for (HWND bar : taskbarWindows())
         ShowWindow(bar, SW_HIDE);
 }
@@ -456,8 +465,10 @@ void Platform::enforceDesktopIconsHidden()
     }
 
     // Explorer rebuilds the list view after a refresh; hide the new one too.
-    if (const HWND list = desktopIconWindow())
-        ShowWindow(list, SW_HIDE);
+    if (const HWND list = desktopIconWindow()) {
+        if (IsWindowVisible(list))
+            ShowWindow(list, SW_HIDE);
+    }
 }
 
 void Platform::restoreDesktopIcons()

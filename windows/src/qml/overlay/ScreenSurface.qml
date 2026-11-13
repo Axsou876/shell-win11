@@ -137,6 +137,11 @@ Item {
     Item {
         anchors.fill: parent
         layer.enabled: true
+        // A layer with an effect is live by default, which re-renders the
+        // full-screen surface (and blurs a 1080p shadow) every frame even when
+        // nothing moved. The frame is static unless the theme or a panel
+        // changes, both of which dirty the layer anyway.
+        layer.live: false
         layer.smooth: true
         layer.effect: MultiEffect {
             shadowEnabled: true

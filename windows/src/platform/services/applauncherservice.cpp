@@ -534,7 +534,11 @@ AppLauncherService::AppLauncherService(QObject* parent)
     , m_search(new AppSearchModel(m_apps, this))
     , m_iconTimer(new QTimer(this))
 {
-    m_iconTimer->setInterval(8);
+    // Four icons per tick: extraction is the single most expensive part of
+    // startup (shell links, PE resources, PNG writes). 16 ms halves the CPU
+    // burst compared with 8 ms and still fills a 400-app list in about a
+    // second and a half.
+    m_iconTimer->setInterval(16);
     m_iconTimer->setSingleShot(false);
     connect(m_iconTimer, &QTimer::timeout, this, &AppLauncherService::extractNextIcons);
     connect(m_search, &AppSearchModel::countChanged, this,
