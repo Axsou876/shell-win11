@@ -723,10 +723,16 @@ démarrage sont exclues) :
   démarrage. Elles sont maintenant instanciées à la première ouverture de leur
   onglet (`DashboardShell.visited`), ce qui divise aussi les demandes de rendu
   du rafraîchissement système.
-- **Effets et GIF** — `ShaderEffectSource.live` reste à `false` dans
-  `RoundedClip`, `layer.live: false` sur la surface teintée de `ScreenSurface`
-  (une couche avec effet est live par défaut et re-floutait l'ombre plein écran
-  à chaque image), et le bongocat ne joue que tableau de bord ouvert.
+- **Animations et GIF** — le bongocat ne joue que tableau de bord ouvert.
+
+Les couches d'effet restent volontairement `live: true` : `ShaderEffectSource`
+dans `RoundedClip` et la couche `MultiEffect` de `ScreenSurface`. Ce n'est pas
+un simple flou, c'est aussi ce qui trouve les uniforms du shader de blob (cadre
+de la barre, fonds du sidebar, du tableau de bord, des popouts et du launcher).
+Avec `live: false` la texture restait figée sur l'image d'avant l'ouverture et
+les panneaux s'affichaient sans fond. Être live ne relance pas la boucle de
+rendu pour autant : elle ne fixe que la fraîcheur de la texture sur les images
+déjà demandées, d'où les 5 fps mesurés ci-dessus.
 
 Le reste du coût au repos est le rafraîchissement à 1 Hz des services système
 (CPU, mémoire, disque, réseau) : chaque valeur modifie un texte ou une jauge et

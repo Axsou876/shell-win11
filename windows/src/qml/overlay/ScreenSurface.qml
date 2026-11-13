@@ -137,11 +137,12 @@ Item {
     Item {
         anchors.fill: parent
         layer.enabled: true
-        // A layer with an effect is live by default, which re-renders the
-        // full-screen surface (and blurs a 1080p shadow) every frame even when
-        // nothing moved. The frame is static unless the theme or a panel
-        // changes, both of which dirty the layer anyway.
-        layer.live: false
+        // The layer must stay live. It is not just a shadow: the blob shader
+        // below draws the bar frame *and* every panel surface (sidebar,
+        // dashboard, popout, launcher) from uniforms that change as panels
+        // open. With live: false the layer kept a stale texture and the
+        // popouts rendered with no background at all.
+        layer.live: true
         layer.smooth: true
         layer.effect: MultiEffect {
             shadowEnabled: true
