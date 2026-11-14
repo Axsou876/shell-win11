@@ -230,10 +230,13 @@ cadre de 10 px, la barre de 60 px, la sidebar, le tableau de bord, les popouts e
 le launcher sont fusionnés en une forme SDF unique. Trois indices la détachent
 du fond d'écran :
 
-- **Ombre portée** — `MultiEffect` sur la couche, `blurMax: 24`,
-  `shadowBlur: 0.6`, décalage vertical de 3 px. Elle était inopérante :
-  `shadowBlur` vaut 0 par défaut, l'ombre restait nette, sans décalage, donc
-  cachée sous le shell lui-même.
+- **Ombre portée** — dessinée par `blob.frag` lui-même : le shader réévalue la
+  SDF du blob au point décalé et n'écrit que là où le pixel est hors du blob,
+  sur les quelques pixels de la couronne. Ce n'est pas un détail de style mais
+  une question de coût : la première version passait par un `MultiEffect` sur
+  une couche plein écran (`blurMax: 24`, `shadowBlur: 0.6`), soit ~20 ms par
+  image sur le GPU intégré — le shell tombait à ~50 fps pendant l'ouverture
+  d'un panneau, alors que l'écran est à 144 Hz.
 - **Liseré** — `blob.frag` éclaircit de 6 % une bande de 2 px le long du
   contour (`abs(d)`), paroi du trou comprise, et donc aussi le raccord arrondi
   là où un panneau quitte la barre. Sur un fond sombre c'est ce liseré, et non
@@ -822,18 +825,36 @@ démarrage sont exclues) :
 - **Animations et GIF** — le bongocat ne joue que tableau de bord ouvert.
 
 Les couches d'effet restent volontairement `live: true` : `ShaderEffectSource`
-dans `RoundedClip` et la couche `MultiEffect` de `ScreenSurface`. Ce n'est pas
-un simple flou, c'est aussi ce qui trouve les uniforms du shader de blob (cadre
-de la barre, fonds du sidebar, du tableau de bord, des popouts et du launcher).
-Avec `live: false` la texture restait figée sur l'image d'avant l'ouverture et
-les panneaux s'affichaient sans fond. Être live ne relance pas la boucle de
-rendu pour autant : elle ne fixe que la fraîcheur de la texture sur les images
-déjà demandées, d'où les 5 fps mesurés ci-dessus.
+dans `RoundedClip`. Ce n'est pas un simple flou, c'est aussi ce qui trouve les
+uniforms du shader de blob (cadre de la barre, fonds du sidebar, du tableau de
+bord, des popouts et du launcher). Avec `live: false` la texture restait figée
+sur l'image d'avant l'ouverture et les panneaux s'affichaient sans fond. Être
+live ne relance pas la boucle de rendu pour autant : elle ne fixe que la
+fraîcheur de la texture sur les images déjà demandées, d'où les 5 fps mesurés
+ci-dessus.
 
 Le reste du coût au repos est le rafraîchissement à 1 Hz des services système
 (CPU, mémoire, disque, réseau) : chaque valeur modifie un texte ou une jauge et
 provoque une à deux images par seconde et par écran, ce qui est le plancher
 attendu pour des indicateurs vivants.
+
+### Rendu à 144 fps (optionnel)
+
+Les animations tournent déjà au rythme de l'écran : Qt redessine à chaque
+vsync tant que quelque chose bouge. Ce qui est optionnel, c'est de redessiner
+**même quand rien ne bouge**. `RefreshDriver.qml` installe alors une `Timer` de
+7 ms qui appelle `update()` sur la fenêtre de barre et sur l'overlay ; la swap
+chain regroupe les demandes et cale le résultat sur le rafraîchissement du
+moniteur.
+
+| Réglage | CPU au repos | Images/s |
+|---|---|---|
+| Désactivé (défaut) | 4,1 % d'un cœur | 3 à 6 |
+| Activé | 50,4 % d'un cœur | ~144 |
+
+Douze fois plus de CPU pour des pixels identiques, sur un portable : c'est
+pourquoi l'interrupteur (Nexus > Système > « Rendu à 144 fps ») est désactivé
+par défaut. Il est persisté dans `refresh/smooth`.
 
 ## Bugs / limites connus
 

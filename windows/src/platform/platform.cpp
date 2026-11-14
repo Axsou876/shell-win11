@@ -734,7 +734,19 @@ void Platform::copyText(const QString& text)
 QVariant Platform::shellSetting(const QString& key, const QVariant& fallback) const
 {
     QSettings settings;
-    return settings.value(QStringLiteral("shell/") + key, fallback);
+    const QVariant value = settings.value(QStringLiteral("shell/") + key, fallback);
+    // The registry stores booleans as the strings "true"/"false", and QML
+    // converts any non-empty string to `true` when it assigns to a bool
+    // property — so `property bool x: Platform.shellSetting(...)` read back a
+    // stored `false` as `true`. Normalise here, once.
+    if (value.userType() == QMetaType::QString) {
+        const QString text = value.toString();
+        if (text.compare(QLatin1String("true"), Qt::CaseInsensitive) == 0)
+            return true;
+        if (text.compare(QLatin1String("false"), Qt::CaseInsensitive) == 0)
+            return false;
+    }
+    return value;
 }
 
 void Platform::setShellSetting(const QString& key, const QVariant& value)

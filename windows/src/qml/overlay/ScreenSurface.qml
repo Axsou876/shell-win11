@@ -1,7 +1,6 @@
 ﻿pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Effects
 import ".."
 
 // Full-screen Caelestia surface: a 10 px frame around a rounded wallpaper
@@ -136,27 +135,6 @@ Item {
 
     Item {
         anchors.fill: parent
-        layer.enabled: true
-        // The layer must stay live. It is not just a shadow: the blob shader
-        // below draws the bar frame *and* every panel surface (sidebar,
-        // dashboard, popout, launcher) from uniforms that change as panels
-        // open. With live: false the layer kept a stale texture and the
-        // popouts rendered with no background at all.
-        layer.live: true
-        layer.smooth: true
-        layer.effect: MultiEffect {
-            // The soft drop shadow is what makes the blob read as a surface
-            // floating above the wallpaper. It was effectively off: shadowBlur
-            // defaults to 0, so the shadow was sharp, unblurred and hidden
-            // underneath the shell itself. Offsetting it and blurring it is
-            // the whole depth effect.
-            shadowEnabled: true
-            blurMax: 24
-            shadowBlur: 0.6
-            shadowHorizontalOffset: 0
-            shadowVerticalOffset: 3
-            shadowColor: Qt.alpha(surface.theme.shadow, surface.theme.shadowOpacity)
-        }
 
         ShaderEffect {
             anchors.fill: parent
@@ -168,6 +146,15 @@ Item {
                 Math.max(0, surface.width - surface.barWidth - surface.border),
                 Math.max(0, surface.height - surface.border * 2))
             property color colour: surface.surfaceColour
+            // The drop shadow is drawn by the shader itself (see blobDistance),
+            // not by a MultiEffect over a full-screen layer: that layer plus
+            // its blur cost about 20 ms per frame on integrated graphics, and
+            // the shell dropped to ~50 fps during panel animations.
+            property color shadowColour:
+                Qt.rgba(surface.theme.shadow.r, surface.theme.shadow.g,
+                    surface.theme.shadow.b, surface.theme.shadowOpacity)
+            property vector4d shadowParams:
+                Qt.vector4d(0, 4, surface.theme.shadowBlurRadius, 0)
             property vector4d panel0: surface.sidebarVisible
                 ? Qt.vector4d(surface.sidebarX, surface.sidebarY, surface.sidebarW, surface.sidebarHeight)
                 : Qt.vector4d(0, 0, 0, 0)

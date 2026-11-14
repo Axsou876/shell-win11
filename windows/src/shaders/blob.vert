@@ -11,6 +11,8 @@ layout(std140, binding = 0) uniform buf {
     vec4 sizeParams; // width, height, hole radius, smoothing
     vec4 frame; // hole x, y, width, height
     vec4 colour;
+    vec4 shadowColour;
+    vec4 shadowParams;
     vec4 panel0;
     vec4 radii0;
     vec4 deform0;

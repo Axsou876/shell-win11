@@ -139,6 +139,7 @@ qt_add_qml_module(caelestia-shell
     QML_FILES
         src/qml/Main.qml
         src/qml/Theme.qml
+        src/qml/RefreshDriver.qml
         src/qml/Anim.qml
         src/qml/CAnim.qml
         src/qml/PanelController.qml

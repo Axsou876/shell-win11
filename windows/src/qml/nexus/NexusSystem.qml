@@ -17,6 +17,21 @@ Flickable {
     clip: true
     boundsBehavior: Flickable.StopAtBounds
 
+    // Persisted rendering mode. `shellSetting()` is an invokable without a
+    // notifying dependency, so the store's signal is what refreshes this —
+    // otherwise the switch's Binding would put the old value back after a
+    // click.
+    property bool smoothRefresh: Platform.shellSetting("refresh/smooth", false)
+
+    Connections {
+        target: Platform
+
+        function onShellSettingChanged(key) {
+            if (key === "refresh/smooth")
+                root.smoothRefresh = Platform.shellSetting(key, false);
+        }
+    }
+
     // M3Switch writes `checked` itself when clicked, which would remove an
     // inline binding; the Binding element survives that and still refreshes the
     // switch when the service changes the value from elsewhere.
@@ -220,6 +235,20 @@ Flickable {
             theme: root.theme
             role: "titleSmall"
             text: "Comportement"
+        }
+
+        // Qt Quick only paints when something changed. This keeps every shell
+        // window drawing at the monitor's refresh rate instead — identical
+        // pixels, 144 times a second — so it is off by default.
+        ToggleRow {
+            Layout.fillWidth: true
+            theme: root.theme
+            icon: "speed"
+            title: "Rendu à 144 fps"
+            subtitle: "Redessine le shell au rythme de l'écran même à l'arrêt. "
+                + "Plus fluide, mais consomme la batterie."
+            checked: root.smoothRefresh
+            onToggled: checked => Platform.setShellSetting("refresh/smooth", checked)
         }
 
         ToggleRow {

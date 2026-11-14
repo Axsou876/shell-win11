@@ -9,6 +9,8 @@ layout(std140, binding = 0) uniform buf {
     vec4 sizeParams; // width, height, hole radius, smoothing
     vec4 frame; // hole x, y, width, height
     vec4 colour;
+    vec4 shadowColour;
+    vec4 shadowParams; // offset x, offset y, blur radius (px), unused
     vec4 panel0;
     vec4 radii0;
     vec4 deform0;
@@ -22,7 +24,6 @@ layout(std140, binding = 0) uniform buf {
     vec4 radii3;
     vec4 deform3;
 };
-
 float sdBox(vec2 p, vec2 c, vec2 h) {
     vec2 d = abs(p - c) - h;
     return length(max(d, vec2(0.0))) + min(max(d.x, d.y), 0.0);
@@ -93,8 +94,12 @@ float borderSink(vec2 p, vec4 panel, vec2 size, vec4 hole, float smoothing) {
     return s;
 }
 
-void main() {
-    vec2 p = qt_TexCoord0 * sizeParams.xy;
+// Distance to the whole merged blob (negative inside). The drop shadow is the
+// same function evaluated at an offset point, which is why it lives in its own
+// function: a full-screen blurred copy of this surface costs ~20 ms a frame on
+// integrated graphics, this costs a second SDF evaluation on the few pixels
+// that are outside the blob.
+float blobDistance(vec2 p) {
     float smoothing = sizeParams.w;
 
     // The surface is the work area minus a rounded hole. The 60 px left band
@@ -126,10 +131,27 @@ void main() {
     if (panel3.z > 0.5 && panel3.w > 0.5)
         d = smin(d, panelSdf(p, panel3, radii3, deform3), smoothing);
 
+    return d;
+}
+
+void main() {
+    vec2 p = qt_TexCoord0 * sizeParams.xy;
+    float d = blobDistance(p);
+
     float fw = max(fwidth(d), 0.0001);
-    float alpha = (1.0 - smoothstep(-fw, fw, d)) * colour.a;
-    if (alpha <= 0.0)
-        discard;
+    float coverage = 1.0 - smoothstep(-fw, fw, d);
+
+    if (coverage <= 0.0) {
+        // Outside the blob: only the shadow can appear, so evaluate the shape
+        // at the offset point and fade it out over the blur radius.
+        float ds = blobDistance(p - shadowParams.xy);
+        float sa = (1.0 - smoothstep(-shadowParams.z * 0.6, shadowParams.z, ds))
+            * shadowColour.a;
+        if (sa <= 0.002)
+            discard;
+        fragColor = vec4(shadowColour.rgb * sa, sa) * qt_Opacity;
+        return;
+    }
 
     // A hairline highlight along the contour gives the blob an edge to catch
     // the light. It matters most on a dark wallpaper, where a drop shadow has
@@ -138,5 +160,6 @@ void main() {
     // distance to the merged blob, not to the individual shapes.
     vec3 rgb = colour.rgb + vec3(0.06) * (1.0 - smoothstep(0.0, 2.0, abs(d)));
 
+    float alpha = coverage * colour.a;
     fragColor = vec4(rgb * alpha, alpha) * qt_Opacity;
 }

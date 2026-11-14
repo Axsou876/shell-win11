@@ -15,6 +15,8 @@ Window {
     // True while the lock screen is being prepared or is up. A topmost AppBar
     // must not compete with the lock window for the highest slot.
     property bool suspended: false
+    // Nexus > Système: render at the display refresh instead of on demand.
+    property bool smoothRefresh: false
 
     readonly property var screenData: {
         const screens = Platform.screens;
@@ -211,6 +213,11 @@ Window {
                     && overlay.controller.currentScreenName === overlay.screenName)
                 overlay.controller.closePanel();
         }
+    }
+
+    RefreshDriver {
+        targetWindow: overlay
+        active: overlay.smoothRefresh
     }
 
     ScreenSurface {

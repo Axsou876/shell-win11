@@ -193,6 +193,8 @@ QtObject {
     readonly property int borderRounding: 25
     readonly property int borderSmoothing: 20
     readonly property real shadowOpacity: 0.7
+    // Drop-shadow falloff, drawn analytically by blob.frag (no blur pass).
+    readonly property int shadowBlurRadius: 22
     readonly property real appearanceDeformScale: 1
 
     // Large shell surfaces (Caelestia tokens).

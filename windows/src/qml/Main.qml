@@ -20,6 +20,10 @@ Item {
     // Arbitrary colour behind the "Perso" scheme, written by the colour
     // dialog in Nexus > Apparence.
     property string accentKey: Platform.shellSetting("appearance/accent", "#5b9dff")
+    // Nexus > Système: keep every shell window rendering at the display
+    // refresh instead of on demand. Off by default: an idle shell has nothing
+    // to redraw, and the extra frames cost battery.
+    property bool smoothRefresh: Platform.shellSetting("refresh/smooth", false)
     // See-through amount of the shell surface, written by the opacity slider.
     property real opacityKey: {
         const value = Number(Platform.shellSetting("appearance/opacity", 0.85));
@@ -53,6 +57,8 @@ Item {
                 app.accentKey = Platform.shellSetting(key, "#5b9dff");
             else if (key === "appearance/opacity")
                 app.opacityKey = Number(Platform.shellSetting(key, 0.85));
+            else if (key === "refresh/smooth")
+                app.smoothRefresh = Platform.shellSetting(key, false);
         }
     }
 
@@ -184,6 +190,11 @@ Item {
             // Ctrl+Q/Esc). Duplicating them here made Qt report ambiguous
             // shortcuts, so the bar window keeps none.
 
+            RefreshDriver {
+                targetWindow: barWindow
+                active: app.smoothRefresh
+            }
+
             Bar {
                 anchors.fill: parent
                 theme: appTheme
@@ -205,6 +216,7 @@ Item {
             theme: appTheme
             controller: panelController
             suspended: lockOverlay.preparing || lockOverlay.active
+            smoothRefresh: app.smoothRefresh
         }
     }
 
