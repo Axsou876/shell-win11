@@ -861,7 +861,11 @@ attendu pour des indicateurs vivants.
   comparées en préfixe pour ne pas matcher au milieu d'un mot. La molette
   au-dessus de la colonne change de bureau — vers le bas le suivant, vers le
   haut le précédent, sans bouclage (`VirtualDesktops.switchBy`) — et les
-  boutons « + » / « − » ont été retirés de la pastille.
+  boutons « + » / « − » ont été retirés de la pastille. Elle n'agit que sur
+  les lignes elles-mêmes (formes et glyphes), pas sur le fond arrondi, pour
+  qu'un survol distrait ne change pas de bureau. La molette ne crée jamais de
+  bureau : quand la liste en contient déjà un de plus que le nombre affiché,
+  c'est un bureau vide existant qui devient actif.
 - Modules Caelestia encore absents : session/login, clavier, VPN, enregistreur
   d'écran.
   Notifications, launcher, dashboard, météo, média, wallpaper, OSD, volume,

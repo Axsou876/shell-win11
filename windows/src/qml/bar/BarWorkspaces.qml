@@ -38,23 +38,18 @@ Item {
     visible: available
 
     // Wheel over the workspace column switches desktop: down goes to the next
-    // one, up comes back. The list itself is not interactive, so nothing else
-    // claims the wheel here. The accumulator turns a precision touchpad's
+    // one, up comes back. The accumulator turns a precision touchpad's
     // fractional deltas into one switch per real notch instead of a blur.
     property real wheelAccumulator: 0
 
-    WheelHandler {
-        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-
-        onWheel: event => {
-            root.wheelAccumulator += event.angleDelta.y;
-            if (Math.abs(root.wheelAccumulator) < 120)
-                return;
-            const direction = root.wheelAccumulator < 0 ? 1 : -1;
-            root.wheelAccumulator = 0;
-            VirtualDesktops.switchBy(direction);
-            event.accepted = true;
-        }
+    function handleWheel(deltaY) {
+        root.wheelAccumulator += deltaY;
+        if (Math.abs(root.wheelAccumulator) < 120)
+            return false;
+        const direction = root.wheelAccumulator < 0 ? 1 : -1;
+        root.wheelAccumulator = 0;
+        VirtualDesktops.switchBy(direction);
+        return true;
     }
 
     Behavior on implicitHeight {
@@ -154,6 +149,18 @@ Item {
             interactive: false
             clip: false
             model: VirtualDesktops
+
+            // The wheel only acts on the rows themselves — the shapes and the
+            // window glyphs. Hovering the empty padding of the pill must not
+            // change desktop by accident.
+            WheelHandler {
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+
+                onWheel: event => {
+                    if (root.handleWheel(event.angleDelta.y))
+                        event.accepted = true;
+                }
+            }
 
             add: Transition {
                 NumberAnimation {
