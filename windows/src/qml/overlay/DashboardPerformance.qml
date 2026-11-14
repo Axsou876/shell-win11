@@ -1,11 +1,14 @@
 ﻿import QtQuick
+import QtQuick.Layouts
 import Caelestia.Platform 1.0
 import ".."
 import "../components"
 
-// Performance tab reconstructed from Performance.qml and performance/*:
-// HeroCard CPU/GPU, StorageCard, NetworkCard, MemoryCard. Values are live
-// Windows measurements; CPU/GPU temperature stays explicit N/D.
+// Performance tab, rebuilt on the Linux layout (modules/dashboard/Performance.qml
+// and dashboard/performance/*): a row of CPU/GPU hero cards above a row of
+// storage / network / memory cards, all sharing the width equally through
+// RowLayout. The values are live Windows measurements; CPU/GPU temperature is
+// the one thing GSMTC has no equivalent for, so it stays explicitly N/D.
 Item {
     id: root
 
@@ -31,6 +34,10 @@ Item {
         border.color: Qt.alpha(theme.outlineVariant, 0.25)
     }
 
+    // Caelestia's HeroCard: usage ring top-left, name and model beside it, the
+    // temperature block bottom-left, and a large shape bottom-right whose form
+    // follows the load — Cookie4Sided below 40 %, Sunny below 80 %, SoftBurst
+    // above. The shape is the card's identity, not decoration.
     component HeroCard: Card {
         id: hero
 
@@ -42,16 +49,21 @@ Item {
         required property bool usageAvailable
         property bool animations: true
 
+        readonly property real ratio: usageAvailable
+            ? Math.max(0, Math.min(1, usage / 100)) : 0
+
         radius: root.theme.roundingExtraLarge
 
         CircularProgress {
-            x: 16
-            y: 16
-            width: 100
-            height: 100
+            id: usageRing
+
+            x: root.theme.paddingLarge
+            y: root.theme.paddingLarge
+            width: hero.theme.iconMedium + root.theme.paddingMedium * 2
+            height: width
             theme: root.theme
             animate: hero.animations
-            value: hero.usageAvailable ? hero.usage / 100 : 0
+            value: hero.ratio
             strokeWidth: 4
             fgColour: hero.accent
 
@@ -59,21 +71,22 @@ Item {
                 anchors.centerIn: parent
                 theme: root.theme
                 text: hero.icon
-                iconSize: 24
+                iconSize: root.theme.iconMedium
                 color: hero.accent
             }
         }
 
         Column {
-            x: 132
-            y: 18
-            width: Math.max(0, usageShape.x - x - 8)
-            spacing: 2
+            anchors.left: usageRing.right
+            anchors.right: usageShape.left
+            anchors.leftMargin: root.theme.spacingLarge
+            anchors.rightMargin: root.theme.spacingMedium
+            anchors.verticalCenter: usageRing.verticalCenter
+            spacing: root.theme.spacingExtraSmall
 
             StyledText {
                 theme: root.theme
-                role: "bodyLarge"
-                pointSize: 16
+                role: "titleSmall"
                 weight: Font.DemiBold
                 color: hero.accent
                 text: hero.label
@@ -90,10 +103,10 @@ Item {
         }
 
         Row {
-            x: 16
+            anchors.left: parent.left
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: 18
-            spacing: 6
+            anchors.margins: root.theme.paddingLargeIncreased
+            spacing: root.theme.spacingExtraSmall
 
             MaterialIcon {
                 anchors.verticalCenter: parent.verticalCenter
@@ -108,30 +121,36 @@ Item {
                 theme: root.theme
                 role: "bodySmall"
                 color: root.theme.onSurfaceVariantColour
-                text: "Température N/D"
+                text: "N/D"
             }
         }
 
-        StyledText {
-            anchors.horizontalCenter: usageShape.horizontalCenter
-            anchors.bottom: usageShape.top
-            anchors.bottomMargin: 2
-            theme: root.theme
-            role: "bodySmall"
-            color: root.theme.onSurfaceVariantColour
-            text: "Usage"
-        }
-
-        Rectangle {
+        MaterialShape {
             id: usageShape
 
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            anchors.margins: 12
-            width: 100
-            height: 100
-            radius: 28
+            anchors.margins: root.theme.paddingMedium
+            implicitSize: 100
             color: root.theme.secondaryContainer
+            shape: hero.ratio >= 0.8 ? MaterialShape.SoftBurst
+                : hero.ratio >= 0.4 ? MaterialShape.Sunny
+                : MaterialShape.Cookie4Sided
+
+            Behavior on color {
+                CAnim {}
+            }
+
+            StyledText {
+                id: usageLabel
+
+                anchors.bottom: parent.top
+                anchors.horizontalCenter: parent.horizontalCenter
+                theme: root.theme
+                role: "bodySmall"
+                color: root.theme.onSurfaceVariantColour
+                text: "Usage"
+            }
 
             StyledText {
                 anchors.centerIn: parent
@@ -145,125 +164,92 @@ Item {
         }
     }
 
-    HeroCard {
-        x: 0
-        y: 0
-        width: System.gpuUsageAvailable ? (root.width - root.theme.spacingMedium) / 2 : root.width
-        height: 180
-        theme: root.theme
-        animations: root.animations
-        icon: "memory"
-        label: "CPU"
-        subLabel: System.cpuName
-        accent: root.theme.primary
-        usage: System.cpuUsage
-        usageAvailable: true
-    }
-
-    HeroCard {
-        visible: System.gpuUsageAvailable
-        x: (root.width - root.theme.spacingMedium) / 2 + root.theme.spacingMedium
-        y: 0
-        width: (root.width - root.theme.spacingMedium) / 2
-        height: 180
-        theme: root.theme
-        animations: root.animations
-        icon: "desktop_windows"
-        label: "GPU"
-        subLabel: System.gpuName !== "" ? System.gpuName : "Aucun GPU détecté"
-        accent: root.theme.secondary
-        usage: System.gpuUsage
-        usageAvailable: System.gpuUsageAvailable
-    }
-
-    // --- Storage -----------------------------------------------------------
-    Card {
-        x: 0
-        y: 192
-        width: 280
-        height: root.height - 192
+    // Storage: used-percentage ring beside the absolute figures, as in
+    // StorageCard.qml. The Linux card also carries a disk picker; Windows
+    // exposes a single system volume here, so there is nothing to pick.
+    component StorageCard: Card {
         radius: root.theme.roundingExtraLargeIncreased
-        theme: root.theme
 
-        CircularProgress {
-            id: storageRing
+        Row {
+            anchors.centerIn: parent
+            spacing: root.theme.spacingLarge
 
-            x: 24
-            anchors.verticalCenter: parent.verticalCenter
-            width: 132
-            height: 132
-            theme: root.theme
-            animate: root.animations
-            value: System.diskPercent / 100
-            startAngle: -225
-            sweepAngle: 270
-            strokeWidth: 6
-            fgColour: root.theme.secondary
+            CircularProgress {
+                id: storageRing
+
+                width: 132
+                height: 132
+                theme: root.theme
+                animate: root.animations
+                value: System.diskPercent / 100
+                startAngle: -225
+                sweepAngle: 270
+                strokeWidth: 6
+                fgColour: root.theme.secondary
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 0
+
+                    MaterialIcon {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        theme: root.theme
+                        text: "hard_drive"
+                        iconSize: 20
+                        color: root.theme.secondary
+                    }
+
+                    StyledText {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        theme: root.theme
+                        role: "bodyLarge"
+                        pointSize: 22
+                        weight: Font.DemiBold
+                        color: root.theme.secondary
+                        text: Math.round(System.diskPercent) + "%"
+                    }
+
+                    StyledText {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        theme: root.theme
+                        role: "labelSmall"
+                        color: root.theme.onSurfaceVariantColour
+                        text: "Utilisé"
+                    }
+                }
+            }
 
             Column {
-                anchors.centerIn: parent
-                spacing: 0
-
-                MaterialIcon {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    theme: root.theme
-                    text: "hard_drive"
-                    iconSize: 20
-                    color: root.theme.secondary
-                }
+                anchors.verticalCenter: parent.verticalCenter
+                width: Math.max(storageText.implicitWidth, root.theme.paddingExtraLarge * 2)
+                spacing: root.theme.spacingExtraSmall
 
                 StyledText {
-                    anchors.horizontalCenter: parent.horizontalCenter
                     theme: root.theme
-                    role: "bodyLarge"
-                    pointSize: 22
+                    role: "titleSmall"
                     weight: Font.DemiBold
-                    color: root.theme.secondary
-                    text: Math.round(System.diskPercent) + "%"
+                    text: "Stockage"
                 }
 
                 StyledText {
-                    anchors.horizontalCenter: parent.horizontalCenter
+                    id: storageText
+
                     theme: root.theme
-                    role: "labelSmall"
-                    color: root.theme.onSurfaceVariantColour
-                    text: "Utilisé"
+                    role: "bodyMedium"
+                    color: root.theme.secondary
+                    text: System.diskUsedGb.toFixed(0) + " / "
+                        + System.diskTotalGb.toFixed(0) + " Go"
                 }
-            }
-        }
-
-        Column {
-            x: storageRing.x + storageRing.width + 18
-            anchors.verticalCenter: parent.verticalCenter
-            width: parent.width - x - 16
-            spacing: 4
-
-            StyledText {
-                theme: root.theme
-                role: "titleSmall"
-                weight: Font.DemiBold
-                text: "Stockage"
-            }
-
-            StyledText {
-                theme: root.theme
-                role: "bodyMedium"
-                color: root.theme.secondary
-                text: System.diskUsedGb.toFixed(0) + " / " + System.diskTotalGb.toFixed(0) + " Go"
             }
         }
     }
 
-    // --- Network -----------------------------------------------------------
-    Card {
-        id: networkCard
+    // Network: header, sparkline filling the middle, then download and upload
+    // rows pinned to the bottom — NetworkCard.qml.
+    component NetworkCard: Card {
+        id: network
 
-        x: 292
-        y: 192
-        width: 380
-        height: root.height - 192
         radius: root.theme.roundingExtraLarge
-        theme: root.theme
 
         property var downValues: []
         property var upValues: []
@@ -274,97 +260,90 @@ Item {
             repeat: true
             triggeredOnStart: true
             onTriggered: {
-                let down = networkCard.downValues.slice();
-                let up = networkCard.upValues.slice();
+                let down = network.downValues.slice();
+                let up = network.upValues.slice();
                 down.push(Math.max(0, System.networkDownKbps));
                 up.push(Math.max(0, System.networkUpKbps));
                 if (down.length > 60)
                     down.shift();
                 if (up.length > 60)
                     up.shift();
-                networkCard.downValues = down;
-                networkCard.upValues = up;
+                network.downValues = down;
+                network.upValues = up;
             }
         }
 
         readonly property real graphMax: {
-            let maxValue = 1024;
+            let maximum = 1024;
             for (let i = 0; i < downValues.length; ++i)
-                maxValue = Math.max(maxValue, downValues[i]);
+                maximum = Math.max(maximum, downValues[i]);
             for (let i = 0; i < upValues.length; ++i)
-                maxValue = Math.max(maxValue, upValues[i]);
-            return maxValue * 1.15;
+                maximum = Math.max(maximum, upValues[i]);
+            return maximum * 1.15;
         }
 
-        Row {
-            id: networkHeader
-
-            x: 16
-            y: 14
-            spacing: 6
-
-            MaterialIcon {
-                anchors.verticalCenter: parent.verticalCenter
-                theme: root.theme
-                text: "swap_vert"
-                iconSize: 20
-                color: root.theme.primary
-            }
-
-            StyledText {
-                anchors.verticalCenter: parent.verticalCenter
-                theme: root.theme
-                role: "titleSmall"
-                weight: Font.DemiBold
-                text: "Réseau"
-            }
-        }
-
-        Item {
-            id: graph
-
-            x: 16
-            y: networkHeader.y + networkHeader.height + 10
-            width: parent.width - 32
-            height: parent.height - y - 104
-
-            Sparkline {
-                anchors.fill: parent
-                values: networkCard.downValues
-                maximum: networkCard.graphMax
-                lineColor: root.theme.tertiary
-            }
-
-            Sparkline {
-                anchors.fill: parent
-                values: networkCard.upValues
-                maximum: networkCard.graphMax
-                lineColor: root.theme.secondary
-            }
-
-            StyledText {
-                anchors.centerIn: parent
-                visible: networkCard.downValues.length < 2
-                theme: root.theme
-                role: "bodySmall"
-                color: root.theme.outline
-                text: "Collecte des données…"
-            }
-        }
-
-        Column {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.margins: 16
-            spacing: 6
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: root.theme.paddingLarge
+            anchors.bottomMargin: root.theme.paddingMedium
+            spacing: 0
 
             Row {
-                width: parent.width
-                spacing: 6
+                Layout.leftMargin: -root.theme.paddingExtraSmall
+                spacing: root.theme.spacingSmall
 
                 MaterialIcon {
                     anchors.verticalCenter: parent.verticalCenter
+                    theme: root.theme
+                    text: "swap_vert"
+                    iconSize: 20
+                    color: root.theme.primary
+                }
+
+                StyledText {
+                    anchors.verticalCenter: parent.verticalCenter
+                    theme: root.theme
+                    role: "titleSmall"
+                    weight: Font.DemiBold
+                    text: "Réseau"
+                }
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.topMargin: root.theme.spacingMedium
+                Layout.bottomMargin: root.theme.spacingSmall
+
+                Sparkline {
+                    anchors.fill: parent
+                    values: network.downValues
+                    maximum: network.graphMax
+                    lineColor: root.theme.tertiary
+                }
+
+                Sparkline {
+                    anchors.fill: parent
+                    values: network.upValues
+                    maximum: network.graphMax
+                    lineColor: root.theme.secondary
+                }
+
+                StyledText {
+                    anchors.centerIn: parent
+                    visible: network.downValues.length < 2
+                    theme: root.theme
+                    role: "bodySmall"
+                    color: root.theme.outline
+                    text: "Collecte des données…"
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: root.theme.spacingSmall
+
+                MaterialIcon {
                     theme: root.theme
                     text: "download"
                     iconSize: 18
@@ -372,17 +351,17 @@ Item {
                 }
 
                 StyledText {
-                    anchors.verticalCenter: parent.verticalCenter
+                    text: "Téléchargement"
                     theme: root.theme
                     role: "bodySmall"
                     color: root.theme.onSurfaceVariantColour
-                    text: "Téléchargement"
                 }
 
-                Item { width: parent.width - 220; height: 1 }
+                Item {
+                    Layout.fillWidth: true
+                }
 
                 StyledText {
-                    anchors.verticalCenter: parent.verticalCenter
                     theme: root.theme
                     role: "bodySmall"
                     weight: Font.Medium
@@ -391,12 +370,11 @@ Item {
                 }
             }
 
-            Row {
-                width: parent.width
-                spacing: 6
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: root.theme.spacingSmall
 
                 MaterialIcon {
-                    anchors.verticalCenter: parent.verticalCenter
                     theme: root.theme
                     text: "upload"
                     iconSize: 18
@@ -404,17 +382,17 @@ Item {
                 }
 
                 StyledText {
-                    anchors.verticalCenter: parent.verticalCenter
+                    text: "Envoi"
                     theme: root.theme
                     role: "bodySmall"
                     color: root.theme.onSurfaceVariantColour
-                    text: "Envoi"
                 }
 
-                Item { width: parent.width - 220; height: 1 }
+                Item {
+                    Layout.fillWidth: true
+                }
 
                 StyledText {
-                    anchors.verticalCenter: parent.verticalCenter
                     theme: root.theme
                     role: "bodySmall"
                     weight: Font.Medium
@@ -425,71 +403,141 @@ Item {
         }
     }
 
-    // --- Memory ------------------------------------------------------------
-    Card {
-        x: 684
-        y: 192
-        width: root.width - 684
-        height: root.height - 192
+    // Memory: title above the ring, absolute figures under it — MemoryCard.qml.
+    component MemoryCard: Card {
         radius: root.theme.roundingMedium
-        theme: root.theme
 
-        CircularProgress {
-            id: memoryRing
+        Column {
+            anchors.centerIn: parent
+            spacing: root.theme.spacingExtraSmall
 
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 22
-            width: 150
-            height: 150
-            theme: root.theme
-            animate: root.animations
-            value: System.memoryPercent / 100
-            startAngle: -225
-            sweepAngle: 270
-            strokeWidth: 7
-            fgColour: root.theme.tertiary
+            Row {
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: root.theme.spacingSmall
 
-            Column {
-                anchors.centerIn: parent
-                spacing: 0
-
-                StyledText {
-                    anchors.horizontalCenter: parent.horizontalCenter
+                MaterialIcon {
+                    anchors.verticalCenter: parent.verticalCenter
                     theme: root.theme
-                    role: "bodyLarge"
-                    pointSize: 26
-                    weight: Font.DemiBold
+                    text: "memory_alt"
+                    iconSize: 20
                     color: root.theme.tertiary
-                    text: Math.round(System.memoryPercent) + "%"
                 }
 
                 StyledText {
-                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.verticalCenter: parent.verticalCenter
                     theme: root.theme
-                    role: "labelSmall"
-                    color: root.theme.onSurfaceVariantColour
-                    text: "Utilisé"
+                    role: "titleSmall"
+                    weight: Font.DemiBold
+                    text: "Mémoire"
                 }
+            }
+
+            CircularProgress {
+                id: memoryRing
+
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: 150
+                height: 150
+                theme: root.theme
+                animate: root.animations
+                value: System.memoryPercent / 100
+                startAngle: -225
+                sweepAngle: 270
+                strokeWidth: 7
+                fgColour: root.theme.tertiary
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 0
+
+                    StyledText {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        theme: root.theme
+                        role: "bodyLarge"
+                        pointSize: 26
+                        weight: Font.DemiBold
+                        color: root.theme.tertiary
+                        text: Math.round(System.memoryPercent) + "%"
+                    }
+
+                    StyledText {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        theme: root.theme
+                        role: "labelSmall"
+                        color: root.theme.onSurfaceVariantColour
+                        text: "Utilisé"
+                    }
+                }
+            }
+
+            StyledText {
+                anchors.horizontalCenter: parent.horizontalCenter
+                theme: root.theme
+                role: "bodyMedium"
+                text: System.memoryUsedGb.toFixed(1) + " / "
+                    + System.memoryTotalGb.toFixed(1) + " Go"
+            }
+        }
+    }
+
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: root.theme.spacingMedium
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: root.theme.spacingMedium
+
+            HeroCard {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 180
+                theme: root.theme
+                animations: root.animations
+                icon: "memory"
+                label: "CPU"
+                subLabel: System.cpuName
+                accent: root.theme.primary
+                usage: System.cpuUsage
+                usageAvailable: true
+            }
+
+            HeroCard {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 180
+                visible: System.gpuUsageAvailable
+                theme: root.theme
+                animations: root.animations
+                icon: "desktop_windows"
+                label: "GPU"
+                subLabel: System.gpuName !== "" ? System.gpuName : "Aucun GPU détecté"
+                accent: root.theme.secondary
+                usage: System.gpuUsage
+                usageAvailable: System.gpuUsageAvailable
             }
         }
 
-        StyledText {
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: memoryRing.bottom
-            anchors.topMargin: 12
-            theme: root.theme
-            role: "titleSmall"
-            weight: Font.DemiBold
-            text: "Mémoire"
-        }
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            spacing: root.theme.spacingMedium
 
-        StyledText {
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: memoryRing.bottom
-            anchors.topMargin: 34
-            theme: root.theme
-            role: "bodyMedium"
-            text: System.memoryUsedGb.toFixed(1) + " / " + System.memoryTotalGb.toFixed(1) + " Go"
+            StorageCard {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                theme: root.theme
+            }
+
+            NetworkCard {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                theme: root.theme
+            }
+
+            MemoryCard {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                theme: root.theme
+            }
         }
     }
 
