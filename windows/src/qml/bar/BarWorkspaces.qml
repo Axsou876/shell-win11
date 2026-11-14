@@ -4,6 +4,7 @@ import QtQuick
 import Caelestia.Platform 1.0
 import ".."
 import "../components"
+import "../components/WindowIcons.js" as WindowIcons
 
 // Real Windows virtual desktops in the Caelestia bar. The service publishes the
 // actual Explorer desktop order, active desktop and window mapping; this item
@@ -18,6 +19,7 @@ Item {
     property Item activeRow: null
     property Item dragTargetRow: null
     property string draggingWindowId: ""
+    property string draggingApp: ""
     property point dragPoint: Qt.point(0, 0)
 
     property int focusedShape: MaterialShape.Diamond
@@ -56,8 +58,9 @@ Item {
         return null;
     }
 
-    function beginWindowDrag(windowId, scenePoint) {
+    function beginWindowDrag(windowId, appName, scenePoint) {
         draggingWindowId = windowId;
+        draggingApp = appName;
         dragPoint = root.mapFromItem(null, scenePoint.x, scenePoint.y);
         dragTargetRow = rowAt(dragPoint.y);
     }
@@ -269,6 +272,8 @@ Item {
 
                             property string windowId: row.windows[index]
                                 ? row.windows[index].id : ""
+                            property string appName: row.windows[index]
+                                ? row.windows[index].app : ""
 
                             width: 20
                             height: 20
@@ -280,7 +285,7 @@ Item {
                                 onActiveChanged: {
                                     if (active)
                                         root.beginWindowDrag(windowIcon.windowId,
-                                            centroid.scenePosition);
+                                            windowIcon.appName, centroid.scenePosition);
                                     else
                                         root.endWindowDrag();
                                 }
@@ -297,7 +302,10 @@ Item {
                             MaterialIcon {
                                 anchors.centerIn: parent
                                 theme: root.theme
-                                text: "window"
+                                // Same idea as Caelestia's workspace pills: a
+                                // category glyph per window (terminal, game,
+                                // browser…), not a generic square.
+                                text: WindowIcons.iconFor(windowIcon.appName)
                                 iconSize: 18
                                 color: row.active ? root.theme.onPrimaryColour
                                     : root.theme.onSurfaceVariantColour
@@ -394,7 +402,7 @@ Item {
         MaterialIcon {
             anchors.centerIn: parent
             theme: root.theme
-            text: "window"
+            text: WindowIcons.iconFor(root.draggingApp)
             iconSize: 16
             color: root.theme.onSurfaceColour
         }

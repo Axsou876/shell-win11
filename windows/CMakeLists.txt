@@ -160,6 +160,7 @@ qt_add_qml_module(caelestia-shell
         src/qml/components/CircularProgress.qml
         src/qml/components/AudioVisualizer.qml
         src/qml/components/PanelHeader.qml
+        src/qml/components/WindowIcons.js
         src/qml/bar/BarWorkspaces.qml
         src/qml/bar/BarFavorites.qml
         src/qml/bar/BarActiveWindow.qml

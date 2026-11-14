@@ -850,7 +850,15 @@ attendu pour des indicateurs vivants.
 - Les workspaces de la barre sont réels (`VirtualDesktopService`) ; le bouton
   power ouvre le menu de session — se déconnecter, mettre en veille,
   redémarrer, arrêter (avec confirmation) et l'engrenage vers le panneau de
-  réglages.
+  réglages. Chaque bureau occupe une forme Material et liste jusqu'à trois
+  fenêtres, chacune avec le **glyphe de sa catégorie** comme dans Caelestia
+  (`utils/Icons.qml`, `getAppCategoryIcon`) plutôt qu'un carreau générique :
+  terminal, navigateur, jeu, chat, musique, éditeur de code… Windows n'expose
+  pas les catégories DesktopEntry, donc `components/WindowIcons.js` les
+  reconstruit à partir du nom de processus publié par le service (`app`),
+  du plus spécifique au plus général, avec `window` en dernier recours. Les
+  aiguilles de trois caractères ou moins (`wt`, `cmd`, `gta`, `cs2`) sont
+  comparées en préfixe pour ne pas matcher au milieu d'un mot.
 - Modules Caelestia encore absents : session/login, clavier, VPN, enregistreur
   d'écran.
   Notifications, launcher, dashboard, météo, média, wallpaper, OSD, volume,
