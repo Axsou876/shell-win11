@@ -25,10 +25,11 @@ Item {
         id: pill
 
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
-        // Floating, not glued: the shell's own 10 px frame sits at the very
-        // bottom, and a pill touching it read as squashed.
-        anchors.bottomMargin: 22
+        // Pinned to the top of the reserved band, not to the screen edge: the
+        // pill floats just under the windows and the empty space falls below
+        // it, which is what stops it reading as a glued-on taskbar.
+        anchors.top: parent.top
+        anchors.topMargin: 10
         width: Math.max(row.implicitWidth, emptyHint.implicitWidth + hintSpacing)
             + root.theme.paddingLarge * 2
         height: root.pillHeight

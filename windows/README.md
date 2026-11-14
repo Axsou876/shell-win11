@@ -641,6 +641,26 @@ Limites assumées :
 - Le séparateur décimal est toujours `.` : le panneau est un champ de recherche,
   et une virgule reste le séparateur d'arguments de `min(1, 2)`.
 
+## Dock d'applications
+
+Pastille flottante en bas de chaque écran (`src/qml/dock/Dock.qml`), une entrée
+par fenêtre du bureau courant. Clic : la fenêtre passe au premier plan.
+L'icône est celle de l'exécutable, extraite par `Platform.windowIcon`
+(`WM_GETICON`, repli `SHGetFileInfo`), encodée en data: URL et mise en cache par
+handle — l'extraction est trop chère pour un rafraîchissement à 1 Hz. À défaut,
+le glyphe de catégorie de `WindowIcons.js`. La fenêtre active porte une barre
+sous son icône, les autres un point.
+
+Le bas de l'écran est **réservé** par un AppBar (`ABE_BOTTOM`) : les fenêtres
+maximisées s'arrêtent au-dessus du dock au lieu de glisser dessous. La bande fait
+128 px et la pastille (64 px) est ancrée **en haut** de cette bande, juste sous
+les fenêtres, l'espace vide restant en dessous — collée au bord de l'écran, elle
+chevauchait le cadre de 10 px du shell et se lisait comme une barre écrasée.
+`AppBarEntry` porte désormais une arête (`Left`/`Bottom`) et une taille ; le
+suivi de `m_appBarWidth`/`m_appBarHeight` ne se fait que pour l'arête possédée
+par chaque barre, sinon le dock (large de tout l'écran) écrasait la largeur
+annoncée par la barre de gauche.
+
 ## Dock de notifications (sidebar)
 
 Sous Linux, la liste de notifications *est* la sidebar (`modules/notifications`).

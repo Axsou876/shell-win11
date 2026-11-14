@@ -234,14 +234,14 @@ Item {
             x: modelData.geometry.x
             y: modelData.geometry.y + modelData.geometry.height - height
             width: modelData.geometry.width
-            height: 96
+            height: 128
             visible: !areaPicker.active && !lockOverlay.active && !lockOverlay.preparing
             visibility: Window.Windowed
             flags: Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint
             color: "transparent"
             title: "Caelestia Dock — Windows"
 
-            Component.onCompleted: Platform.registerBottomAppBar(dockWindow, 96)
+            Component.onCompleted: Platform.registerBottomAppBar(dockWindow, 128)
             Component.onDestruction: Platform.unregisterAppBar(dockWindow)
 
             Dock {
