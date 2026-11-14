@@ -1,4 +1,4 @@
-﻿import QtQuick
+import QtQuick
 
 QtObject {
     // Strict monochrome palette by default: pure black in dark mode, pure
@@ -16,6 +16,12 @@ QtObject {
     property color systemAccent: "#ffb0ca"
     // Whatever the user picks in the colour dialog, used by "custom".
     property color customAccent: "#5b9dff"
+    // Opacity of the main shell surface (frame, bar, panels, popouts). The
+    // shell windows are translucent, so this is what lets the wallpaper show
+    // through. Only `surface` takes it: the cards drawn on top keep their own
+    // opaque fills, otherwise two stacked 0.9 layers would add up to 0.99 and
+    // the panels would look solid again.
+    property real surfaceOpacity: 0.85
 
     readonly property var schemes: [
         { key: "monochrome", label: "Monochrome", colour: dark ? "#ffffff" : "#000000" },
@@ -131,8 +137,9 @@ QtObject {
     // is indistinguishable from the hole and only the white glyphs showed.
     // #161616 keeps the palette neutral while giving the bar, the frame and
     // the panels a surface you can actually see.
-    readonly property color surface:
-        surfaceColour("#161616", "#ffffff", 0.130, 0.945, 0.55, 0.50)
+    readonly property color surface: Qt.alpha(
+        surfaceColour("#161616", "#ffffff", 0.130, 0.945, 0.55, 0.50),
+        surfaceOpacity)
     readonly property color surfaceDim:
         surfaceColour("#121212", "#d9d9d9", 0.110, 0.900, 0.52, 0.50)
     readonly property color surfaceBright:

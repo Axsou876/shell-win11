@@ -39,12 +39,25 @@ Flickable {
         Platform.setShellSetting("appearance/scheme", "custom");
     }
 
+    property real shellOpacity: 0.85
+
+    function applyShellOpacity(value) {
+        const next = Math.round(Math.max(0.3, Math.min(1, value)) * 100) / 100;
+        if (Math.abs(next - root.shellOpacity) < 0.004)
+            return;
+        root.shellOpacity = next;
+        Platform.setShellSetting("appearance/opacity", next);
+    }
+
     Component.onCompleted: {
         const c = root.theme.customAccent;
         root.customHue = c.hslHue >= 0 ? c.hslHue : 0.6;
         // A stored grey has no hue to show in the strips; keep them usable.
         root.customSaturation = Math.max(0.35, c.hslSaturation);
         root.customLight = c.hslLightness;
+
+        const stored = Number(Platform.shellSetting("appearance/opacity", 0.85));
+        root.shellOpacity = isNaN(stored) ? 0.85 : Math.max(0.3, Math.min(1, stored));
     }
 
     ColumnLayout {
@@ -348,6 +361,53 @@ Flickable {
                         pick(mouse.x);
                 }
                 onReleased: root.applyCustomColour()
+            }
+        }
+
+        StyledText {
+            theme: root.theme
+            role: "titleSmall"
+            text: "Opacité"
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            theme: root.theme
+            role: "labelSmall"
+            color: root.theme.onSurfaceVariantColour
+            wrapMode: Text.WordWrap
+            text: "Le fond du shell laisse voir le fond d'écran. Les cartes des "
+                + "panneaux restent opaques pour que le texte reste lisible."
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: root.theme.spacingSmall
+
+            M3Slider {
+                id: opacitySlider
+
+                Layout.fillWidth: true
+                theme: root.theme
+                onMoved: value => root.applyShellOpacity(value)
+            }
+
+            // M3Slider assigns `value` itself while dragging, which would kill
+            // a plain binding; this re-syncs it whenever the slider is idle.
+            Binding {
+                target: opacitySlider
+                property: "value"
+                value: root.shellOpacity
+                when: !opacitySlider.dragging
+            }
+
+            StyledText {
+                Layout.preferredWidth: 48
+                horizontalAlignment: Text.AlignRight
+                theme: root.theme
+                role: "labelSmall"
+                color: root.theme.onSurfaceVariantColour
+                text: Math.round(root.shellOpacity * 100) + " %"
             }
         }
 

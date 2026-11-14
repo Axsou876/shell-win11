@@ -1,4 +1,4 @@
-﻿pragma ComponentBehavior: Bound
+pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Window
@@ -20,6 +20,11 @@ Item {
     // Arbitrary colour behind the "Perso" scheme, written by the colour
     // dialog in Nexus > Apparence.
     property string accentKey: Platform.shellSetting("appearance/accent", "#5b9dff")
+    // See-through amount of the shell surface, written by the opacity slider.
+    property real opacityKey: {
+        const value = Number(Platform.shellSetting("appearance/opacity", 0.85));
+        return isNaN(value) ? 0.85 : Math.max(0.3, Math.min(1, value));
+    }
 
     Theme {
         id: appTheme
@@ -30,6 +35,7 @@ Item {
         // plain palette object.
         scheme: app.schemeKey
         customAccent: app.accentKey
+        surfaceOpacity: app.opacityKey
         systemAccent: Platform.accentColor
     }
 
@@ -45,6 +51,8 @@ Item {
                 app.schemeKey = Platform.shellSetting(key, "monochrome");
             else if (key === "appearance/accent")
                 app.accentKey = Platform.shellSetting(key, "#5b9dff");
+            else if (key === "appearance/opacity")
+                app.opacityKey = Number(Platform.shellSetting(key, 0.85));
         }
     }
 

@@ -241,6 +241,12 @@ du fond d'écran :
 - **Surface visible** — `Monochrome` peint `#161616` et non `#000000` : un
   shell noir sur un fond noir n'existe pas à l'écran, seuls les glyphes
   blancs ressortaient.
+- **Transparence** — `theme.surface` porte l'alpha réglé dans Nexus
+  (90 % par défaut). Les fenêtres du shell sont déjà translucides
+  (`color: "transparent"` + sans bordure), donc le fond d'écran traverse la
+  barre, le cadre et les popouts. Seul `surface` reçoit l'alpha : les cartes
+  empilées dessus gardent leur propre remplissage opaque, sinon deux couches
+  à 0,9 donneraient 0,99 et les panneaux paraîtraient pleins.
 
 ## Onglet média : paroles et lecture fluide
 
@@ -737,13 +743,15 @@ shell contrôle réellement et délègue le reste par des liens `ms-settings:`.
   HSL construite dans la teinte choisie. `Monochrome` n'est plus du noir pur :
   sur un fond sombre le shell se confondait avec le trou et seuls les glyphes
   blancs ressortaient, la surface est donc à `#161616`. La saturation du
-  sélecteur libre est
-  celle de l'accent enregistré, si bien que la page se rouvre sur la couleur
-  exacte en service. Le choix est écrit dans `QSettings` via
-  `Platform.setShellSetting` (`appearance/scheme`, `appearance/accent`) et relu
-  au démarrage. Il s'applique aussi **sans redémarrer** : `setShellSetting` émet
-  `shellSettingChanged`, `Main.qml` réextrait les deux clés dans `schemeKey` et
-  `accentKey`, et l'unique objet `Theme` partagé repaint d'un coup la barre, les
+  sélecteur libre est celle de l'accent enregistré, si bien que la page se
+  rouvre sur la couleur exacte en service. Un curseur « Opacité »
+  (`appearance/opacity`, 30–100 %, 90 % par défaut) rend la surface du shell
+  translucide en direct. Le choix est écrit dans `QSettings` via
+  `Platform.setShellSetting` (`appearance/scheme`, `appearance/accent`,
+  `appearance/opacity`) et relu au démarrage. Il s'applique aussi **sans
+  redémarrer** : `setShellSetting` émet `shellSettingChanged`, `Main.qml`
+  réextrait les clés dans `schemeKey`, `accentKey` et `opacityKey`, et l'unique
+  objet `Theme` partagé repaint d'un coup la barre, les
   panneaux, les popouts et l'écran de verrouillage. (Lire
   `Platform.shellSetting(...)` directement dans une liaison ne suffit pas :
   c'est un `Q_INVOKABLE` sans dépendance notifiable, la liaison ne se réévalue
