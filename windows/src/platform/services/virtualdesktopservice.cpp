@@ -18,6 +18,10 @@
 using Microsoft::WRL::ComPtr;
 
 namespace {
+// The bar shows three desktops at most: beyond that the column gets taller
+// than the bar and a single wheel gesture would keep manufacturing desktops.
+constexpr int kMaxDesktops = 3;
+
 const CLSID kImmersiveShell
     = { 0xC2F03A33, 0x21F5, 0x47FA, { 0xB4, 0xBB, 0x15, 0x63, 0x62, 0xA2, 0xF2, 0x39 } };
 const CLSID kVirtualDesktopManagerInternal
@@ -280,11 +284,12 @@ void VirtualDesktopService::switchBy(int delta)
 
     if (delta > 0) {
         // Forward: the next existing desktop, or a brand new one when this is
-        // the last. Explorer switches to a desktop it just created, so the
-        // scroll keeps going down the column instead of stopping dead.
+        // the last — up to the cap. Explorer switches to a desktop it just
+        // created, so the scroll keeps going down the column instead of
+        // stopping dead.
         if (current + 1 < m_desktops.size())
             switchTo(m_desktops.at(current + 1).toMap().value(QStringLiteral("id")).toString());
-        else
+        else if (m_desktops.size() < kMaxDesktops)
             createDesktop();
         return;
     }
@@ -296,6 +301,13 @@ void VirtualDesktopService::switchBy(int delta)
 
 void VirtualDesktopService::createDesktop()
 {
+    // The bar only offers three: more than that makes the column unreadable
+    // and the wheel gesture turns into a desktop factory.
+    if (m_desktops.size() >= kMaxDesktops) {
+        if (!qEnvironmentVariableIsEmpty("CAELESTIA_DEBUG_VDESK"))
+            qInfo().noquote() << "VDESK create refused, already" << m_desktops.size();
+        return;
+    }
     enqueue({ CommandType::Create, {}, {} });
 }
 

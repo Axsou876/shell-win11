@@ -56,6 +56,9 @@ constexpr UINT_PTR kFocusTimer = 4;
 constexpr int kHotkeyBase = 0x4100;
 constexpr int kAnimationDurationMs = 180;
 constexpr int kAnimationTickMs = 7;
+// How far a window starts away from its tile when the desktop changes, so the
+// new desktop slides in from below (or above when going back up the column).
+constexpr int kDesktopSlidePixels = 120;
 
 HWND g_messageWindow = nullptr;
 
@@ -484,6 +487,10 @@ struct WindowManagerService::Impl {
     bool animationTimerRunning = false;
     QString defaultLayout = QStringLiteral("dwindle");
     QString currentDesktopId;
+    // Set by applyDesktop, consumed by the first placement pass after the
+    // switch: +1 when moving down the column, -1 when moving up, 0 otherwise.
+    int slideDirection = 0;
+    bool slidePending = false;
     int desktopIndex = -1;
     int desktopCount = 0;
     HWND activeWindow = nullptr;
@@ -808,6 +815,14 @@ struct WindowManagerService::Impl {
         if (!currentDesktopId.isEmpty())
             saveCurrentLayouts();
 
+        // A desktop change slides its windows into place. The direction comes
+        // from the column in the bar: going down means the new desktop enters
+        // from below, going up from above.
+        if (desktopIndex >= 0 && index >= 0 && index != desktopIndex) {
+            slideDirection = index > desktopIndex ? 1 : -1;
+            slidePending = true;
+        }
+
         currentDesktopId = id;
         desktopIndex = index;
         desktopCount = count;
@@ -826,7 +841,10 @@ struct WindowManagerService::Impl {
         }
 
         if (enabled) {
-            scheduleRescan(500);
+            // Short enough that the slide is still attached to the switch; the
+            // switch event itself only arrives once the desktop service has
+            // refreshed, so there is nothing to gain from waiting longer.
+            scheduleRescan(180);
         } else {
             publishState();
         }
@@ -1568,6 +1586,9 @@ struct WindowManagerService::Impl {
             applyMonitor(*state);
         }
 
+        // The slide is a one-shot: the next rescan must not replay it.
+        slidePending = false;
+
         publishState();
     }
 
@@ -1577,6 +1598,11 @@ struct WindowManagerService::Impl {
             return;
         const QRect content = contentRect(state.work, state.engine.count());
         const QHash<quintptr, QRect> targets = state.engine.geometry(content);
+        // A pending desktop slide starts every window one screen offset away
+        // from its tile and lets the existing animation bring it in, even when
+        // the tile itself did not change.
+        const bool slide = slidePending;
+        const int slideOffset = slide ? slideDirection * kDesktopSlidePixels : 0;
         for (auto it = targets.constBegin(); it != targets.constEnd(); ++it) {
             HWND hwnd = reinterpret_cast<HWND>(it.key());
             if (!hwnd || !IsWindow(hwnd) || IsIconic(hwnd))
@@ -1593,7 +1619,8 @@ struct WindowManagerService::Impl {
 
             const QRect actual = windowRect(hwnd);
             const QRect target = it.value();
-            if (qAbs(actual.x() - target.x()) <= 1 && qAbs(actual.y() - target.y()) <= 1
+            if (!slide && qAbs(actual.x() - target.x()) <= 1
+                && qAbs(actual.y() - target.y()) <= 1
                 && qAbs(actual.width() - target.width()) <= 1
                 && qAbs(actual.height() - target.height()) <= 1) {
                 continue;
@@ -1604,10 +1631,12 @@ struct WindowManagerService::Impl {
                 continue;
             }
             Animation animation;
-            animation.from = actual;
+            animation.from = slide ? target.translated(0, slideOffset) : actual;
             animation.to = target;
             animation.start = nowMs();
             animations.insert(it.key(), animation);
+            if (slide)
+                setWindowRect(hwnd, animation.from);
             if (!animationTimerRunning) {
                 SetTimer(messageWindow, kAnimationTimer, kAnimationTickMs, nullptr);
                 animationTimerRunning = true;

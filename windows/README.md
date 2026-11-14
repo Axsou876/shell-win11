@@ -863,7 +863,13 @@ attendu pour des indicateurs vivants.
   nouveau bureau quand on est déjà sur le dernier** — vers le haut le
   précédent, sans jamais supprimer (`VirtualDesktops.switchBy`). Elle n'agit
   que sur les lignes elles-mêmes (formes et glyphes), pas sur le fond arrondi,
-  et les boutons « + » / « − » ont été retirés de la pastille.
+  et les boutons « + » / « − » ont été retirés de la pastille. Trois bureaux
+  au maximum (`kMaxDesktops`) : au-delà, la création est refusée. Changer de
+  bureau fait glisser les fenêtres du nouveau depuis 120 px sous leur tuile —
+  au-dessus quand on remonte — avec l'animation de 180 ms déjà utilisée pour
+  le tiling : `slideDirection` est posé par `applyDesktop` et consommé par la
+  première passe de placement, sinon la ré-analyse suivante rejouerait le
+  glissement.
 - Le garde-fou de 450 ms devant `switchBy` n'est pas du confort : créer un
   bureau réinitialise le modèle de la `ListView`, Qt redélivre alors
   l'événement de molette à l'item reconstruit sous le curseur, et sans ce
