@@ -353,16 +353,25 @@ QVector<BindingSpec> defaultBindingSpecs()
     add(WmAction::LaunchBrowser, 0, QStringLiteral("browser"), QStringLiteral("Ctrl+Alt+W"), false);
     add(WmAction::LaunchEditor, 0, QStringLiteral("editor"), QStringLiteral("Ctrl+Alt+C"), false);
     add(WmAction::Launcher, 0, QStringLiteral("launcher"), QStringLiteral("Ctrl+Alt+Space"), false);
+    // The shell owns the Windows key now (see consumeKey), so Windows' own
+    // Win+S search can never open: keep the reflex working by opening the
+    // launcher, which searches the same applications.
+    add(WmAction::Launcher, 0, QStringLiteral("launcher"), QStringLiteral("Win+S"), true);
     add(WmAction::Sidebar, 0, QStringLiteral("sidebar"), QStringLiteral("Win+N"), true);
     add(WmAction::Sidebar, 0, QStringLiteral("sidebar"), QStringLiteral("Ctrl+Alt+N"), false);
     add(WmAction::Session, 0, QStringLiteral("session"), QStringLiteral("Ctrl+Alt+Shift+M"), false);
-    // Shell lock screen. Win+L belongs to Windows and cannot be registered;
-    // Win+Alt+L opens the shell's own screen, whose password field validates
-    // the local account and which always offers the Windows lock as fallback.
+    // Shell lock screen. Win+L is Windows' own shortcut but the hook sees it
+    // first now that the shell owns the key, so the familiar lock gesture opens
+    // the shell's screen, whose password field validates the local account and
+    // which always offers the Windows lock as fallback.
+    add(WmAction::LockScreen, 0, QStringLiteral("lock"), QStringLiteral("Win+L"), true);
     add(WmAction::LockScreen, 0, QStringLiteral("lock"), QStringLiteral("Win+Alt+L"), true);
     add(WmAction::LockScreen, 0, QStringLiteral("lock"), QStringLiteral("Ctrl+Alt+Shift+U"), false);
     // Screenshot: the area picker freezes the screen, then saves or copies the
-    // dragged region. Win+Shift+S stays with the Windows Snipping Tool.
+    // dragged region. Windows' Win+Shift+S would no longer reach the Snipping
+    // Tool, so the same gesture opens the shell's own picker.
+    add(WmAction::Screenshot, 0, QStringLiteral("screenshot"),
+        QStringLiteral("Win+Shift+S"), true);
     add(WmAction::Screenshot, 0, QStringLiteral("screenshot"),
         QStringLiteral("Ctrl+Alt+S"), false);
     add(WmAction::ScreenshotClip, 0, QStringLiteral("screenshot-clip"),
@@ -527,10 +536,8 @@ struct WindowManagerService::Impl {
     POINT dragGrab = {};
     POINT dragCursor = {};
     QPoint dragOffset;
-    bool swallowWinUp = false;
     // Bare Windows key: Win is held and nothing else was pressed or clicked
-    // since it went down. On release the shell claims the key-up — Explorer
-    // would otherwise open the Start menu — and opens the launcher.
+    // since it went down. On release the shell opens the launcher.
     bool winDown = false;
     bool winAlone = false;
     // The low-level hook is a free function; this points it at the one Impl.
@@ -1084,7 +1091,6 @@ struct WindowManagerService::Impl {
         }
         s_hookImpl = nullptr;
         hookHeldKeys.clear();
-        swallowWinUp = false;
         winDown = false;
         winAlone = false;
     }
@@ -1136,12 +1142,6 @@ struct WindowManagerService::Impl {
         return CallNextHookEx(nullptr, code, wParam, lParam);
     }
 
-    static bool winHeld()
-    {
-        return (GetAsyncKeyState(VK_LWIN) & 0x8000) != 0
-            || (GetAsyncKeyState(VK_RWIN) & 0x8000) != 0;
-    }
-
     // Runs inside the hook, on the window-manager thread, so it only records
     // the gesture and the cursor; every window operation is posted to the
     // message loop to stay clear of the low-level hook timeout.
@@ -1149,7 +1149,7 @@ struct WindowManagerService::Impl {
     {
         // A click while Windows is held turns the key into a combination; the
         // release must not open the launcher afterwards.
-        if (winHeld())
+        if (winDown)
             winAlone = false;
 
         if (dragActive) {
@@ -1168,7 +1168,7 @@ struct WindowManagerService::Impl {
             return message == WM_LBUTTONDOWN || message == WM_MOUSEWHEEL;
         }
 
-        if (message != WM_LBUTTONDOWN || !winHeld())
+        if (message != WM_LBUTTONDOWN || !winDown)
             return false;
 
         HWND target = WindowFromPoint(info.pt);
@@ -1256,20 +1256,18 @@ struct WindowManagerService::Impl {
         }
 
         if (vk == VK_LWIN || vk == VK_RWIN) {
+            // The shell owns the Windows key: press and release are both
+            // swallowed, so Windows never sees the modifier at all. Letting
+            // the press through and claiming only the release — what the
+            // first version did — left the system's keyboard state with Win
+            // still down, and the next bare key arrived as Win+key: typing "s"
+            // opened the Start menu search.
             if (up) {
-                const bool claimed = swallowWinUp;
                 const bool bare = winDown && winAlone && enabled;
-                swallowWinUp = false;
                 winDown = false;
                 winAlone = false;
-                if (claimed)
-                    return true;
-                if (!bare)
-                    return false;
-                // Explorer opens Start on the Win key-up; claim it and let the
-                // message loop open the Caelestia launcher instead. This is
-                // what makes a bare SUPER behave like Hyprland's SUPER.
-                PostMessageW(messageWindow, kLauncherMessage, 0, 0);
+                if (bare)
+                    PostMessageW(messageWindow, kLauncherMessage, 0, 0);
                 return true;
             }
             if (!winDown) {
@@ -1280,7 +1278,7 @@ struct WindowManagerService::Impl {
                     && !(GetAsyncKeyState(VK_MENU) & 0x8000)
                     && !(GetAsyncKeyState(VK_SHIFT) & 0x8000);
             }
-            return false;
+            return true;
         }
 
         // Any other key means the Windows key is part of a combination.
@@ -1289,8 +1287,7 @@ struct WindowManagerService::Impl {
         if (up || !enabled || hookBindings.isEmpty())
             return false;
 
-        const bool win = (GetAsyncKeyState(VK_LWIN) & 0x8000)
-            || (GetAsyncKeyState(VK_RWIN) & 0x8000);
+        const bool win = winDown;
         if (!win)
             return false;
 
@@ -1310,9 +1307,6 @@ struct WindowManagerService::Impl {
             if (!qEnvironmentVariableIsEmpty("CAELESTIA_DEBUG_WM")) {
                 qInfo().noquote() << "WM hook claimed" << binding.name;
             }
-            // Explorer opens the Start menu on the Win key-up; claim it too,
-            // or every intercepted combination would also open Start.
-            swallowWinUp = true;
             PostMessageW(messageWindow, kHookActionMessage,
                 static_cast<WPARAM>(i), 0);
             return true;

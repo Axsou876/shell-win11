@@ -183,14 +183,25 @@ ferme la fenêtre active, `Win+1`…`Win+0` changent de bureau (avec `Win+Maj`
 pour déplacer la fenêtre), `Win+E` ouvre l'explorateur et `Win+N` la barre
 latérale.
 
-**La touche Windows seule ouvre le lanceur Caelestia**, comme `SUPER` seul sous
-Hyprland, et n'ouvre plus le menu Démarrer : Explorer déclenche Start au
-relâchement de la touche, le hook avale ce relâchement et poste l'action
-`launcher`. Un appui est considéré comme « seul » tant qu'aucune autre touche
-n'a été enfoncée et qu'aucun clic n'a eu lieu pendant qu'elle est tenue —
-`Win+C`, `Win+clic` (déplacement) ou `Win+flèche` continuent donc de faire ce
-qu'ils font sans ouvrir le lanceur. Avec le gestionnaire de fenêtres désactivé
-(`Ctrl+Alt+Shift+Escape`), l'avalement s'arrête et Start redevient joignable.
+**La touche Windows appartient au shell**, comme `SUPER` sous Hyprland : le hook
+avale l'appui *et* le relâchement, donc Windows ne voit jamais le modificateur.
+Un appui seul ouvre le lanceur Caelestia (il est « seul » tant qu'aucune autre
+touche n'a été enfoncée et qu'aucun clic n'a eu lieu pendant qu'il est tenu —
+`Win+C`, `Win+clic` ou `Win+flèche` continuent de faire ce qu'ils font).
+Windows, de son côté, n'ouvre plus Start et ne cherche plus d'application.
+
+Ce choix a une raison précise : la première version laissait passer l'appui et
+n'avalait que le relâchement, pour empêcher Start de s'ouvrir. Windows gardait
+alors son état clavier avec `Win` enfoncée — la frappe suivante, un simple `s`,
+arrivait comme `Win+S` et ouvrait la recherche du menu Démarrer. Avaler les
+deux événements est le seul moyen de ne rien laisser derrière soi.
+
+Conséquence : les combinaisons propres à Windows que le shell ne revendique pas
+n'atteignent plus Windows (`Win+Tab`, `Win+I`, `Win+A`, `Win+V`, `Win+X`,
+`Win+P`, `Win+D`). Les gestes utiles gardent un équivalent : `Win+S` ouvre le
+lanceur, `Win+L` l'écran de verrouillage du shell, `Win+Shift+S` le sélecteur de
+capture. Avec le gestionnaire de fenêtres désactivé
+(`Ctrl+Alt+Shift+Escape`), l'avalement s'arrête et Windows retrouve la touche.
 
 Ce choix de touches est un écart volontaire par rapport à Caelestia : le
 `SUPER+Q` d'origine (fermer) devient `SUPER+C`, et le `SUPER+C` d'origine
