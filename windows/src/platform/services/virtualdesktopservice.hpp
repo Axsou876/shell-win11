@@ -48,6 +48,9 @@ public:
     [[nodiscard]] QString error() const { return m_error; }
 
     Q_INVOKABLE void switchTo(const QString& id);
+    // Moves by ±1 desktop around the current one, for the mouse wheel over the
+    // bar's workspace column. No wrap: the first and last desktop stop there.
+    Q_INVOKABLE void switchBy(int delta);
     Q_INVOKABLE void createDesktop();
     Q_INVOKABLE void closeDesktop(const QString& id);
     Q_INVOKABLE void moveWindow(const QString& windowId, const QString& desktopId);

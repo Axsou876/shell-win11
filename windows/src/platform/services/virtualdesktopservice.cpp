@@ -263,6 +263,28 @@ void VirtualDesktopService::switchTo(const QString& id)
     enqueue({ CommandType::Switch, id, {} });
 }
 
+void VirtualDesktopService::switchBy(int delta)
+{
+    if (delta == 0 || m_desktops.isEmpty())
+        return;
+
+    int current = -1;
+    for (int i = 0; i < m_desktops.size(); ++i) {
+        if (m_desktops.at(i).toMap().value(QStringLiteral("id")).toString() == m_currentId) {
+            current = i;
+            break;
+        }
+    }
+    if (current < 0)
+        return;
+
+    const int next = current + (delta > 0 ? 1 : -1);
+    if (next < 0 || next >= m_desktops.size())
+        return;
+
+    switchTo(m_desktops.at(next).toMap().value(QStringLiteral("id")).toString());
+}
+
 void VirtualDesktopService::createDesktop()
 {
     enqueue({ CommandType::Create, {}, {} });

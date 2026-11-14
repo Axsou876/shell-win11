@@ -858,7 +858,10 @@ attendu pour des indicateurs vivants.
   reconstruit à partir du nom de processus publié par le service (`app`),
   du plus spécifique au plus général, avec `window` en dernier recours. Les
   aiguilles de trois caractères ou moins (`wt`, `cmd`, `gta`, `cs2`) sont
-  comparées en préfixe pour ne pas matcher au milieu d'un mot.
+  comparées en préfixe pour ne pas matcher au milieu d'un mot. La molette
+  au-dessus de la colonne change de bureau — vers le bas le suivant, vers le
+  haut le précédent, sans bouclage (`VirtualDesktops.switchBy`) — et les
+  boutons « + » / « − » ont été retirés de la pastille.
 - Modules Caelestia encore absents : session/login, clavier, VPN, enregistreur
   d'écran.
   Notifications, launcher, dashboard, météo, média, wallpaper, OSD, volume,

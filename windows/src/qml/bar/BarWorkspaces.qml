@@ -34,8 +34,28 @@ Item {
     ]
 
     implicitWidth: theme.barInnerWidth
-    implicitHeight: available ? list.contentHeight + rowSpacing + footer.height + 8 : 0
+    implicitHeight: available ? list.contentHeight + 8 : 0
     visible: available
+
+    // Wheel over the workspace column switches desktop: down goes to the next
+    // one, up comes back. The list itself is not interactive, so nothing else
+    // claims the wheel here. The accumulator turns a precision touchpad's
+    // fractional deltas into one switch per real notch instead of a blur.
+    property real wheelAccumulator: 0
+
+    WheelHandler {
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+
+        onWheel: event => {
+            root.wheelAccumulator += event.angleDelta.y;
+            if (Math.abs(root.wheelAccumulator) < 120)
+                return;
+            const direction = root.wheelAccumulator < 0 ? 1 : -1;
+            root.wheelAccumulator = 0;
+            VirtualDesktops.switchBy(direction);
+            event.accepted = true;
+        }
+    }
 
     Behavior on implicitHeight {
         Anim {}
@@ -332,50 +352,6 @@ Item {
                     }
                 }
 
-            }
-        }
-
-        // Create / close controls, kept inside the workspace pill.
-        Row {
-            id: footer
-
-            y: list.height + root.rowSpacing
-            width: content.width
-            height: 20
-            spacing: 0
-
-            StateLayer {
-                width: 16
-                height: 16
-                radius: 8
-                theme: root.theme
-                onClicked: VirtualDesktops.createDesktop()
-
-                MaterialIcon {
-                    anchors.centerIn: parent
-                    theme: root.theme
-                    text: "add"
-                    iconSize: 14
-                    color: root.theme.onSurfaceVariantColour
-                }
-            }
-
-            StateLayer {
-                width: 16
-                height: 16
-                radius: 8
-                theme: root.theme
-                disabled: VirtualDesktops.count <= 1
-                onClicked: VirtualDesktops.closeDesktop(VirtualDesktops.currentId)
-
-                MaterialIcon {
-                    anchors.centerIn: parent
-                    theme: root.theme
-                    text: "remove"
-                    iconSize: 14
-                    color: VirtualDesktops.count <= 1
-                        ? root.theme.outlineVariant : root.theme.onSurfaceVariantColour
-                }
             }
         }
 
