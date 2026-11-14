@@ -19,16 +19,22 @@ QtObject {
 
     readonly property var schemes: [
         { key: "monochrome", label: "Monochrome", colour: dark ? "#ffffff" : "#000000" },
-        { key: "blue", label: "Bleu", colour: "#5b9dff" },
-        { key: "violet", label: "Violet", colour: "#b18cff" },
-        { key: "indigo", label: "Indigo", colour: "#7a7cff" },
-        { key: "green", label: "Vert", colour: "#4fd18b" },
-        { key: "lime", label: "Lime", colour: "#a9dd5c" },
-        { key: "amber", label: "Ambre", colour: "#f0b45a" },
-        { key: "orange", label: "Orange", colour: "#ff9d5c" },
-        { key: "pink", label: "Rose", colour: "#f47fb4" },
-        { key: "red", label: "Rouge", colour: "#f27272" },
-        { key: "cyan", label: "Cyan", colour: "#46c8d8" },
+        // Palettes people already love in editors and terminals. `base` and
+        // `sat` are the palette's own background metrics, so the derived
+        // chrome lands on its real surface instead of a generic tint of the
+        // accent: Catppuccin's #1e1e2e, Dracula's #282a36, Nord's #2e3440…
+        { key: "catppuccin", label: "Catppuccin", colour: "#cba6f7", base: 0.149, sat: 0.21 },
+        { key: "dracula", label: "Dracula", colour: "#bd93f9", base: 0.184, sat: 0.15 },
+        { key: "nord", label: "Nord", colour: "#88c0d0", base: 0.216, sat: 0.16 },
+        { key: "tokyo", label: "Tokyo", colour: "#7aa2f7", base: 0.125, sat: 0.19 },
+        // Gruvbox's own background is neutral; a hint of warmth keeps the
+        // chrome from reading as "no colour picked".
+        { key: "gruvbox", label: "Gruvbox", colour: "#fe8019", base: 0.157, sat: 0.10 },
+        { key: "rosepine", label: "Rosé", colour: "#eb6f92", base: 0.120, sat: 0.18 },
+        { key: "everforest", label: "Everforest", colour: "#a7c080", base: 0.204, sat: 0.14 },
+        { key: "kanagawa", label: "Kanagawa", colour: "#7e9cd8", base: 0.100, sat: 0.14 },
+        { key: "solarized", label: "Solarized", colour: "#268bd2", base: 0.106, sat: 0.30 },
+        { key: "onedark", label: "One Dark", colour: "#61afef", base: 0.180, sat: 0.13 },
         { key: "custom", label: "Perso", colour: customAccent },
         { key: "windows", label: "Windows", colour: systemAccent }
     ]
@@ -56,16 +62,31 @@ QtObject {
         return Qt.tint(base, Qt.rgba(colour.r, colour.g, colour.b, alpha));
     }
 
+    // The active scheme's own background metrics, when it is a known palette.
+    readonly property var schemeTuning: {
+        for (let i = 0; i < schemes.length; ++i) {
+            if (schemes[i].key === scheme)
+                return schemes[i];
+        }
+        return {};
+    }
+
     // The core of the coloured palette. `monoDark`/`monoLight` are the exact
     // hex values of the original strict palette; a scheme instead rebuilds the
-    // same role as HSL of the accent's hue at a fixed lightness/saturation.
-    // Fixed saturation (rather than the swatch's own) is what makes a pastel
-    // custom colour still produce a visible tint.
+    // same role as HSL of the accent's hue. A palette preset also carries its
+    // real background lightness and saturation: the whole ramp shifts with
+    // that anchor so the hierarchy survives while the chrome matches the
+    // palette (0.130 is the generic base `surface` uses).
     function surfaceColour(monoDark, monoLight, darkL, lightL, darkS, lightS) {
         if (!coloured)
             return dark ? monoDark : monoLight;
-        return dark ? Qt.hsla(accentHue, darkS, darkL, 1)
-                    : Qt.hsla(accentHue, lightS, lightL, 1);
+        if (!dark)
+            return Qt.hsla(accentHue, lightS, lightL, 1);
+        const tuning = schemeTuning;
+        const shift = tuning.base !== undefined ? tuning.base - 0.130 : 0;
+        const saturation = tuning.sat !== undefined ? tuning.sat : darkS;
+        return Qt.hsla(accentHue, saturation,
+            Math.max(0.02, Math.min(0.98, darkL + shift)), 1);
     }
 
     readonly property color primary: coloured

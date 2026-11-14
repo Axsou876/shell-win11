@@ -677,17 +677,20 @@ shell contrôle réellement et délègue le reste par des liens `ms-settings:`.
 
 - **Apparence** : vignettes de fond d'écran issues de `Wallpaper.wallpapers`,
   appliquées immédiatement (`Wallpaper.apply`) ; la vignette courante porte un
-  contour `primary`. Section « Couleurs du shell » : douze pastilles
-  (`Monochrome`, `Bleu`, `Violet`, `Indigo`, `Vert`, `Lime`, `Ambre`, `Orange`,
-  `Rose`, `Rouge`, `Cyan`, `Windows`) et une pastille `Perso`, plus deux bandes
-  de réglage — teinte et luminosité — pour choisir n'importe quelle couleur ;
-  relâcher une bande l'applique. Une couleur pilote **tout** le shell : les
-  neutres ne sont plus du noir lavé à 5 % d'accent mais une rampe HSL construite
-  dans la teinte choisie (`Theme.surfaceColour` : même lightness que la palette
-  d'origine, saturation fixe, teinte de l'accent), donc la barre, le cadre, les
-  panneaux, les popouts et les cartes prennent réellement la couleur. La
-  saturation est celle de l'accent enregistré, si bien que la page se rouvre
-  sur la couleur exacte en service. Le choix est écrit dans `QSettings` via
+  contour `primary`. Section « Couleurs du shell » : treize pastilles —
+  `Monochrome`, dix palettes d'éditeur (`Catppuccin`, `Dracula`, `Nord`,
+  `Tokyo`, `Gruvbox`, `Rosé`, `Everforest`, `Kanagawa`, `Solarized`,
+  `One Dark`), `Perso` et `Windows` — plus deux bandes de réglage, teinte et
+  luminosité, pour choisir n'importe quelle couleur ; relâcher une bande
+  l'applique. Chaque palette porte ses propres métriques de fond (`base`,
+  `sat`) : `Theme.surfaceColour` décale toute la rampe de luminosité sur ce
+  point d'ancrage, si bien que Catppuccin donne (37,30,46) pour un fond réel de
+  `#1e1e2e`, Nord (46,60,64) pour `#2e3440`, Kanagawa (22,24,29) pour
+  `#16161d`. Sans ces métriques (`Perso`, `Windows`), la rampe générique est
+  utilisée : les neutres ne sont plus du noir lavé à 5 % d'accent mais une rampe
+  HSL construite dans la teinte choisie. La saturation du sélecteur libre est
+  celle de l'accent enregistré, si bien que la page se rouvre sur la couleur
+  exacte en service. Le choix est écrit dans `QSettings` via
   `Platform.setShellSetting` (`appearance/scheme`, `appearance/accent`) et relu
   au démarrage. Il s'applique aussi **sans redémarrer** : `setShellSetting` émet
   `shellSettingChanged`, `Main.qml` réextrait les deux clés dans `schemeKey` et
