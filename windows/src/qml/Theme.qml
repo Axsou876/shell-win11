@@ -126,25 +126,30 @@ QtObject {
     // The shell chrome. A scheme rebuilds this whole ramp in its hue, so the
     // "black" of the bar, the panels and the popouts actually takes the
     // colour instead of staying #000 with a 5 % wash.
+    //
+    // Monochrome is not pure #000 anymore: on a dark wallpaper a black shell
+    // is indistinguishable from the hole and only the white glyphs showed.
+    // #161616 keeps the palette neutral while giving the bar, the frame and
+    // the panels a surface you can actually see.
     readonly property color surface:
-        surfaceColour("#000000", "#ffffff", 0.130, 0.945, 0.55, 0.50)
+        surfaceColour("#161616", "#ffffff", 0.130, 0.945, 0.55, 0.50)
     readonly property color surfaceDim:
-        surfaceColour("#000000", "#d9d9d9", 0.110, 0.900, 0.52, 0.50)
+        surfaceColour("#121212", "#d9d9d9", 0.110, 0.900, 0.52, 0.50)
     readonly property color surfaceBright:
-        surfaceColour("#262626", "#ffffff", 0.250, 1.000, 0.46, 0.35)
+        surfaceColour("#303030", "#ffffff", 0.250, 1.000, 0.46, 0.35)
     readonly property color surfaceContainerLowest:
-        surfaceColour("#000000", "#ffffff", 0.100, 0.975, 0.55, 0.45)
+        surfaceColour("#0f0f0f", "#ffffff", 0.100, 0.975, 0.55, 0.45)
     readonly property color surfaceContainerLow:
-        surfaceColour("#0a0a0a", "#f7f7f7", 0.150, 0.935, 0.54, 0.50)
+        surfaceColour("#1a1a1a", "#f7f7f7", 0.150, 0.935, 0.54, 0.50)
     readonly property color surfaceContainer:
-        surfaceColour("#121212", "#efefef", 0.185, 0.910, 0.52, 0.52)
+        surfaceColour("#1e1e1e", "#efefef", 0.185, 0.910, 0.52, 0.52)
     readonly property color surfaceContainerHigh:
-        surfaceColour("#1c1c1c", "#e7e7e7", 0.220, 0.875, 0.50, 0.54)
+        surfaceColour("#232323", "#e7e7e7", 0.220, 0.875, 0.50, 0.54)
     readonly property color surfaceContainerHighest:
-        surfaceColour("#262626", "#dedede", 0.255, 0.845, 0.48, 0.55)
+        surfaceColour("#292929", "#dedede", 0.255, 0.845, 0.48, 0.55)
     readonly property color onSurfaceColour: dark ? "#ffffff" : "#000000"
     readonly property color surfaceVariant:
-        surfaceColour("#2e2e2e", "#d0d0d0", 0.300, 0.820, 0.45, 0.52)
+        surfaceColour("#333333", "#d0d0d0", 0.300, 0.820, 0.45, 0.52)
     readonly property color onSurfaceVariantColour:
         surfaceColour("#b3b3b3", "#4d4d4d", 0.720, 0.400, 0.30, 0.30)
     readonly property color inverseSurface: dark ? "#ffffff" : "#1a1a1a"

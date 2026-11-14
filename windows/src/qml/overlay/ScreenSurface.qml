@@ -145,8 +145,16 @@ Item {
         layer.live: true
         layer.smooth: true
         layer.effect: MultiEffect {
+            // The soft drop shadow is what makes the blob read as a surface
+            // floating above the wallpaper. It was effectively off: shadowBlur
+            // defaults to 0, so the shadow was sharp, unblurred and hidden
+            // underneath the shell itself. Offsetting it and blurring it is
+            // the whole depth effect.
             shadowEnabled: true
-            blurMax: 15
+            blurMax: 24
+            shadowBlur: 0.6
+            shadowHorizontalOffset: 0
+            shadowVerticalOffset: 3
             shadowColor: Qt.alpha(surface.theme.shadow, surface.theme.shadowOpacity)
         }
 

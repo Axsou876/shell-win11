@@ -223,6 +223,25 @@ Trois choix rapprochent les fenêtres natives de Hyprland :
   supprimée : le focus se lit dans la barre (icône et titre de la fenêtre
   active), pas autour des fenêtres natives.
 
+## Profondeur de la surface
+
+Le blob (`ScreenSurface`, shader `blob.frag`) est la seule surface du shell : le
+cadre de 10 px, la barre de 60 px, la sidebar, le tableau de bord, les popouts et
+le launcher sont fusionnés en une forme SDF unique. Trois indices la détachent
+du fond d'écran :
+
+- **Ombre portée** — `MultiEffect` sur la couche, `blurMax: 24`,
+  `shadowBlur: 0.6`, décalage vertical de 3 px. Elle était inopérante :
+  `shadowBlur` vaut 0 par défaut, l'ombre restait nette, sans décalage, donc
+  cachée sous le shell lui-même.
+- **Liseré** — `blob.frag` éclaircit de 6 % une bande de 2 px le long du
+  contour (`abs(d)`), paroi du trou comprise, et donc aussi le raccord arrondi
+  là où un panneau quitte la barre. Sur un fond sombre c'est ce liseré, et non
+  l'ombre, qui sépare le shell du fond.
+- **Surface visible** — `Monochrome` peint `#161616` et non `#000000` : un
+  shell noir sur un fond noir n'existe pas à l'écran, seuls les glyphes
+  blancs ressortaient.
+
 ## OSD volume et luminosité
 
 Le pilule OSD de Caelestia (volume, luminosité, message transitoire) est
@@ -688,7 +707,10 @@ shell contrôle réellement et délègue le reste par des liens `ms-settings:`.
   `#1e1e2e`, Nord (46,60,64) pour `#2e3440`, Kanagawa (22,24,29) pour
   `#16161d`. Sans ces métriques (`Perso`, `Windows`), la rampe générique est
   utilisée : les neutres ne sont plus du noir lavé à 5 % d'accent mais une rampe
-  HSL construite dans la teinte choisie. La saturation du sélecteur libre est
+  HSL construite dans la teinte choisie. `Monochrome` n'est plus du noir pur :
+  sur un fond sombre le shell se confondait avec le trou et seuls les glyphes
+  blancs ressortaient, la surface est donc à `#161616`. La saturation du
+  sélecteur libre est
   celle de l'accent enregistré, si bien que la page se rouvre sur la couleur
   exacte en service. Le choix est écrit dans `QSettings` via
   `Platform.setShellSetting` (`appearance/scheme`, `appearance/accent`) et relu

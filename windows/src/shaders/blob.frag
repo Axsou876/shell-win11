@@ -131,5 +131,12 @@ void main() {
     if (alpha <= 0.0)
         discard;
 
-    fragColor = vec4(colour.rgb * alpha, alpha) * qt_Opacity;
+    // A hairline highlight along the contour gives the blob an edge to catch
+    // the light. It matters most on a dark wallpaper, where a drop shadow has
+    // nothing to darken: this rim is what separates the shell from the hole.
+    // It also traces the fillet where a panel leaves the bar, because d is the
+    // distance to the merged blob, not to the individual shapes.
+    vec3 rgb = colour.rgb + vec3(0.06) * (1.0 - smoothstep(0.0, 2.0, abs(d)));
+
+    fragColor = vec4(rgb * alpha, alpha) * qt_Opacity;
 }
