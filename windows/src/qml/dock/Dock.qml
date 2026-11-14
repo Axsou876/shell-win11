@@ -26,7 +26,9 @@ Item {
 
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 6
+        // Floating, not glued: the shell's own 10 px frame sits at the very
+        // bottom, and a pill touching it read as squashed.
+        anchors.bottomMargin: 22
         width: Math.max(row.implicitWidth, emptyHint.implicitWidth + hintSpacing)
             + root.theme.paddingLarge * 2
         height: root.pillHeight
