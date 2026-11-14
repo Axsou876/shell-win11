@@ -56,11 +56,9 @@ constexpr UINT_PTR kFocusTimer = 4;
 constexpr int kHotkeyBase = 0x4100;
 constexpr int kAnimationDurationMs = 180;
 constexpr int kAnimationTickMs = 7;
-// How far a window starts away from its tile when the desktop changes, so the
-// new desktop slides in from below (or above when going back up the column).
-// The distance is the monitor's own height, computed per monitor: a slide that
-// stops 120 px short reads as a twitch, not as a workspace switch.
-constexpr int kDesktopSlideDurationMs = 320;
+// How long the desktop slide lasts. The reference is Caelestia on Hyprland:
+// the incoming desktop sweeps in horizontally over roughly 0.4 s.
+constexpr int kDesktopSlideDurationMs = 380;
 
 HWND g_messageWindow = nullptr;
 
@@ -417,13 +415,9 @@ struct Animation {
     QRect from;
     QRect to;
     qint64 start = 0;
-    // The desktop slide runs longer than a tiling adjustment: moving a big
+    // The desktop slide runs longer than a tiling adjustment: sweeping a
     // window across the screen in 180 ms only lands a couple of frames.
     int duration = kAnimationDurationMs;
-    // A slide uses a symmetric curve. Ease-out spends almost the whole travel
-    // in the first third of the duration, which reads as a jump followed by a
-    // crawl, not as a transition.
-    bool smooth = false;
 };
 
 struct MonitorState {
@@ -1626,13 +1620,14 @@ struct WindowManagerService::Impl {
             return;
         const QRect content = contentRect(state.work, state.engine.count());
         const QHash<quintptr, QRect> targets = state.engine.geometry(content);
-        // A pending desktop slide starts every window one screen away from
-        // its tile and lets the animation bring it in, even when the tile
-        // itself did not change. The distance is the monitor height, so the
-        // incoming desktop really enters from below.
+        // A pending desktop slide starts every window one screen to the side
+        // of its tile and lets the animation sweep it in, even when the tile
+        // itself did not change. Forward means the incoming desktop arrives
+        // from the right, backward from the left — the Hyprland sweep the
+        // reference recording shows.
         const bool slide = slidePending;
         const int slideOffset = slide
-            ? slideDirection * (state.work.height() + 40) : 0;
+            ? slideDirection * (state.work.width() + 40) : 0;
         for (auto it = targets.constBegin(); it != targets.constEnd(); ++it) {
             HWND hwnd = reinterpret_cast<HWND>(it.key());
             if (!hwnd || !IsWindow(hwnd) || IsIconic(hwnd))
@@ -1667,13 +1662,11 @@ struct WindowManagerService::Impl {
                 continue;
             }
             Animation animation;
-            animation.from = slide ? target.translated(0, slideOffset) : actual;
+            animation.from = slide ? target.translated(slideOffset, 0) : actual;
             animation.to = target;
             animation.start = nowMs();
-            if (slide) {
+            if (slide)
                 animation.duration = kDesktopSlideDurationMs;
-                animation.smooth = true;
-            }
             animations.insert(it.key(), animation);
             if (slide) {
                 // The windows of a desktop that has just become active are
@@ -1710,11 +1703,9 @@ struct WindowManagerService::Impl {
             const qreal progress = qBound(0.0,
                 static_cast<qreal>(now - it.value().start) / qMax(1, it.value().duration),
                 1.0);
-            // Tiling keeps the quick cubic ease-out; the desktop slide uses a
-            // smoothstep so the travel is spread over the whole duration.
-            const qreal eased = it.value().smooth
-                ? progress * progress * (3.0 - 2.0 * progress)
-                : 1.0 - std::pow(1.0 - progress, 3.0);
+            // Ease-out: the sweep spends its first third covering most of the
+            // screen and then settles, exactly like the reference recording.
+            const qreal eased = 1.0 - std::pow(1.0 - progress, 3.0);
             const QRect from = it.value().from;
             const QRect to = it.value().to;
             const QRect current(

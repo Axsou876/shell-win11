@@ -886,17 +886,18 @@ par défaut. Il est persisté dans `refresh/smooth`.
   que sur les lignes elles-mêmes (formes et glyphes), pas sur le fond arrondi,
   et les boutons « + » / « − » ont été retirés de la pastille. Trois bureaux
   au maximum (`kMaxDesktops`) : au-delà, la création est refusée. Changer de
-  bureau fait glisser les fenêtres du nouveau **sur toute la hauteur de
-  l'écran** — depuis le bas quand on descend, depuis le haut quand on remonte —
-  en 320 ms avec une courbe symétrique. Trois détails font la différence entre
-  une transition et un à-coup : la distance (120 px se lisait comme un
-  tressaillement), le profil (un ease-out parcourt 99 % du trajet au premier
-  tiers, d'où l'interpolation `smoothstep` pour les glissements), et le
-  cloaking DWM — les fenêtres d'un bureau qui vient d'être activé restent
-  invisibles quelques instants alors que Win32 les dit visibles, donc un
-  glissement amorcé trop tôt se jouait sous le voile et la fenêtre
-  apparaissait simplement en place. `slidePending` reste armé jusqu'à ce qu'une
-  passe ait réellement déplacé une fenêtre, et expire au bout de 1,5 s.
+  bureau fait glisser les fenêtres du nouveau **horizontalement sur toute la
+  largeur de l'écran** — elles arrivent par la droite quand on descend la
+  colonne, par la gauche quand on remonte — en 380 ms avec un ease-out marqué,
+  comme la démo Caelestia/Hyprland (mesuré sur la capture : ~0,4 s, la fenêtre
+  couvrant l'essentiel de la distance dans le premier tiers). Deux détails font
+  la différence entre une transition et un à-coup : le cloaking DWM — les
+  fenêtres d'un bureau qui vient d'être activé restent invisibles quelques
+  instants alors que Win32 les dit visibles, donc un glissement amorcé trop tôt
+  se jouait sous le voile et la fenêtre apparaissait simplement en place — et
+  la distance, un glissement court se lisant comme un tressaillement.
+  `slidePending` reste armé jusqu'à ce qu'une passe ait réellement déplacé une
+  fenêtre, et expire au bout de 1,5 s.
 - Le garde-fou de 450 ms devant `switchBy` n'est pas du confort : créer un
   bureau réinitialise le modèle de la `ListView`, Qt redélivre alors
   l'événement de molette à l'item reconstruit sous le curseur, et sans ce
