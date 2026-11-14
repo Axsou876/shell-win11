@@ -859,13 +859,15 @@ attendu pour des indicateurs vivants.
   du plus spécifique au plus général, avec `window` en dernier recours. Les
   aiguilles de trois caractères ou moins (`wt`, `cmd`, `gta`, `cs2`) sont
   comparées en préfixe pour ne pas matcher au milieu d'un mot. La molette
-  au-dessus de la colonne change de bureau — vers le bas le suivant, vers le
-  haut le précédent, sans bouclage (`VirtualDesktops.switchBy`) — et les
-  boutons « + » / « − » ont été retirés de la pastille. Elle n'agit que sur
-  les lignes elles-mêmes (formes et glyphes), pas sur le fond arrondi, pour
-  qu'un survol distrait ne change pas de bureau. La molette ne crée jamais de
-  bureau : quand la liste en contient déjà un de plus que le nombre affiché,
-  c'est un bureau vide existant qui devient actif.
+  au-dessus des lignes change de bureau : vers le bas le suivant — **et un
+  nouveau bureau quand on est déjà sur le dernier** — vers le haut le
+  précédent, sans jamais supprimer (`VirtualDesktops.switchBy`). Elle n'agit
+  que sur les lignes elles-mêmes (formes et glyphes), pas sur le fond arrondi,
+  et les boutons « + » / « − » ont été retirés de la pastille.
+- Le garde-fou de 450 ms devant `switchBy` n'est pas du confort : créer un
+  bureau réinitialise le modèle de la `ListView`, Qt redélivre alors
+  l'événement de molette à l'item reconstruit sous le curseur, et sans ce
+  délai la boucle a réellement créé 42 bureaux avant d'être vue.
 - Modules Caelestia encore absents : session/login, clavier, VPN, enregistreur
   d'écran.
   Notifications, launcher, dashboard, météo, média, wallpaper, OSD, volume,

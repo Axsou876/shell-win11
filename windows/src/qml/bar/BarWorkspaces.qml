@@ -38,16 +38,30 @@ Item {
     visible: available
 
     // Wheel over the workspace column switches desktop: down goes to the next
-    // one, up comes back. The accumulator turns a precision touchpad's
-    // fractional deltas into one switch per real notch instead of a blur.
+    // one — creating it when this is the last — and up comes back. The
+    // accumulator turns a precision touchpad's fractional deltas into one
+    // switch per real notch instead of a blur.
     property real wheelAccumulator: 0
+    // Creating a desktop resets the list model, and Qt re-delivers the wheel
+    // event to the rebuilt item under the cursor. Without this cooldown that
+    // re-delivery creates a feedback loop: every new desktop made the next
+    // wheel event fire again (42 desktops before it was caught).
+    property double lastWheelAction: 0
 
     function handleWheel(deltaY) {
+        const now = Date.now();
+        if (now - root.lastWheelAction < 450) {
+            root.wheelAccumulator = 0;
+            return true;
+        }
+
         root.wheelAccumulator += deltaY;
         if (Math.abs(root.wheelAccumulator) < 120)
             return false;
+
         const direction = root.wheelAccumulator < 0 ? 1 : -1;
         root.wheelAccumulator = 0;
+        root.lastWheelAction = now;
         VirtualDesktops.switchBy(direction);
         return true;
     }

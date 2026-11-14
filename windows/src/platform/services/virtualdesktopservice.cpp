@@ -278,11 +278,20 @@ void VirtualDesktopService::switchBy(int delta)
     if (current < 0)
         return;
 
-    const int next = current + (delta > 0 ? 1 : -1);
-    if (next < 0 || next >= m_desktops.size())
+    if (delta > 0) {
+        // Forward: the next existing desktop, or a brand new one when this is
+        // the last. Explorer switches to a desktop it just created, so the
+        // scroll keeps going down the column instead of stopping dead.
+        if (current + 1 < m_desktops.size())
+            switchTo(m_desktops.at(current + 1).toMap().value(QStringLiteral("id")).toString());
+        else
+            createDesktop();
         return;
+    }
 
-    switchTo(m_desktops.at(next).toMap().value(QStringLiteral("id")).toString());
+    // Backward never creates: there is nothing above the first desktop.
+    if (current > 0)
+        switchTo(m_desktops.at(current - 1).toMap().value(QStringLiteral("id")).toString());
 }
 
 void VirtualDesktopService::createDesktop()
