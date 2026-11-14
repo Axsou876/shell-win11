@@ -9,6 +9,7 @@
 #include "platform/services/idleinhibitservice.hpp"
 #include "platform/services/lockservice.hpp"
 #include "platform/services/mediaservice.hpp"
+#include "platform/services/lyricsservice.hpp"
 #include "platform/services/networkservice.hpp"
 #include "platform/services/notificationservice.hpp"
 #include "platform/services/osdservice.hpp"
@@ -214,6 +215,50 @@ int main(int argc, char* argv[])
         QObject::connect(&weather, &WeatherService::changed, &loop, report);
         QTimer::singleShot(0, &loop, report);
         QTimer::singleShot(20000, &loop, [&loop]() { loop.exit(4); });
+        return loop.exec();
+    }
+
+    // --lyrics "Artist" "Title" [durationSeconds] — looks the words up the way
+    // the media tab does, so the network path and the LRC parser can be
+    // checked without opening the dashboard.
+    const int lyricsIndex = arguments.indexOf(QStringLiteral("--lyrics"));
+    if (lyricsIndex >= 0) {
+        LyricsService lyrics;
+        QEventLoop loop;
+        const QString artist = lyricsIndex + 1 < arguments.size()
+            ? arguments.at(lyricsIndex + 1) : QString();
+        const QString title = lyricsIndex + 2 < arguments.size()
+            ? arguments.at(lyricsIndex + 2) : QString();
+        const qint64 duration = lyricsIndex + 3 < arguments.size()
+            ? arguments.at(lyricsIndex + 3).toLongLong() * 1000 : 0;
+        const auto report = [&]() {
+            if (lyrics.status() == QStringLiteral("idle")
+                || lyrics.status() == QStringLiteral("loading")) {
+                return;
+            }
+            QTextStream out(stdout);
+            out << "LYRICS status=" << lyrics.status()
+                << " synced=" << lyrics.synced()
+                << " instrumental=" << lyrics.instrumental()
+                << " lines=" << lyrics.lines().size()
+                << " plain=" << lyrics.plainLines().size();
+            if (!lyrics.error().isEmpty())
+                out << " error=" << lyrics.error();
+            out << '\n';
+            for (int i = 0; i < qMin(5, static_cast<int>(lyrics.lines().size())); ++i) {
+                const QVariantMap line = lyrics.lines().at(i).toMap();
+                out << "  [" << line.value(QStringLiteral("time")).toInt() << "] "
+                    << line.value(QStringLiteral("text")).toString() << '\n';
+            }
+            out.flush();
+            loop.exit(lyrics.status() == QStringLiteral("ready") ? 0 : 2);
+        };
+        QObject::connect(&lyrics, &LyricsService::changed, &loop, report);
+        QTimer::singleShot(0, &loop,
+            [&lyrics, artist, title, duration]() {
+                lyrics.request(title, artist, {}, duration);
+            });
+        QTimer::singleShot(25000, &loop, [&loop]() { loop.exit(4); });
         return loop.exec();
     }
 
@@ -439,6 +484,7 @@ int main(int argc, char* argv[])
     OsdService osd(&audio, &brightness);
     AudioCaptureService audioCapture;
     MediaService media;
+    LyricsService lyrics;
     NotificationService notifications;
     SystemService system;
     WeatherService weather;
@@ -465,6 +511,7 @@ int main(int argc, char* argv[])
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Osd", &osd);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "AudioCapture", &audioCapture);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Media", &media);
+    qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Lyrics", &lyrics);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Notification", &notifications);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "System", &system);
     qmlRegisterSingletonInstance("Caelestia.Platform", 1, 0, "Weather", &weather);

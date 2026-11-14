@@ -32,6 +32,8 @@ qt_add_executable(caelestia-shell
     src/platform/services/audiocaptureservice.hpp
     src/platform/services/mediaservice.cpp
     src/platform/services/mediaservice.hpp
+    src/platform/services/lyricsservice.cpp
+    src/platform/services/lyricsservice.hpp
     src/platform/services/networkservice.cpp
     src/platform/services/networkservice.hpp
     src/platform/services/notificationservice.cpp

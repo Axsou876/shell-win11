@@ -17,13 +17,94 @@ Item {
     property bool pageActive: false
 
     readonly property bool available: Media.available
+
+    // --- Playhead -----------------------------------------------------------
+    // MediaService polls GSMTC once per second, so `Media.positionMs` arrives
+    // in whole-second steps and the slider used to jump once a second while
+    // the music played. The playhead below extrapolates from the last sample
+    // and re-anchors on every fresh one: both the elapsed time and the slider
+    // then move every frame, and a seek still lands immediately.
+    property real anchorMs: 0
+    property double anchorAt: 0
+    property real playheadMs: 0
+
     readonly property real progress: Media.durationMs > 0
-        ? Math.max(0, Math.min(1, Media.positionMs / Media.durationMs)) : 0
+        ? Math.max(0, Math.min(1, playheadMs / Media.durationMs)) : 0
+
+    function anchorPlayhead() {
+        anchorMs = Media.positionMs;
+        anchorAt = Date.now();
+        playheadMs = Media.positionMs;
+    }
+
+    // Derived properties: a Q_PROPERTY cannot be watched individually here,
+    // every Media change emits the same `changed` signal. Re-reading the value
+    // through a derived property gives back a per-field change handler.
+    property real mediaSample: Media.positionMs
+    property bool mediaPlaying: Media.playing
+
+    onMediaSampleChanged: anchorPlayhead()
+    onMediaPlayingChanged: anchorPlayhead()
+
+    FrameAnimation {
+        running: root.pageActive && root.mediaPlaying && Media.durationMs > 0
+        onTriggered: root.playheadMs = Math.min(Media.durationMs,
+            root.anchorMs + (Date.now() - root.anchorAt))
+    }
+
+    // --- Lyrics -------------------------------------------------------------
+    // Index of the line being sung, by binary search over the whole track: it
+    // is recomputed on every playhead frame, so the highlight follows the
+    // singing instead of the one-second poll.
+    readonly property int activeLine: {
+        const lines = Lyrics.lines;
+        if (!Lyrics.synced || lines.length === 0)
+            return -1;
+        const now = root.playheadMs;
+        let low = 0;
+        let high = lines.length - 1;
+        let found = -1;
+        while (low <= high) {
+            const middle = (low + high) >> 1;
+            if (lines[middle].time <= now) {
+                found = middle;
+                low = middle + 1;
+            } else {
+                high = middle - 1;
+            }
+        }
+        return found;
+    }
+
+    // The service ignores a repeat of the same track, so this is safe to call
+    // on every signal and every time the tab opens.
+    function requestLyrics() {
+        if (!root.pageActive || !root.available || Media.title === "")
+            return;
+        Lyrics.request(Media.title, Media.artist, Media.album, Media.durationMs);
+    }
+
+    property string trackKey: Media.title + "\u001f" + Media.artist
+
+    onTrackKeyChanged: requestLyrics()
+
+    function scrollLyrics(lineY) {
+        lyricsFlick.contentY = Math.max(0, Math.min(
+            lyricsFlick.contentHeight - lyricsFlick.height,
+            lineY - lyricsFlick.height * 0.42));
+    }
 
     clip: true
 
-    onPageActiveChanged: AudioCapture.setActive(pageActive)
-    Component.onCompleted: AudioCapture.setActive(pageActive)
+    onPageActiveChanged: {
+        AudioCapture.setActive(pageActive);
+        if (pageActive)
+            requestLyrics();
+    }
+    Component.onCompleted: {
+        AudioCapture.setActive(pageActive);
+        requestLyrics();
+    }
     Component.onDestruction: AudioCapture.setActive(false)
 
     function timeText(ms) {
@@ -278,7 +359,7 @@ Item {
                             theme: root.theme
                             role: "labelSmall"
                             color: root.theme.onSurfaceVariantColour
-                            text: root.timeText(Media.positionMs)
+                            text: root.timeText(root.playheadMs)
                         }
 
                         M3Slider {
@@ -429,18 +510,134 @@ Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
 
+                        // Synced lyrics from lrclib: the line being sung is
+                        // highlighted and kept centred. `interactive` stays
+                        // false so a stray wheel over the tab never fights the
+                        // auto-scroll.
+                        Flickable {
+                            id: lyricsFlick
+
+                            anchors.fill: parent
+                            visible: Lyrics.status === "ready" && Lyrics.synced
+                            contentWidth: width
+                            contentHeight: lyricColumn.height
+                            clip: true
+                            interactive: false
+                            boundsBehavior: Flickable.StopAtBounds
+
+                            Behavior on contentY {
+                                NumberAnimation {
+                                    duration: root.theme.durationDefaultSpatial
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: [0.38, 1.21, 0.22, 1, 1, 1]
+                                }
+                            }
+
+                            Column {
+                                id: lyricColumn
+
+                                width: lyricsFlick.width
+                                topPadding: lyricsFlick.height * 0.42
+                                bottomPadding: lyricsFlick.height * 0.58
+                                spacing: root.theme.spacingSmall
+
+                                Repeater {
+                                    model: Lyrics.lines
+
+                                    onCountChanged: lyricsFlick.contentY = 0
+
+                                    delegate: StyledText {
+                                        id: lyricLine
+
+                                        required property var modelData
+                                        required property int index
+
+                                        readonly property bool current: index === root.activeLine
+
+                                        width: lyricColumn.width
+                                        horizontalAlignment: Text.AlignHCenter
+                                        wrapMode: Text.WordWrap
+                                        theme: root.theme
+                                        role: "bodyMedium"
+                                        text: lyricLine.modelData.text
+                                        color: lyricLine.current
+                                            ? root.theme.primary : root.theme.onSurfaceVariantColour
+                                        opacity: lyricLine.current ? 1 : 0.6
+                                        scale: lyricLine.current ? 1.04 : 1
+
+                                        onCurrentChanged: {
+                                            if (current)
+                                                root.scrollLyrics(lyricLine.y);
+                                        }
+
+                                        Behavior on opacity {
+                                            NumberAnimation {
+                                                duration: root.theme.durationFastEffects
+                                            }
+                                        }
+
+                                        Behavior on scale {
+                                            NumberAnimation {
+                                                duration: root.theme.durationDefaultSpatial
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Plain lyrics: no timestamps to follow, so they scroll
+                        // by hand.
+                        Flickable {
+                            anchors.fill: parent
+                            visible: Lyrics.status === "ready" && !Lyrics.synced
+                                && Lyrics.plainLines.length > 0
+                            contentWidth: width
+                            contentHeight: plainColumn.height
+                            clip: true
+                            boundsBehavior: Flickable.StopAtBounds
+
+                            Column {
+                                id: plainColumn
+
+                                width: parent.width
+                                topPadding: root.theme.spacingSmall
+                                spacing: root.theme.spacingExtraSmall
+
+                                Repeater {
+                                    model: Lyrics.plainLines
+
+                                    delegate: StyledText {
+                                        required property var modelData
+
+                                        width: plainColumn.width
+                                        theme: root.theme
+                                        role: "bodyMedium"
+                                        color: root.theme.onSurfaceVariantColour
+                                        wrapMode: Text.WordWrap
+                                        text: modelData
+                                    }
+                                }
+                            }
+                        }
+
+                        // Loading / none / error / instrumental.
                         Column {
                             anchors.centerIn: parent
                             width: parent.width
                             spacing: root.theme.spacingSmall
+                            visible: Lyrics.status !== "ready"
+                                || (Lyrics.plainLines.length === 0 && !Lyrics.synced)
 
                             MaterialIcon {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 theme: root.theme
-                                text: "lyrics"
+                                text: Lyrics.status === "loading" ? "hourglass_top"
+                                    : Lyrics.status === "error" ? "cloud_off"
+                                    : Lyrics.instrumental ? "music_off" : "lyrics"
                                 iconSize: 42
                                 color: root.theme.onSurfaceVariantColour
-                                opacity: 0.7
+                                opacity: Lyrics.status === "loading" ? 0.5 : 0.7
                             }
 
                             StyledText {
@@ -448,7 +645,10 @@ Item {
                                 theme: root.theme
                                 role: "bodyMedium"
                                 weight: Font.DemiBold
-                                text: "Paroles indisponibles"
+                                text: Lyrics.status === "loading" ? "Recherche des paroles…"
+                                    : Lyrics.status === "error" ? "Recherche impossible"
+                                    : Lyrics.instrumental ? "Instrumental"
+                                    : "Paroles introuvables"
                             }
 
                             StyledText {
@@ -458,7 +658,10 @@ Item {
                                 color: root.theme.onSurfaceVariantColour
                                 horizontalAlignment: Text.AlignHCenter
                                 wrapMode: Text.WordWrap
-                                text: "GSMTC ne fournit pas les paroles des sessions média Windows."
+                                text: Lyrics.status === "error" ? Lyrics.error
+                                    : Lyrics.status === "loading" ? "lrclib.net"
+                                    : Lyrics.instrumental ? "Ce titre n'a pas de paroles."
+                                    : "Aucune correspondance sur lrclib.net pour ce titre."
                             }
                         }
                     }

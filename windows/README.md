@@ -242,6 +242,33 @@ du fond d'écran :
   shell noir sur un fond noir n'existe pas à l'écran, seuls les glyphes
   blancs ressortaient.
 
+## Onglet média : paroles et lecture fluide
+
+- **Position fluide** — `MediaService` interroge GSMTC une fois par seconde,
+  donc `Media.positionMs` arrivait par paliers d'une seconde et le curseur
+  sautait d'un cran à chaque sondage. `DashboardMedia` extrapole depuis le
+  dernier échantillon (`anchorMs + Date.now() - anchorAt`) via une
+  `FrameAnimation`, puis se réancre à chaque nouvel échantillon : le temps
+  écoulé et le curseur avancent à chaque image, et un déplacement manuel reste
+  immédiat. Comme toutes les propriétés du service partagent le même signal
+  `changed`, la surveillance passe par deux propriétés dérivées
+  (`mediaSample`, `mediaPlaying`) — c'est le seul moyen d'obtenir un handler
+  par champ.
+- **Paroles** — `LyricsService` interroge lrclib.net (gratuit, sans clé) :
+  `/api/get` avec l'artiste, le titre, l'album et la durée, puis
+  `/api/search` en secours quand le morceau n'est pas reconnu à l'identique
+  (remaster, « feat. »). Le LRC (`[mm:ss.xx]`) est analysé en lignes
+  horodatées, balise `[offset:]` comprise ; sans version synchronisée, les
+  paroles brutes défilent à la main.
+- La ligne chantée est trouvée par dichotomie sur `playheadMs` à chaque image,
+  mise en avant et recentrée dans la colonne ; les autres sont estompées.
+- Rien n'est écrit sur disque, mais un cache mémoire de 16 morceaux évite de
+  refaire la requête quand on revient en arrière. Le titre et l'artiste en
+  cours partent donc vers lrclib.net : c'est le prix de la fonctionnalité, et
+  une requête n'est faite que lorsque le morceau change ou que l'onglet
+  s'ouvre.
+- `--lyrics "Artiste" "Titre" [durée]` teste le service en ligne de commande.
+
 ## OSD volume et luminosité
 
 Le pilule OSD de Caelestia (volume, luminosité, message transitoire) est
