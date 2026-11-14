@@ -17,6 +17,9 @@ Item {
     // scheme change repaints the bar, the panels, the popouts and the lock
     // screen at once instead of only the surface that picked it.
     property string schemeKey: Platform.shellSetting("appearance/scheme", "monochrome")
+    // Arbitrary colour behind the "Perso" scheme, written by the colour
+    // dialog in Nexus > Apparence.
+    property string accentKey: Platform.shellSetting("appearance/accent", "#5b9dff")
 
     Theme {
         id: appTheme
@@ -26,6 +29,7 @@ Item {
         // Theme) keeps Theme free of the platform singleton, so it stays a
         // plain palette object.
         scheme: app.schemeKey
+        customAccent: app.accentKey
         systemAccent: Platform.accentColor
     }
 
@@ -39,6 +43,8 @@ Item {
         function onShellSettingChanged(key) {
             if (key === "appearance/scheme")
                 app.schemeKey = Platform.shellSetting(key, "monochrome");
+            else if (key === "appearance/accent")
+                app.accentKey = Platform.shellSetting(key, "#5b9dff");
         }
     }
 

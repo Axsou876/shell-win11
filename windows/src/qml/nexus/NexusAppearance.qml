@@ -22,6 +22,31 @@ Flickable {
         return "file:///" + String(path).replace(/\\/g, "/");
     }
 
+    // Free colour picker state. Seeded from the stored custom accent so the
+    // page opens on the colour actually in use — hue *and* saturation, or the
+    // first drag would silently change a colour the user already picked. The
+    // strips are built here rather than with QtQuick.Dialogs: that module is
+    // not part of the portable deployment, and a native Win32 dialog looks
+    // nothing like the rest of the shell.
+    property real customHue: 0.6
+    property real customSaturation: 0.72
+    property real customLight: 0.6
+    readonly property color pickedColour:
+        Qt.hsla(customHue, customSaturation, customLight, 1)
+
+    function applyCustomColour() {
+        Platform.setShellSetting("appearance/accent", pickedColour.toString());
+        Platform.setShellSetting("appearance/scheme", "custom");
+    }
+
+    Component.onCompleted: {
+        const c = root.theme.customAccent;
+        root.customHue = c.hslHue >= 0 ? c.hslHue : 0.6;
+        // A stored grey has no hue to show in the strips; keep them usable.
+        root.customSaturation = Math.max(0.35, c.hslSaturation);
+        root.customLight = c.hslLightness;
+    }
+
     ColumnLayout {
         id: content
 
@@ -134,7 +159,8 @@ Flickable {
             role: "labelSmall"
             color: root.theme.onSurfaceVariantColour
             wrapMode: Text.WordWrap
-            text: "Teinte tout le shell : accents, barre, panneaux et surfaces. "
+            text: "Teinte vraiment tout le shell : la barre, les panneaux, les "
+                + "popouts, les cartes et les fonds suivent la couleur choisie. "
                 + "Seules les applications Windows gardent leurs propres couleurs."
         }
 
@@ -199,6 +225,129 @@ Flickable {
                             schemePill.modelData.key)
                     }
                 }
+            }
+        }
+
+        // Any hue, any brightness. Releasing a strip applies the colour as the
+        // "Perso" scheme, and the whole shell repaints at once — the picker
+        // doubles as the proof that the theme reaches every surface.
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: root.theme.spacingSmall
+
+            Rectangle {
+                Layout.preferredWidth: 24
+                Layout.preferredHeight: 24
+                radius: 12
+                color: root.pickedColour
+                border.width: 1
+                border.color: root.theme.outline
+            }
+
+            StyledText {
+                theme: root.theme
+                role: "labelSmall"
+                color: root.theme.onSurfaceVariantColour
+                text: "Couleur libre — " + root.pickedColour.toString().toUpperCase()
+            }
+
+            Item {
+                Layout.fillWidth: true
+            }
+        }
+
+        Item {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 24
+
+            Rectangle {
+                anchors.fill: parent
+                radius: height / 2
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop { position: 0.000; color: Qt.hsla(0.000, root.customSaturation, 0.55, 1) }
+                    GradientStop { position: 0.167; color: Qt.hsla(0.167, root.customSaturation, 0.55, 1) }
+                    GradientStop { position: 0.333; color: Qt.hsla(0.333, root.customSaturation, 0.55, 1) }
+                    GradientStop { position: 0.500; color: Qt.hsla(0.500, root.customSaturation, 0.55, 1) }
+                    GradientStop { position: 0.667; color: Qt.hsla(0.667, root.customSaturation, 0.55, 1) }
+                    GradientStop { position: 0.833; color: Qt.hsla(0.833, root.customSaturation, 0.55, 1) }
+                    GradientStop { position: 1.000; color: Qt.hsla(1.000, root.customSaturation, 0.55, 1) }
+                }
+            }
+
+            Rectangle {
+                width: 8
+                height: parent.height + 6
+                y: -3
+                radius: 4
+                color: "transparent"
+                border.width: 2
+                border.color: root.theme.onSurfaceColour
+                x: Math.max(0, Math.min(parent.width - width,
+                    root.customHue * parent.width - width / 2))
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+
+                function pick(mx) {
+                    root.customHue = Math.max(0, Math.min(1, mx / width));
+                }
+
+                onPressed: pick(mouse.x)
+                onPositionChanged: {
+                    if (pressed)
+                        pick(mouse.x);
+                }
+                onReleased: root.applyCustomColour()
+            }
+        }
+
+        Item {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 14
+
+            Rectangle {
+                anchors.fill: parent
+                radius: height / 2
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    // Black → the picked hue → white, matching the linear
+                    // 0.04..1.0 lightness ramp the MouseArea reads back.
+                    GradientStop { position: 0.000; color: "#000000" }
+                    GradientStop { position: 0.531; color: Qt.hsla(root.customHue, root.customSaturation, 0.55, 1) }
+                    GradientStop { position: 1.000; color: "#ffffff" }
+                }
+            }
+
+            Rectangle {
+                width: 6
+                height: parent.height + 6
+                y: -3
+                radius: 3
+                color: "transparent"
+                border.width: 2
+                border.color: root.theme.onSurfaceColour
+                x: Math.max(0, Math.min(parent.width - width,
+                    (root.customLight - 0.04) / 0.96 * parent.width - width / 2))
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+
+                function pick(mx) {
+                    root.customLight = 0.04
+                        + 0.96 * Math.max(0, Math.min(1, mx / width));
+                }
+
+                onPressed: pick(mouse.x)
+                onPositionChanged: {
+                    if (pressed)
+                        pick(mouse.x);
+                }
+                onReleased: root.applyCustomColour()
             }
         }
 

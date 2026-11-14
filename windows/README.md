@@ -677,20 +677,27 @@ shell contrôle réellement et délègue le reste par des liens `ms-settings:`.
 
 - **Apparence** : vignettes de fond d'écran issues de `Wallpaper.wallpapers`,
   appliquées immédiatement (`Wallpaper.apply`) ; la vignette courante porte un
-  contour `primary`. Section « Couleurs du shell » : neuf pastilles
-  (`Monochrome`, `Bleu`, `Violet`, `Vert`, `Ambre`, `Rose`, `Cyan`, `Rouge`,
-  `Windows`) qui teintent tout le shell en direct : rôles d'accent, puis les
-  surfaces, contours et conteneurs (`Theme.tinted()` applique une faible
-  proportion de l'accent aux gris de base, assez pour que la barre, les
-  panneaux, les popouts et les cartes suivent la palette, trop peu pour
-  dégrader le contraste du texte). Le choix est écrit dans `QSettings` via
-  `Platform.setShellSetting` et relu au démarrage. Il s'applique aussi **sans
-  redémarrer** : `setShellSetting` émet `shellSettingChanged`, `Main.qml`
-  réextrait la clé dans `schemeKey`, et l'unique objet `Theme` partagé repaint
-  d'un coup la barre, les panneaux, les popouts et l'écran de verrouillage.
-  (Lire `Platform.shellSetting(...)` directement dans une liaison ne suffit
-  pas : c'est un `Q_INVOKABLE` sans dépendance notifiable, la liaison ne se
-  réévalue jamais.) La teinte ne s'applique qu'au shell : les applications
+  contour `primary`. Section « Couleurs du shell » : douze pastilles
+  (`Monochrome`, `Bleu`, `Violet`, `Indigo`, `Vert`, `Lime`, `Ambre`, `Orange`,
+  `Rose`, `Rouge`, `Cyan`, `Windows`) et une pastille `Perso`, plus deux bandes
+  de réglage — teinte et luminosité — pour choisir n'importe quelle couleur ;
+  relâcher une bande l'applique. Une couleur pilote **tout** le shell : les
+  neutres ne sont plus du noir lavé à 5 % d'accent mais une rampe HSL construite
+  dans la teinte choisie (`Theme.surfaceColour` : même lightness que la palette
+  d'origine, saturation fixe, teinte de l'accent), donc la barre, le cadre, les
+  panneaux, les popouts et les cartes prennent réellement la couleur. La
+  saturation est celle de l'accent enregistré, si bien que la page se rouvre
+  sur la couleur exacte en service. Le choix est écrit dans `QSettings` via
+  `Platform.setShellSetting` (`appearance/scheme`, `appearance/accent`) et relu
+  au démarrage. Il s'applique aussi **sans redémarrer** : `setShellSetting` émet
+  `shellSettingChanged`, `Main.qml` réextrait les deux clés dans `schemeKey` et
+  `accentKey`, et l'unique objet `Theme` partagé repaint d'un coup la barre, les
+  panneaux, les popouts et l'écran de verrouillage. (Lire
+  `Platform.shellSetting(...)` directement dans une liaison ne suffit pas :
+  c'est un `Q_INVOKABLE` sans dépendance notifiable, la liaison ne se réévalue
+  jamais.) Le sélecteur est dessiné en QML et non avec `QtQuick.Dialogs` : ce
+  module n'est pas dans le déploiement portable, et une boîte Win32 native
+  détonne dans ce panneau. La teinte ne s'applique qu'au shell : les applications
   Windows gardent leurs propres couleurs. Carte
   de thème (Caelestia suit le thème des applications Windows, `F8` en
   prévisualise l'opposé) et raccourcis vers Couleurs et Arrière-plan de
