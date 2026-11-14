@@ -58,7 +58,9 @@ constexpr int kAnimationDurationMs = 180;
 constexpr int kAnimationTickMs = 7;
 // How far a window starts away from its tile when the desktop changes, so the
 // new desktop slides in from below (or above when going back up the column).
-constexpr int kDesktopSlidePixels = 120;
+// The distance is the monitor's own height, computed per monitor: a slide that
+// stops 120 px short reads as a twitch, not as a workspace switch.
+constexpr int kDesktopSlideDurationMs = 320;
 
 HWND g_messageWindow = nullptr;
 
@@ -415,6 +417,13 @@ struct Animation {
     QRect from;
     QRect to;
     qint64 start = 0;
+    // The desktop slide runs longer than a tiling adjustment: moving a big
+    // window across the screen in 180 ms only lands a couple of frames.
+    int duration = kAnimationDurationMs;
+    // A slide uses a symmetric curve. Ease-out spends almost the whole travel
+    // in the first third of the duration, which reads as a jump followed by a
+    // crawl, not as a transition.
+    bool smooth = false;
 };
 
 struct MonitorState {
@@ -487,10 +496,12 @@ struct WindowManagerService::Impl {
     bool animationTimerRunning = false;
     QString defaultLayout = QStringLiteral("dwindle");
     QString currentDesktopId;
-    // Set by applyDesktop, consumed by the first placement pass after the
-    // switch: +1 when moving down the column, -1 when moving up, 0 otherwise.
+    // Set by applyDesktop, consumed by the first placement pass that actually
+    // moves a window: +1 when moving down the column, -1 when moving up.
     int slideDirection = 0;
     bool slidePending = false;
+    bool slideConsumed = false;
+    qint64 slideArmedAt = 0;
     int desktopIndex = -1;
     int desktopCount = 0;
     HWND activeWindow = nullptr;
@@ -821,6 +832,8 @@ struct WindowManagerService::Impl {
         if (desktopIndex >= 0 && index >= 0 && index != desktopIndex) {
             slideDirection = index > desktopIndex ? 1 : -1;
             slidePending = true;
+            slideConsumed = false;
+            slideArmedAt = nowMs();
         }
 
         currentDesktopId = id;
@@ -841,10 +854,10 @@ struct WindowManagerService::Impl {
         }
 
         if (enabled) {
-            // Short enough that the slide is still attached to the switch; the
-            // switch event itself only arrives once the desktop service has
-            // refreshed, so there is nothing to gain from waiting longer.
-            scheduleRescan(180);
+            // Tight: the switch itself is instantaneous as far as Explorer is
+            // concerned, so the slide has to follow within a few frames or it
+            // reads as a delayed twitch instead of a transition.
+            scheduleRescan(60);
         } else {
             publishState();
         }
@@ -1307,9 +1320,19 @@ struct WindowManagerService::Impl {
         return onCurrent != FALSE;
     }
 
-    bool isEligible(HWND hwnd) const
+    // DWM cloaking is how Explorer hides the windows of inactive desktops.
+    // Win32 visibility says nothing about it, which is why a slide seeded
+    // during the switch would play invisibly.
+    static bool isCloaked(HWND hwnd)
     {
-        if (!isExternalWindow(hwnd))
+        BOOL cloaked = FALSE;
+        return SUCCEEDED(DwmGetWindowAttribute(
+                   hwnd, DWMWA_CLOAKED, &cloaked, sizeof(cloaked)))
+            && cloaked;
+    }
+
+    bool isEligible(HWND hwnd) const
+    {        if (!isExternalWindow(hwnd))
             return false;
         if (GetAncestor(hwnd, GA_ROOT) != hwnd)
             return false;
@@ -1586,8 +1609,13 @@ struct WindowManagerService::Impl {
             applyMonitor(*state);
         }
 
-        // The slide is a one-shot: the next rescan must not replay it.
-        slidePending = false;
+        // The slide stays armed until a pass actually moved something: the
+        // rescan fired right after the switch often runs while the new
+        // desktop's windows are still cloaked, and dropping the flag there
+        // meant the slide never happened at all. It also expires, so a later
+        // unrelated rescan cannot resurrect it.
+        if (slidePending && (slideConsumed || nowMs() - slideArmedAt > 1500))
+            slidePending = false;
 
         publishState();
     }
@@ -1598,11 +1626,13 @@ struct WindowManagerService::Impl {
             return;
         const QRect content = contentRect(state.work, state.engine.count());
         const QHash<quintptr, QRect> targets = state.engine.geometry(content);
-        // A pending desktop slide starts every window one screen offset away
-        // from its tile and lets the existing animation bring it in, even when
-        // the tile itself did not change.
+        // A pending desktop slide starts every window one screen away from
+        // its tile and lets the animation bring it in, even when the tile
+        // itself did not change. The distance is the monitor height, so the
+        // incoming desktop really enters from below.
         const bool slide = slidePending;
-        const int slideOffset = slide ? slideDirection * kDesktopSlidePixels : 0;
+        const int slideOffset = slide
+            ? slideDirection * (state.work.height() + 40) : 0;
         for (auto it = targets.constBegin(); it != targets.constEnd(); ++it) {
             HWND hwnd = reinterpret_cast<HWND>(it.key());
             if (!hwnd || !IsWindow(hwnd) || IsIconic(hwnd))
@@ -1612,6 +1642,12 @@ struct WindowManagerService::Impl {
                 continue;
             }
             if (!isEligible(hwnd))
+                continue;
+            // A window of a desktop that has just become active is still
+            // cloaked by DWM for a moment: Win32 calls it visible, DWM does
+            // not paint it. Seeding the slide now would play it behind the
+            // cloak and the window would simply appear in place afterwards.
+            if (slide && isCloaked(hwnd))
                 continue;
             saveWindowState(hwnd);
             if (IsZoomed(hwnd))
@@ -1634,9 +1670,18 @@ struct WindowManagerService::Impl {
             animation.from = slide ? target.translated(0, slideOffset) : actual;
             animation.to = target;
             animation.start = nowMs();
+            if (slide) {
+                animation.duration = kDesktopSlideDurationMs;
+                animation.smooth = true;
+            }
             animations.insert(it.key(), animation);
-            if (slide)
+            if (slide) {
+                // The windows of a desktop that has just become active are
+                // still cloaked for a moment; moving one is what proves the
+                // slide really started.
                 setWindowRect(hwnd, animation.from);
+                slideConsumed = true;
+            }
             if (!animationTimerRunning) {
                 SetTimer(messageWindow, kAnimationTimer, kAnimationTickMs, nullptr);
                 animationTimerRunning = true;
@@ -1663,8 +1708,13 @@ struct WindowManagerService::Impl {
                 continue;
             }
             const qreal progress = qBound(0.0,
-                static_cast<qreal>(now - it.value().start) / kAnimationDurationMs, 1.0);
-            const qreal eased = 1.0 - std::pow(1.0 - progress, 3.0);
+                static_cast<qreal>(now - it.value().start) / qMax(1, it.value().duration),
+                1.0);
+            // Tiling keeps the quick cubic ease-out; the desktop slide uses a
+            // smoothstep so the travel is spread over the whole duration.
+            const qreal eased = it.value().smooth
+                ? progress * progress * (3.0 - 2.0 * progress)
+                : 1.0 - std::pow(1.0 - progress, 3.0);
             const QRect from = it.value().from;
             const QRect to = it.value().to;
             const QRect current(
