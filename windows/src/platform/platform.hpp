@@ -63,7 +63,15 @@ public:
     [[nodiscard]] QVariantList screens() const;
     [[nodiscard]] QString primaryScreenName() const;
 
+    // Icon of the window as a data: URL, cached per window handle. The dock
+    // asks once per entry; extraction costs a WM_GETICON round trip plus an
+    // encode, which is too much to repeat on every refresh.
+    Q_INVOKABLE QString windowIcon(const QString& windowId);
+
     Q_INVOKABLE bool registerLeftAppBar(QWindow* window, int logicalWidth = 60);
+    // Reserves the bottom edge for the application dock, the same way the left
+    // bar reserves its column: maximized windows stop above the dock.
+    Q_INVOKABLE bool registerBottomAppBar(QWindow* window, int logicalHeight = 76);
     Q_INVOKABLE void unregisterAppBar();
     Q_INVOKABLE void unregisterAppBar(QWindow* window);
     Q_INVOKABLE void refreshAppBar();
@@ -142,17 +150,21 @@ signals:
 private:
     void refresh();
 
+    enum class BarEdge { Left, Bottom };
+
     struct AppBarEntry {
         QWindow* window = nullptr;
         quintptr hwnd = 0;
         QPointer<QScreen> screen;
-        int logicalWidth = 60;
+        int logicalSize = 60;
+        BarEdge edge = BarEdge::Left;
         QMetaObject::Connection windowScreenConnection;
         QMetaObject::Connection geometryConnection;
         QMetaObject::Connection dpiConnection;
         QRect lastRect;
     };
 
+    bool registerAppBar(QWindow* window, int logicalSize, BarEdge edge);
     void refreshAppBarEntry(AppBarEntry& entry);
     void connectEntryScreen(AppBarEntry& entry, QScreen* screen);
     void disconnectEntryScreen(AppBarEntry& entry);
@@ -198,6 +210,7 @@ private:
     bool m_appBarUpdating = false;
     int m_appBarWidth = 60;
     int m_appBarHeight = 0;
+    QHash<quintptr, QString> m_windowIconCache;
 
     quintptr m_rawInputHwnd = 0;
     quintptr m_escapeHotkeyHwnd = 0;

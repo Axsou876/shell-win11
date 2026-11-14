@@ -169,6 +169,7 @@ qt_add_qml_module(caelestia-shell
         src/qml/bar/BarClock.qml
         src/qml/bar/BarStatusIcons.qml
         src/qml/bar/BarPower.qml
+        src/qml/dock/Dock.qml
         src/qml/overlay/OverlayWindow.qml
         src/qml/overlay/AreaPicker.qml
         src/qml/overlay/ScreenSurface.qml

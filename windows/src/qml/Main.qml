@@ -220,6 +220,37 @@ Item {
         }
     }
 
+    // Application dock. Each screen reserves a strip along its bottom edge, so
+    // maximized windows stop above the pill instead of sliding under it.
+    Instantiator {
+        model: Platform.screens
+
+        delegate: Window {
+            id: dockWindow
+
+            required property var modelData
+
+            screen: modelData
+            x: modelData.geometry.x
+            y: modelData.geometry.y + modelData.geometry.height - height
+            width: modelData.geometry.width
+            height: 76
+            visible: !areaPicker.active && !lockOverlay.active && !lockOverlay.preparing
+            visibility: Window.Windowed
+            flags: Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint
+            color: "transparent"
+            title: "Caelestia Dock — Windows"
+
+            Component.onCompleted: Platform.registerBottomAppBar(dockWindow, 76)
+            Component.onDestruction: Platform.unregisterAppBar(dockWindow)
+
+            Dock {
+                anchors.fill: parent
+                theme: appTheme
+            }
+        }
+    }
+
     // Screenshot area selection (Ctrl+Alt+S saves, Ctrl+Alt+X copies).
     AreaPicker {
         id: areaPicker

@@ -276,6 +276,31 @@ QString Platform::activeWindowTitle() const
     return m_activeWindowTitle;
 }
 
+QString Platform::windowIcon(const QString& windowId)
+{
+    bool ok = false;
+    const quintptr hwnd = windowId.toULongLong(&ok);
+    if (!ok || !hwnd)
+        return {};
+
+    const auto it = m_windowIconCache.constFind(hwnd);
+    if (it != m_windowIconCache.constEnd())
+        return *it;
+
+    if (!IsWindow(reinterpret_cast<HWND>(hwnd))) {
+        // A closed window must not leave its icon in the cache forever.
+        if (m_windowIconCache.size() > 64)
+            m_windowIconCache.clear();
+        return {};
+    }
+
+    const QString icon = readWindowIcon(hwnd);
+    if (m_windowIconCache.size() > 64)
+        m_windowIconCache.clear();
+    m_windowIconCache.insert(hwnd, icon);
+    return icon;
+}
+
 QString Platform::activeWindowIcon() const
 {
     return m_activeWindowIcon;
@@ -489,6 +514,16 @@ void Platform::restoreDesktopIcons()
 
 bool Platform::registerLeftAppBar(QWindow* window, int logicalWidth)
 {
+    return registerAppBar(window, qMax(1, logicalWidth), BarEdge::Left);
+}
+
+bool Platform::registerBottomAppBar(QWindow* window, int logicalHeight)
+{
+    return registerAppBar(window, qMax(1, logicalHeight), BarEdge::Bottom);
+}
+
+bool Platform::registerAppBar(QWindow* window, int logicalSize, BarEdge edge)
+{
     if (!window)
         return false;
 
@@ -529,7 +564,8 @@ bool Platform::registerLeftAppBar(QWindow* window, int logicalWidth)
     entry.window = window;
     entry.hwnd = hwnd;
     entry.screen = screen;
-    entry.logicalWidth = qMax(1, logicalWidth);
+    entry.logicalSize = logicalSize;
+    entry.edge = edge;
     m_appBars.insert(window, entry);
 
     auto it = m_appBars.find(window);
@@ -568,7 +604,8 @@ bool Platform::registerLeftAppBar(QWindow* window, int logicalWidth)
     if (!monitor)
         monitor = MonitorFromWindow(barHwnd, MONITOR_DEFAULTTONEAREST);
     qInfo().noquote() << "Caelestia AppBar screen:" << screen->name() << screen->geometry()
-                      << "logical" << it->logicalWidth << "x" << m_appBarHeight
+                      << (it->edge == BarEdge::Left ? "left" : "bottom")
+                      << "logical" << it->logicalSize << "x" << m_appBarHeight
                       << "dpi" << dpiForMonitor(monitor, barHwnd)
                       << "dpr" << screen->devicePixelRatio();
     return true;
@@ -785,17 +822,26 @@ void Platform::refreshAppBarEntry(AppBarEntry& entry)
 
     const UINT dpi = dpiForMonitor(monitor, hwnd);
     const qreal scale = static_cast<qreal>(dpi) / 96.0;
-    const int physicalWidth = qMax(1, qRound(entry.logicalWidth * scale));
+    const int physicalSize = qMax(1, qRound(entry.logicalSize * scale));
+    const bool bottom = entry.edge == BarEdge::Bottom;
 
     RECT desired = monitorInfo.rcMonitor;
-    desired.top = monitorInfo.rcWork.top;
-    desired.bottom = monitorInfo.rcWork.bottom;
-    desired.right = desired.left + physicalWidth;
+    if (bottom) {
+        // A bottom bar spans the work area horizontally and hangs off the
+        // physical bottom edge, exactly like the left bar hangs off the left.
+        desired.left = monitorInfo.rcWork.left;
+        desired.right = monitorInfo.rcWork.right;
+        desired.top = desired.bottom - physicalSize;
+    } else {
+        desired.top = monitorInfo.rcWork.top;
+        desired.bottom = monitorInfo.rcWork.bottom;
+        desired.right = desired.left + physicalSize;
+    }
 
     APPBARDATA abd = {};
     abd.cbSize = sizeof(APPBARDATA);
     abd.hWnd = hwnd;
-    abd.uEdge = ABE_LEFT;
+    abd.uEdge = bottom ? ABE_BOTTOM : ABE_LEFT;
     abd.rc = desired;
 
     SHAppBarMessage(ABM_QUERYPOS, &abd);
@@ -827,11 +873,13 @@ void Platform::refreshAppBarEntry(AppBarEntry& entry)
 
     QScreen* screen = entry.window ? entry.window->screen() : nullptr;
     if (screen && (screen == QGuiApplication::primaryScreen() || m_appBars.size() == 1)) {
-        if (m_appBarWidth != logicalWidth) {
+        // Only the edge each bar actually owns: the dock spans the whole
+        // width, so it must not overwrite the left bar's reported width.
+        if (entry.edge == BarEdge::Left && m_appBarWidth != logicalWidth) {
             m_appBarWidth = logicalWidth;
             emit appBarWidthChanged();
         }
-        if (m_appBarHeight != logicalHeight) {
+        if (entry.edge == BarEdge::Bottom && m_appBarHeight != logicalHeight) {
             m_appBarHeight = logicalHeight;
             emit appBarHeightChanged();
         }
