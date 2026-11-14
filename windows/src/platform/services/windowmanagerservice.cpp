@@ -49,6 +49,9 @@ constexpr UINT kDragMessage = WM_APP + 5;
 constexpr WPARAM kDragBegin = 0;
 constexpr WPARAM kDragMove = 1;
 constexpr WPARAM kDragEnd = 2;
+// Posted when the Windows key is tapped on its own: Explorer would open the
+// Start menu, the shell opens the Caelestia launcher instead.
+constexpr UINT kLauncherMessage = WM_APP + 6;
 constexpr UINT_PTR kAnimationTimer = 1;
 constexpr UINT_PTR kRescanTimer = 2;
 constexpr UINT_PTR kDebounceTimer = 3;
@@ -525,6 +528,11 @@ struct WindowManagerService::Impl {
     POINT dragCursor = {};
     QPoint dragOffset;
     bool swallowWinUp = false;
+    // Bare Windows key: Win is held and nothing else was pressed or clicked
+    // since it went down. On release the shell claims the key-up — Explorer
+    // would otherwise open the Start menu — and opens the launcher.
+    bool winDown = false;
+    bool winAlone = false;
     // The low-level hook is a free function; this points it at the one Impl.
     static inline Impl* s_hookImpl = nullptr;
     QVariantList publishedBindings;
@@ -654,6 +662,11 @@ struct WindowManagerService::Impl {
             return 0;
         case kDragMessage:
             handleDrag(wParam);
+            return 0;
+        case kLauncherMessage:
+            if (!qEnvironmentVariableIsEmpty("CAELESTIA_DEBUG_WM"))
+                qInfo("WM bare Win -> launcher");
+            handleAction(WmAction::Launcher, 0);
             return 0;
         case WM_TIMER:
             handleTimer(static_cast<UINT_PTR>(wParam));
@@ -1072,6 +1085,8 @@ struct WindowManagerService::Impl {
         s_hookImpl = nullptr;
         hookHeldKeys.clear();
         swallowWinUp = false;
+        winDown = false;
+        winAlone = false;
     }
 
     static LRESULT CALLBACK keyboardProc(int code, WPARAM wParam, LPARAM lParam)
@@ -1132,6 +1147,11 @@ struct WindowManagerService::Impl {
     // message loop to stay clear of the low-level hook timeout.
     bool handleMouse(UINT message, const MSLLHOOKSTRUCT& info)
     {
+        // A click while Windows is held turns the key into a combination; the
+        // release must not open the launcher afterwards.
+        if (winHeld())
+            winAlone = false;
+
         if (dragActive) {
             if (message == WM_MOUSEMOVE) {
                 dragCursor = info.pt;
@@ -1236,12 +1256,35 @@ struct WindowManagerService::Impl {
         }
 
         if (vk == VK_LWIN || vk == VK_RWIN) {
-            if (up && swallowWinUp) {
+            if (up) {
+                const bool claimed = swallowWinUp;
+                const bool bare = winDown && winAlone && enabled;
                 swallowWinUp = false;
+                winDown = false;
+                winAlone = false;
+                if (claimed)
+                    return true;
+                if (!bare)
+                    return false;
+                // Explorer opens Start on the Win key-up; claim it and let the
+                // message loop open the Caelestia launcher instead. This is
+                // what makes a bare SUPER behave like Hyprland's SUPER.
+                PostMessageW(messageWindow, kLauncherMessage, 0, 0);
                 return true;
+            }
+            if (!winDown) {
+                winDown = true;
+                // Windows held together with another modifier is a
+                // combination, not a tap.
+                winAlone = !(GetAsyncKeyState(VK_CONTROL) & 0x8000)
+                    && !(GetAsyncKeyState(VK_MENU) & 0x8000)
+                    && !(GetAsyncKeyState(VK_SHIFT) & 0x8000);
             }
             return false;
         }
+
+        // Any other key means the Windows key is part of a combination.
+        winAlone = false;
 
         if (up || !enabled || hookBindings.isEmpty())
             return false;
