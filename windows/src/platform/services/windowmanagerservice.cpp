@@ -2055,8 +2055,12 @@ struct WindowManagerService::Impl {
                 & ~(WS_CAPTION | WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX
                     | WS_MAXIMIZEBOX));
         SetWindowLongPtrW(activeWindow, GWL_EXSTYLE, state.exStyle | WS_EX_TOPMOST);
-        SetWindowPos(activeWindow, HWND_TOPMOST, monitor.bounds.x(), monitor.bounds.y(),
-            monitor.bounds.width(), monitor.bounds.height(),
+        // The work area, not the monitor: the shell's frame and bar are drawn
+        // around the wallpaper hole, and a fullscreen window that covered the
+        // whole monitor hid them. The work area is exactly that hole — the bar
+        // reserves its column and the frame guards reserve the 10 px border.
+        SetWindowPos(activeWindow, HWND_TOPMOST, monitor.work.x(), monitor.work.y(),
+            monitor.work.width(), monitor.work.height(),
             SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_SHOWWINDOW);
         fullscreen = state;
         fullscreen.valid = true;
