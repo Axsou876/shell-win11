@@ -893,8 +893,11 @@ void Platform::refreshAppBarEntry(AppBarEntry& entry)
         appBarEdge = ABE_BOTTOM;
         break;
     case BarEdge::Left:
-        desired.top = monitorInfo.rcWork.top;
-        desired.bottom = monitorInfo.rcWork.bottom;
+        // The bar spans the monitor vertically, not the work area: the top and
+        // bottom frame guards reserve 10 px there, and a bar stopping inside
+        // them would leave the shell's frame detached at the corners.
+        desired.top = monitorInfo.rcMonitor.top;
+        desired.bottom = monitorInfo.rcMonitor.bottom;
         desired.right = desired.left + physicalSize;
         appBarEdge = ABE_LEFT;
         break;
@@ -947,8 +950,23 @@ void Platform::refreshAppBarEntry(AppBarEntry& entry)
         }
     }
 
-    if (!SetWindowPos(hwnd, HWND_TOPMOST, abd.rc.left, abd.rc.top, physicalFinalWidth,
-            physicalFinalHeight, SWP_NOACTIVATE | SWP_SHOWWINDOW)) {
+    // Windows clips an app bar to the work area. The frame guards reserve the
+    // top and bottom 10 px, so the left bar came back 10 px short at each end
+    // and the shell's frame detached at the corners. Its reservation is still
+    // the 60 px column; only the window is stretched back to the monitor.
+    int windowX = abd.rc.left;
+    int windowY = abd.rc.top;
+    int windowW = physicalFinalWidth;
+    int windowH = physicalFinalHeight;
+    if (entry.edge == BarEdge::Left) {
+        windowX = monitorInfo.rcMonitor.left;
+        windowY = monitorInfo.rcMonitor.top;
+        windowW = physicalSize;
+        windowH = monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top;
+    }
+
+    if (!SetWindowPos(hwnd, HWND_TOPMOST, windowX, windowY, windowW, windowH,
+            SWP_NOACTIVATE | SWP_SHOWWINDOW)) {
         qWarning("Caelestia AppBar: SetWindowPos failed");
     }
 }

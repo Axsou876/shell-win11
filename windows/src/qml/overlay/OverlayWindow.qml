@@ -27,7 +27,10 @@ Window {
         return null;
     }
     readonly property rect screenRect: screenData ? screenData.geometry : Qt.rect(0, 0, 0, 0)
-    readonly property int workHeight: screenData ? screenData.availableGeometry.height : 0
+    // The monitor, not the work area: the frame guards reserve 10 px on the top
+    // and bottom edges, and the overlay draws the frame itself. Sized to the
+    // work area it stopped 20 px short and the shell looked cut at the bottom.
+    readonly property int workHeight: screenData ? screenData.geometry.height : 0
     readonly property bool interactive: controller.currentPanel !== ""
         && controller.currentScreenName === screenName
     property bool ready: false

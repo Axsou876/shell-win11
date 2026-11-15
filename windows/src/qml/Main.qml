@@ -171,7 +171,10 @@ Item {
             x: modelData.geometry.x
             y: modelData.geometry.y
             width: 60
-            height: modelData.availableGeometry.height
+            // The monitor, not the work area: the frame guards reserve 10 px on
+            // the top and bottom edges, and the bar must still span the whole
+            // screen or the shell's frame stops short at the corners.
+            height: modelData.geometry.height
             // The picker covers the whole monitor while a selection is being
             // made, and the bar would fight it for the topmost slot. The
             // frozen frame already shows the bar, so hiding it is invisible.
