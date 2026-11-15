@@ -243,7 +243,12 @@ Item {
             x: modelData.geometry.x
             y: modelData.geometry.y + modelData.geometry.height - height
             width: modelData.geometry.width
-            height: 128
+            // Proportions, not a fixed band: 128 px is right on a 1080p screen
+            // and eats a sixth of a 768p laptop. Never below the pill plus its
+            // margins (96 px).
+            readonly property int dockBand: Math.max(96,
+                Math.min(128, Math.round(modelData.geometry.height * 0.115)))
+            height: dockBand
             visible: !areaPicker.active && !lockOverlay.active && !lockOverlay.preparing
                 && !WindowManager.appFullscreen
             visibility: Window.Windowed

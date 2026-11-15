@@ -26,7 +26,9 @@ Item {
     readonly property var windows: AppWindows.windows
     readonly property int pillHeight: 64
     readonly property int entityWidth: 52
-    readonly property int bandHeight: 128
+    // The band is the window's height: it shrinks on small screens, so it must
+    // follow rather than assume 128.
+    readonly property int bandHeight: root.height
     readonly property real edgeThickness: 8
 
     // Revealed when the pointer touches the bottom edge, and kept open while

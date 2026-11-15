@@ -1,6 +1,7 @@
 #include "virtualdesktopservice.hpp"
 
 #include <QDebug>
+#include <QSettings>
 #include <QFileInfo>
 #include <QMetaObject>
 #include <QStringList>
@@ -21,6 +22,28 @@ namespace {
 // The bar shows three desktops at most: beyond that the column gets taller
 // than the bar and a single wheel gesture would keep manufacturing desktops.
 constexpr int kMaxDesktops = 3;
+
+// Windows build, read from the registry. GetVersionEx lies without an app
+// manifest, and winternl.h's RTL struct clashes with the COM headers here.
+DWORD windowsBuildNumber()
+{
+    QSettings settings(
+        QStringLiteral("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"),
+        QSettings::NativeFormat);
+    return static_cast<DWORD>(
+        settings.value(QStringLiteral("CurrentBuildNumber")).toUInt());
+}
+
+// The private interfaces below are layout snapshots: their vtable order changes
+// between Windows builds, and calling the wrong slot is an access violation
+// rather than an error code. They were validated on 24H2 and 26H2 (26100 and
+// 26300). Any other build gets the service marked unavailable instead of
+// risking the process — the workspace column simply stays hidden.
+bool virtualDesktopLayoutSupported()
+{
+    const DWORD build = windowsBuildNumber();
+    return build >= 26100 && build < 27000;
+}
 
 const CLSID kImmersiveShell
     = { 0xC2F03A33, 0x21F5, 0x47FA, { 0xB4, 0xBB, 0x15, 0x63, 0x62, 0xA2, 0xF2, 0x39 } };
@@ -466,6 +489,13 @@ void VirtualDesktopService::publish(QVariantList desktops, const QString& curren
 
 void VirtualDesktopService::run()
 {
+    if (!virtualDesktopLayoutSupported()) {
+        publish({}, {}, false,
+            QStringLiteral("Bureaux virtuels : Windows build %1 non prise en charge")
+                .arg(windowsBuildNumber()));
+        return;
+    }
+
     const HRESULT com = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     if (FAILED(com)) {
         publish({}, {}, false, QStringLiteral("COM bureaux virtuels indisponible"));

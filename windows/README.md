@@ -38,6 +38,35 @@ fermeture de la fenêtre.
 Un second lancement ne crée ni AppBar ni icône tray supplémentaire : il se
 termine immédiatement avec le code 0.
 
+## Portabilité
+
+Ce qui rend le shell dépendant de la machine, et ce qui a été fait pour que ça
+tienne ailleurs :
+
+- **Windows 11 24H2 ou plus récent.** Les bureaux virtuels passent par des
+  interfaces COM privées : leur ordre de vtable change d'une build à l'autre, et
+  appeler le mauvais slot est une violation d'accès, pas un code d'erreur. Elles
+  ont été validées sur 26100 (24H2) et 26300 (26H2). `virtualDesktopLayoutSupported`
+  lit la build dans le registre et marque le service indisponible hors de cette
+  plage : la colonne de bureaux disparaît, le reste du shell continue. Un
+  `Win+Ctrl+D` reste possible par Windows lui-même.
+- **Runtime Visual C++.** `vcruntime140*.dll`, `msvcp140*.dll` et `concrt140.dll`
+  sont copiés à côté de l'exécutable : aucune installation de la redistribuable
+  n'est nécessaire sur la machine cible.
+- **Rendu.** D3D11 par défaut ; `opengl32sw.dll` est déployé, donc une machine
+  sans pilote D3D11 utilisable retombe sur le rendu logiciel au lieu d'échouer.
+- **DPI et résolutions.** Toutes les tailles sont en pixels logiques, les AppBars
+  multiplient par le DPI du moniteur (`dpiForMonitor`), et la bande du dock est
+  proportionnelle à la hauteur de l'écran (11,5 %, bornée à 96–128 px) — sur un
+  portable 768p elle ne mange pas un sixième de l'écran.
+- **Écrans.** Un ou plusieurs moniteurs, DPI différents inclus : une barre, un
+  overlay et un dock par écran, chacun réservé par son AppBar.
+- **Aucun chemin ni matériel en dur.** Les réglages vivent sous
+  `HKCU\Software\Caelestia`, la capture audio et le GPU sont détectés puis
+  désactivés proprement s'ils manquent.
+- **Réversibilité.** La barre des tâches Windows est restaurée à la fermeture
+  normale et au démarrage suivant si le shell a été tué (`shell/taskbarHeld`).
+
 ## Architecture
 
 ### AppBar multi-écrans
