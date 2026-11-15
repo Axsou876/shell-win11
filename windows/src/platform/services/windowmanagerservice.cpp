@@ -543,6 +543,8 @@ struct WindowManagerService::Impl {
     bool animationTimerRunning = false;
     QString defaultLayout = QStringLiteral("dwindle");
     QString currentDesktopId;
+    // Window regions applied to maximised windows, keyed by handle and size.
+    QHash<quintptr, QSize> roundedRegions;
     // Set by applyDesktop, consumed by the first placement pass that actually
     // moves a window: +1 when moving down the column, -1 when moving up.
     int slideDirection = 0;
@@ -1520,6 +1522,7 @@ struct WindowManagerService::Impl {
         floating.remove(value);
         freeMoved.remove(value);
         animations.remove(value);
+        roundedRegions.remove(value);
         suppressUntil.remove(value);
         if (activeWindow == hwnd)
             activeWindow = nullptr;
@@ -1621,6 +1624,7 @@ struct WindowManagerService::Impl {
         for (HWND hwnd : std::as_const(eligible)) {
             saveWindowState(hwnd);
             stripCaptionButtons(hwnd);
+            updateRoundedRegion(hwnd);
         }
 
         QHash<QString, QVector<HWND>> byMonitor;
@@ -1840,6 +1844,38 @@ struct WindowManagerService::Impl {
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
     }
 
+    // DWM rounds a window until it is maximised, then squares it on purpose.
+    // The shell's wallpaper hole is rounded, so a maximised window's square
+    // corner butted right into the frame. A window region with the same radius
+    // puts the curve back — the only lever Windows leaves for this state.
+    void updateRoundedRegion(HWND hwnd)
+    {
+        const quintptr value = reinterpret_cast<quintptr>(hwnd);
+        const bool maximised = IsZoomed(hwnd) != FALSE;
+        const QSize size = windowRect(hwnd).size();
+
+        const auto it = roundedRegions.constFind(value);
+        if (!maximised) {
+            if (it != roundedRegions.constEnd()) {
+                SetWindowRgn(hwnd, nullptr, TRUE);
+                roundedRegions.remove(value);
+            }
+            return;
+        }
+        if (it != roundedRegions.constEnd() && it.value() == size)
+            return;
+
+        const int dpi = static_cast<int>(GetDpiForWindow(hwnd));
+        const int radius = qMax(8, qRound(22.0 * (dpi > 0 ? dpi : 96) / 96.0));
+        const HRGN region = CreateRoundRectRgn(0, 0, size.width() + 1, size.height() + 1,
+            radius * 2, radius * 2);
+        if (!region)
+            return;
+        // SetWindowRgn takes ownership of the region.
+        SetWindowRgn(hwnd, region, TRUE);
+        roundedRegions.insert(value, size);
+    }
+
     void saveWindowState(HWND hwnd)
     {
         const quintptr value = reinterpret_cast<quintptr>(hwnd);
@@ -1857,6 +1893,15 @@ struct WindowManagerService::Impl {
 
     void restoreAllWindows()
     {
+        // Regions are ours: they must go before the shell does, or every window
+        // would stay clipped to a rounded rectangle after the process exits.
+        for (quintptr value : roundedRegions.keys()) {
+            HWND hwnd = reinterpret_cast<HWND>(value);
+            if (IsWindow(hwnd))
+                SetWindowRgn(hwnd, nullptr, TRUE);
+        }
+        roundedRegions.clear();
+
         const auto keys = savedWindows.keys();
         for (quintptr value : keys) {
             HWND hwnd = reinterpret_cast<HWND>(value);
