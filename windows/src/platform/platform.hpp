@@ -28,6 +28,11 @@ class Platform final : public QObject, public QAbstractNativeEventFilter {
     Q_PROPERTY(bool animationsEnabled READ animationsEnabled NOTIFY animationsEnabledChanged)
     Q_PROPERTY(qreal systemScale READ systemScale NOTIFY systemScaleChanged)
     Q_PROPERTY(QString rhiBackend READ rhiBackend NOTIFY rhiBackendChanged)
+    // Language of the Windows display language, lower-case ISO code ("fr",
+    // "en", "de"…). The QML side translates itself from it: the shell ships
+    // French sources and English translations, everything else falls back to
+    // English.
+    Q_PROPERTY(QString systemLanguage READ systemLanguage CONSTANT)
     Q_PROPERTY(bool appBarRegistered READ appBarRegistered NOTIFY appBarRegisteredChanged)
     Q_PROPERTY(int appBarWidth READ appBarWidth NOTIFY appBarWidthChanged)
     Q_PROPERTY(int appBarHeight READ appBarHeight NOTIFY appBarHeightChanged)
@@ -54,6 +59,7 @@ public:
     [[nodiscard]] bool animationsEnabled() const;
     [[nodiscard]] qreal systemScale() const;
     [[nodiscard]] QString rhiBackend() const;
+    [[nodiscard]] QString systemLanguage() const;
     [[nodiscard]] bool appBarRegistered() const;
     [[nodiscard]] int appBarWidth() const;
     [[nodiscard]] int appBarHeight() const;

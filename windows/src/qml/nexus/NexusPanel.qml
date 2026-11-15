@@ -22,10 +22,10 @@ Item {
     property int page: 0
 
     readonly property var pages: [
-        { label: "Apparence", icon: "palette" },
-        { label: "Système", icon: "tune" },
+        { label: I18n.t("Apparence"), icon: "palette" },
+        { label: I18n.t("Système"), icon: "tune" },
         { label: "Shell", icon: "dock_to_bottom" },
-        { label: "À propos", icon: "info" }
+        { label: I18n.t("À propos"), icon: "info" }
     ]
 
     component NavRow: Item {
@@ -123,7 +123,7 @@ Item {
                         theme: root.theme
                         role: "bodyLarge"
                         weight: Font.DemiBold
-                        text: "Réglages"
+                        text: I18n.t("Réglages")
                     }
 
                     StyledText {

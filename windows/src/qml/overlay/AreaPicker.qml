@@ -47,8 +47,8 @@ Item {
         }
 
         if (captured.length === 0) {
-            Notification.addNotification("Caelestia", "Capture d'écran",
-                Screenshots.error || "Aucun écran disponible.");
+            Notification.addNotification("Caelestia", I18n.t("Capture d'écran"),
+                Screenshots.error || I18n.t("Aucun écran disponible."));
             Screenshots.clear();
             return;
         }
@@ -68,21 +68,21 @@ Item {
         if (root.clipboardOnly) {
             if (!Screenshots.copyRegion(token, x, y, width, height, viewWidth,
                     viewHeight)) {
-                Notification.addNotification("Caelestia", "Capture d'écran",
+                Notification.addNotification("Caelestia", I18n.t("Capture d'écran"),
                     Screenshots.error || "Copie impossible.");
             } else {
-                Notification.addNotification("Caelestia", "Capture d'écran",
-                    "Zone copiée dans le presse-papiers.");
+                Notification.addNotification("Caelestia", I18n.t("Capture d'écran"),
+                    I18n.t("Zone copiée dans le presse-papiers."));
             }
         } else {
             const path = Screenshots.saveRegion(token, x, y, width, height,
                 viewWidth, viewHeight);
             if (path.length === 0) {
-                Notification.addNotification("Caelestia", "Capture d'écran",
+                Notification.addNotification("Caelestia", I18n.t("Capture d'écran"),
                     Screenshots.error || "Enregistrement impossible.");
             } else {
-                Notification.addNotification("Caelestia", "Capture d'écran",
-                    "Enregistrée dans " + path);
+                Notification.addNotification("Caelestia", I18n.t("Capture d'écran"),
+                    I18n.t("Enregistrée dans ") + path);
             }
         }
 

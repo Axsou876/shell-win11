@@ -69,7 +69,7 @@ Flickable {
         StyledText {
             theme: root.theme
             role: "titleSmall"
-            text: "Fond d'écran"
+            text: I18n.t("Fond d'écran")
         }
 
         StyledText {
@@ -79,8 +79,8 @@ Flickable {
             color: root.theme.onSurfaceVariantColour
             wrapMode: Text.WordWrap
             text: Wallpaper.wallpapers.length === 0
-                ? "Aucune image trouvée dans les dossiers Windows."
-                : "Cliquez sur une vignette : Windows applique l'image immédiatement."
+                ? I18n.t("Aucune image trouvée dans les dossiers Windows.")
+                : I18n.t("Cliquez sur une vignette : Windows applique l'image immédiatement.")
         }
 
         GridView {
@@ -163,7 +163,7 @@ Flickable {
         StyledText {
             theme: root.theme
             role: "titleSmall"
-            text: "Couleurs du shell"
+            text: I18n.t("Couleurs du shell")
         }
 
         StyledText {
@@ -261,7 +261,8 @@ Flickable {
                 theme: root.theme
                 role: "labelSmall"
                 color: root.theme.onSurfaceVariantColour
-                text: "Couleur libre — " + root.pickedColour.toString().toUpperCase()
+                text: I18n.t("Couleur libre") + " — "
+                    + root.pickedColour.toString().toUpperCase()
             }
 
             Item {
@@ -367,7 +368,7 @@ Flickable {
         StyledText {
             theme: root.theme
             role: "titleSmall"
-            text: "Opacité"
+            text: I18n.t("Opacité")
         }
 
         StyledText {
@@ -376,7 +377,7 @@ Flickable {
             role: "labelSmall"
             color: root.theme.onSurfaceVariantColour
             wrapMode: Text.WordWrap
-            text: "Le fond du shell laisse voir le fond d'écran. Les cartes des "
+            text: I18n.t("Le fond du shell laisse voir le fond d'écran. Les cartes des ")
                 + "panneaux restent opaques pour que le texte reste lisible."
         }
 
@@ -414,7 +415,7 @@ Flickable {
         StyledText {
             theme: root.theme
             role: "titleSmall"
-            text: "Thème"
+            text: I18n.t("Thème")
         }
 
         M3ListItem {
@@ -422,7 +423,7 @@ Flickable {
             theme: root.theme
             icon: Platform.darkMode ? "dark_mode" : "light_mode"
             title: Platform.darkMode ? "Mode sombre" : "Mode clair"
-            subtitle: "Caelestia suit le thème des applications Windows"
+            subtitle: I18n.t("Caelestia suit le thème des applications Windows")
             trailingText: "F8"
             onClicked: Qt.openUrlExternally("ms-settings:personalization")
         }
@@ -433,7 +434,7 @@ Flickable {
 
             M3Button {
                 theme: root.theme
-                text: "Couleurs Windows"
+                text: I18n.t("Couleurs Windows")
                 icon: "palette"
                 variant: "tonal"
                 onClicked: Qt.openUrlExternally("ms-settings:personalization-colors")
@@ -441,7 +442,7 @@ Flickable {
 
             M3Button {
                 theme: root.theme
-                text: "Arrière-plan Windows"
+                text: I18n.t("Arrière-plan Windows")
                 icon: "wallpaper"
                 variant: "text"
                 onClicked: Qt.openUrlExternally("ms-settings:personalization-background")

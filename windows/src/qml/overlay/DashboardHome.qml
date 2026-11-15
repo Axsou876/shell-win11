@@ -101,7 +101,7 @@ GridLayout {
                     pointSize: 26
                     weight: Font.DemiBold
                     color: root.theme.primary
-                    text: Weather.available ? Weather.temperature : "Météo"
+                    text: Weather.available ? Weather.temperature : I18n.t("Météo")
                 }
 
                 StyledText {
@@ -113,7 +113,7 @@ GridLayout {
                     wrapMode: Text.WordWrap
                     maximumLineCount: 2
                     width: Math.min(implicitWidth, 155)
-                    text: Weather.available ? Weather.description : "Non configurée"
+                    text: Weather.available ? Weather.description : I18n.t("Non configurée")
                 }
 
                 StyledText {
@@ -355,7 +355,7 @@ GridLayout {
             color: root.theme.primary
             horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideRight
-            text: Media.available ? Media.title : "Aucune lecture"
+            text: Media.available ? Media.title : I18n.t("Aucune lecture")
         }
 
         StyledText {
@@ -454,7 +454,7 @@ GridLayout {
             theme: root.theme
             role: "labelSmall"
             color: root.theme.onSurfaceVariantColour
-            text: "Aucune session média"
+            text: I18n.t("Aucune session média")
         }
     }
 

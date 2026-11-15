@@ -57,8 +57,8 @@ Item {
         },
         {
             id: "settings",
-            name: "Paramètres",
-            description: "Ouvrir les réglages du shell et de Windows",
+            name: I18n.t("Paramètres"),
+            description: I18n.t("Ouvrir les réglages du shell et de Windows"),
             icon: "settings",
             target: "ms-settings:"
         },
@@ -78,8 +78,8 @@ Item {
         },
         {
             id: "taskmanager",
-            name: "Gestionnaire des tâches",
-            description: "Voir et gérer les processus",
+            name: I18n.t("Gestionnaire des tâches"),
+            description: I18n.t("Voir et gérer les processus"),
             icon: "monitoring",
             target: "taskmgr.exe"
         },
@@ -282,7 +282,7 @@ Item {
                     role: "labelSmall"
                     color: root.theme.onSurfaceVariantColour
                     text: root.mode === "wallpaper"
-                        ? root.wallpaperItems.length + " fonds d’écran"
+                        ? root.wallpaperItems.length + I18n.t(" fonds d’écran")
                         : root.mode === "actions"
                             ? root.actionItems.length + " actions"
                             : root.mode === "calc"
@@ -381,7 +381,7 @@ Item {
                     anchors.fill: parent
                     verticalAlignment: Text.AlignVCenter
                     visible: searchInput.text.length === 0
-                    text: "Rechercher une application… ou > pour les actions"
+                    text: I18n.t("Rechercher une application… ou > pour les actions")
                     color: root.theme.onSurfaceVariantColour
                     opacity: 0.7
                     font.family: root.theme.bodyFont
@@ -402,7 +402,7 @@ Item {
                     role: "labelSmall"
                     color: root.theme.onSurfaceVariantColour
                     opacity: 0.65
-                    text: "Entrée"
+                    text: I18n.t("Entrée")
                 }
             }
         }
@@ -799,7 +799,7 @@ Item {
                         text: root.expression.length === 0
                             ? "Exemple : 2^10 * pi"
                             : root.calcResult.ok
-                                ? "Entrée copie le résultat"
+                                ? I18n.t("Entrée copie le résultat")
                                 : root.calcResult.error
                     }
                 }
@@ -830,10 +830,10 @@ Item {
                     theme: root.theme
                     role: "bodyMedium"
                     color: root.theme.onSurfaceVariantColour
-                    text: root.mode === "wallpaper" ? "Aucun fond d’écran trouvé"
-                        : root.mode === "actions" ? "Aucune action trouvée"
+                    text: root.mode === "wallpaper" ? I18n.t("Aucun fond d’écran trouvé")
+                        : root.mode === "actions" ? I18n.t("Aucune action trouvée")
                         : (Apps.scanning ? "Chargement des applications…"
-                            : "Aucune application trouvée")
+                            : I18n.t("Aucune application trouvée"))
                 }
             }
         }
@@ -852,10 +852,10 @@ Item {
                 color: root.theme.onSurfaceVariantColour
                 opacity: 0.6
                 text: root.mode === "calc"
-                    ? "Entrée copier le résultat  ·  Échap fermer"
-                    : "↑ ↓ naviguer  ·  Entrée "
-                        + (root.mode === "actions" ? "exécuter" : "lancer")
-                        + "  ·  Échap fermer"
+                    ? I18n.t("Entrée copier le résultat  ·  Échap fermer")
+                    : I18n.t("↑ ↓ naviguer  ·  Entrée ")
+                        + (root.mode === "actions" ? I18n.t("exécuter") : "lancer")
+                        + I18n.t("  ·  Échap fermer")
             }
 
             StyledText {

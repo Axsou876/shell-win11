@@ -146,7 +146,7 @@ Rectangle {
                     theme: root.theme
                     role: "bodySmall"
                     color: root.theme.onSurfaceVariantColour
-                    text: "Aucune notification"
+                    text: I18n.t("Aucune notification")
                 }
             }
         }

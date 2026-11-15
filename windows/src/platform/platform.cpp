@@ -4,6 +4,7 @@
 #include <QClipboard>
 #include <QCursor>
 #include <QDebug>
+#include <QLocale>
 #include <QFileInfo>
 #include <algorithm>
 #include <QGuiApplication>
@@ -272,6 +273,16 @@ qreal Platform::systemScale() const
 QString Platform::rhiBackend() const
 {
     return m_rhiBackend;
+}
+
+QString Platform::systemLanguage() const
+{
+    // CAELESTIA_LANG forces a language, so the translation can be checked on a
+    // French machine without touching the Windows settings.
+    const QString forced = qEnvironmentVariable("CAELESTIA_LANG").toLower();
+    if (!forced.isEmpty())
+        return forced;
+    return QLocale::system().name().left(2).toLower();
 }
 
 bool Platform::appBarRegistered() const

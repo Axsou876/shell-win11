@@ -85,7 +85,7 @@ Rectangle {
                 theme: root.theme
                 role: "bodyMedium"
                 color: root.theme.outline
-                text: Lock.busy ? "Vérification…"
+                text: Lock.busy ? I18n.t("Vérification…")
                     : Lock.blocked ? "Trop de tentatives"
                     : "Saisissez votre mot de passe"
             }

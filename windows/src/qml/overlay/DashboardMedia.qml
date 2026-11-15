@@ -297,7 +297,7 @@ Item {
                         ? "Visualiseur indisponible"
                         : !AudioCapture.available
                             ? "Capture audio indisponible"
-                            : Media.playing ? "Visualiseur temps réel" : "En pause"
+                            : Media.playing ? I18n.t("Visualiseur temps réel") : "En pause"
                 }
             }
 
@@ -323,7 +323,7 @@ Item {
                         elide: Text.ElideRight
                         maximumLineCount: 2
                         wrapMode: Text.WordWrap
-                        text: Media.title !== "" ? Media.title : "Titre inconnu"
+                        text: Media.title !== "" ? Media.title : I18n.t("Titre inconnu")
                     }
 
                     StyledText {
@@ -731,7 +731,7 @@ Item {
                 role: "bodyLarge"
                 pointSize: 22
                 weight: Font.DemiBold
-                text: "Aucune lecture"
+                text: I18n.t("Aucune lecture")
             }
 
             StyledText {
@@ -739,7 +739,7 @@ Item {
                 theme: root.theme
                 role: "bodyMedium"
                 color: root.theme.onSurfaceVariantColour
-                text: "Lancez un média compatible GSMTC pour l’afficher ici."
+                text: I18n.t("Lancez un média compatible GSMTC pour l’afficher ici.")
             }
         }
     }

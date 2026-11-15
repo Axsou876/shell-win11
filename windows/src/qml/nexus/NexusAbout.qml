@@ -22,8 +22,8 @@ Flickable {
         { label: "Windows", value: User.windowsVersion },
         { label: "Build", value: String(Platform.windowsBuild) },
         { label: "Rendu", value: Platform.rhiBackend },
-        { label: "Échelle système", value: Number(Platform.systemScale).toFixed(2) + "×" },
-        { label: "Écrans", value: Platform.screens.length + " (" + Platform.primaryScreenName + ")" },
+        { label: I18n.t("Échelle système"), value: Number(Platform.systemScale).toFixed(2) + "×" },
+        { label: I18n.t("Écrans"), value: Platform.screens.length + " (" + Platform.primaryScreenName + ")" },
         { label: "Utilisateur", value: User.userName },
         { label: "Machine", value: User.hostName }
     ]
@@ -70,7 +70,7 @@ Flickable {
                     role: "labelSmall"
                     color: root.theme.onSurfaceVariantColour
                     wrapMode: Text.WordWrap
-                    text: "Portage Windows du shell Quickshell d'origine, en Qt 6 et C++."
+                    text: I18n.t("Portage Windows du shell Quickshell d'origine, en Qt 6 et C++.")
                 }
             }
         }
@@ -129,8 +129,8 @@ Flickable {
             role: "labelSmall"
             color: root.theme.onSurfaceVariantColour
             wrapMode: Text.WordWrap
-            text: "F8 prévisualise le thème opposé sans toucher aux réglages Windows. "
-                + "L'enregistreur d'écran du shell d'origine n'a pas été porté : "
+            text: I18n.t("F8 prévisualise le thème opposé sans toucher aux réglages Windows. ")
+                + I18n.t("L'enregistreur d'écran du shell d'origine n'a pas été porté : ")
                 + "l'outil Capture de Windows le remplace."
         }
 
@@ -140,7 +140,7 @@ Flickable {
 
             M3Button {
                 theme: root.theme
-                text: "À propos de Windows"
+                text: I18n.t("À propos de Windows")
                 icon: "info"
                 variant: "tonal"
                 onClicked: Qt.openUrlExternally("ms-settings:about")
@@ -148,7 +148,7 @@ Flickable {
 
             M3Button {
                 theme: root.theme
-                text: "Notification de test"
+                text: I18n.t("Notification de test")
                 icon: "notifications_active"
                 variant: "text"
                 onClicked: Notification.addTestNotification()

@@ -261,13 +261,13 @@ Item {
                 theme: root.theme
                 role: "bodyMedium"
                 color: root.theme.onSurfaceVariantColour
-                text: "Aucune notification"
+                text: I18n.t("Aucune notification")
             }
 
             M3Button {
                 anchors.horizontalCenter: parent.horizontalCenter
                 theme: root.theme
-                text: "Créer une notification de test"
+                text: I18n.t("Créer une notification de test")
                 icon: "add_alert"
                 variant: "text"
                 onClicked: Notification.addTestNotification()

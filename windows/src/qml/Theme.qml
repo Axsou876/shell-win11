@@ -209,7 +209,7 @@ QtObject {
     readonly property int popoutAudioWidth: 320
     readonly property int popoutBluetoothWidth: 320
     // The original battery popout is the narrowest of the bar popouts. Our
-    // footer adds "Paramètres d'alimentation", which does not fit in 250 px.
+    // footer adds I18n.t("Paramètres d'alimentation"), which does not fit in 250 px.
     readonly property int popoutBatteryWidth: 300
     readonly property int popoutWindowWidth: 340
     readonly property int popoutTrayWidth: 300

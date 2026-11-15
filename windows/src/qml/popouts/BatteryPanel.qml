@@ -75,7 +75,7 @@ Item {
                     role: "bodyLarge"
                     pointSize: 30
                     weight: Font.DemiBold
-                    text: Battery.known ? Battery.level + " %" : "N/D"
+                    text: Battery.known ? Battery.level + " %" : I18n.t("N/D")
                 }
 
                 StyledText {
@@ -83,8 +83,8 @@ Item {
                     role: "labelSmall"
                     color: root.theme.onSurfaceVariantColour
                     text: Battery.charging ? "En charge"
-                        : Battery.onAc ? "Alimenté par le secteur"
-                        : Battery.present ? "Décharge" : "Aucune donnée"
+                        : Battery.onAc ? I18n.t("Alimenté par le secteur")
+                        : Battery.present ? I18n.t("Décharge") : I18n.t("Aucune donnée")
                 }
             }
         }
@@ -104,7 +104,7 @@ Item {
             color: root.theme.onSurfaceVariantColour
             wrapMode: Text.WordWrap
             text: Battery.minutesRemaining >= 0
-                ? "Autonomie estimée par Windows : "
+                ? I18n.t("Autonomie estimée par Windows : ")
                     + Math.floor(Battery.minutesRemaining / 60) + " h "
                     + (Battery.minutesRemaining % 60) + " min"
                 : "Windows ne fournit pas d'autonomie restante exploitable."
@@ -124,7 +124,7 @@ Item {
             role: "labelSmall"
             color: root.theme.onSurfaceVariantColour
             visible: PowerProfiles.available
-            text: "Mode d'alimentation"
+            text: I18n.t("Mode d'alimentation")
         }
 
         Column {
@@ -162,7 +162,7 @@ Item {
 
         M3Button {
             theme: root.theme
-            text: "Paramètres d'alimentation"
+            text: I18n.t("Paramètres d'alimentation")
             icon: "settings"
             variant: "text"
             onClicked: Qt.openUrlExternally("ms-settings:batterysaver")

@@ -123,7 +123,7 @@ ColumnLayout {
             theme: root.theme
             role: "labelSmall"
             color: root.theme.onSurfaceVariantColour
-            text: "Verrouillage majuscules activé"
+            text: I18n.t("Verrouillage majuscules activé")
         }
     }
 
@@ -164,7 +164,8 @@ ColumnLayout {
             color: root.theme.onSurfaceVariantColour
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
-            text: "Tentative " + Lock.attempts + " sur " + Lock.maxAttempts
+            text: I18n.t("Tentative") + " " + Lock.attempts + " "
+                + I18n.t("sur") + " " + Lock.maxAttempts
         }
     }
 
@@ -175,7 +176,7 @@ ColumnLayout {
     M3Button {
         Layout.alignment: Qt.AlignHCenter
         theme: root.theme
-        text: "Écran de verrouillage Windows"
+        text: I18n.t("Écran de verrouillage Windows")
         icon: "desktop_windows"
         variant: "tonal"
         onClicked: root.overlay.useWindowsLock()
@@ -190,6 +191,6 @@ ColumnLayout {
         color: root.theme.onSurfaceVariantColour
         horizontalAlignment: Text.AlignHCenter
         wrapMode: Text.WordWrap
-        text: "PIN et Windows Hello ne sont pas acceptés ici."
+        text: I18n.t("PIN et Windows Hello ne sont pas acceptés ici.")
     }
 }

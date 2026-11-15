@@ -70,7 +70,7 @@ Item {
             theme: root.theme
             title: "Bluetooth"
             subtitle: !Bluetooth.present ? "Adaptateur absent"
-                : Bluetooth.enabled ? "Activé" : "Désactivé"
+                : Bluetooth.enabled ? "Activé" : I18n.t("Désactivé")
             onClose: root.controller.closePanel()
         }
 
@@ -102,7 +102,7 @@ Item {
                     role: "bodyLarge"
                     weight: Font.DemiBold
                     text: !Bluetooth.present ? "Aucun adaptateur Bluetooth"
-                        : Bluetooth.enabled ? "Bluetooth activé" : "Bluetooth désactivé"
+                        : Bluetooth.enabled ? I18n.t("Bluetooth activé") : I18n.t("Bluetooth désactivé")
                 }
 
                 StyledText {
@@ -110,7 +110,7 @@ Item {
                     role: "labelSmall"
                     color: root.theme.onSurfaceVariantColour
                     text: Bluetooth.known
-                        ? "État fourni par Windows" : "État inconnu"
+                        ? I18n.t("État fourni par Windows") : I18n.t("État inconnu")
                 }
             }
 
@@ -200,10 +200,11 @@ Item {
                         icon: modelData.connected ? "bluetooth_connected" : "bluetooth"
                         title: modelData.name
                         subtitle: modelData.address
-                            + (modelData.paired ? " · appairé" : " · non appairé")
-                        trailingText: !modelData.paired ? "Appairer"
+                            + (modelData.paired
+                                ? " · " + I18n.t("appairé") : " · " + I18n.t("non appairé"))
+                        trailingText: !modelData.paired ? I18n.t("Appairer")
                             : root.confirmUnpair === modelData.address
-                                ? "Confirmer ?" : "Dissocier"
+                                ? I18n.t("Confirmer ?") : I18n.t("Dissocier")
                         onClicked: root.activate(modelData)
                     }
                 }
@@ -212,7 +213,7 @@ Item {
 
         M3Button {
             theme: root.theme
-            text: "Paramètres Bluetooth"
+            text: I18n.t("Paramètres Bluetooth")
             icon: "settings"
             variant: "text"
             onClicked: Qt.openUrlExternally("ms-settings:bluetooth")

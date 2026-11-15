@@ -77,7 +77,7 @@ Rectangle {
                 theme: root.theme
                 role: "labelSmall"
                 color: root.theme.onSurfaceVariantColour
-                text: "Humidité " + Weather.humidity
+                text: I18n.t("Humidité ") + Weather.humidity
             }
 
             StyledText {

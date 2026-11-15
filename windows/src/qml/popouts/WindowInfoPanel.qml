@@ -30,9 +30,9 @@ Item {
         if (root.info.maximized)
             states.push("Agrandie");
         if (root.info.minimized)
-            states.push("Réduite");
+            states.push(I18n.t("Réduite"));
         if (root.info.fullscreen)
-            states.push("Plein écran");
+            states.push(I18n.t("Plein écran"));
         if (root.info.topmost)
             states.push("Toujours au-dessus");
         if (root.isFloating)
@@ -57,8 +57,8 @@ Item {
         PanelHeader {
             width: parent.width
             theme: root.theme
-            title: "Fenêtre active"
-            subtitle: root.hasWindow ? root.info.app : "Aucune fenêtre"
+            title: I18n.t("Fenêtre active")
+            subtitle: root.hasWindow ? root.info.app : I18n.t("Aucune fenêtre")
             onClose: root.controller.closePanel()
         }
 
@@ -112,7 +112,7 @@ Item {
                 wrapMode: Text.Wrap
                 maximumLineCount: 2
                 elide: Text.ElideRight
-                text: root.hasWindow ? root.info.title : "Aucune fenêtre active"
+                text: root.hasWindow ? root.info.title : I18n.t("Aucune fenêtre active")
             }
 
             StyledText {
@@ -155,7 +155,7 @@ Item {
             Detail {
                 theme: root.theme
                 icon: "monitor"
-                label: "Écran"
+                label: I18n.t("Écran")
                 value: root.hasWindow ? root.info.monitor : ""
             }
 
@@ -178,7 +178,7 @@ Item {
             Detail {
                 theme: root.theme
                 icon: "layers"
-                label: "État"
+                label: I18n.t("État")
                 value: root.stateText
             }
         }
@@ -221,7 +221,7 @@ Item {
             M3Button {
                 Layout.fillWidth: true
                 theme: root.theme
-                text: "Réduire"
+                text: I18n.t("Réduire")
                 icon: "minimize"
                 variant: "tonal"
                 enabled: root.hasWindow && !root.info.minimized
@@ -242,7 +242,7 @@ Item {
         M3Button {
             width: parent.width
             theme: root.theme
-            text: "Fermer la fenêtre"
+            text: I18n.t("Fermer la fenêtre")
             icon: "close"
             variant: "text"
             foreground: root.theme.error

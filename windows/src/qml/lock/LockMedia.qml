@@ -142,7 +142,7 @@ Rectangle {
             color: root.theme.onSurfaceVariantColour
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
-            text: "Aucun lecteur actif"
+            text: I18n.t("Aucun lecteur actif")
         }
     }
 }

@@ -10,6 +10,27 @@ place au bureau Caelestia ; leur état d'origine est restauré à la fermeture.
 Le design de la barre reste celui de la première version ; le gestionnaire de
 fenêtres et les modules portés depuis Caelestia Linux sont documentés plus bas.
 
+## Aperçu
+
+| | |
+|---|---|
+| ![Barre](docs/screenshots/bar.png) | ![Dock](docs/screenshots/dock.png) |
+| La barre : bureaux virtuels, fenêtre active, horloge, statut. | Le dock, révélé au survol du bord inférieur. |
+| ![Réglages](docs/screenshots/nexus.png) | ![Notifications](docs/screenshots/notifications.png) |
+| Nexus > Système : profils d'alimentation, luminosité, comportement. | Le dock de notifications, révélé par le bord droit. |
+
+![Onglet Performance](docs/screenshots/performance.png)
+
+L'onglet Performance du tableau de bord : cartes héro CPU/GPU dont la forme
+suit la charge, stockage, réseau et mémoire.
+
+## Langue
+
+L'interface suit la **langue d'affichage de Windows**. Les sources sont en
+français ; `I18n.qml` fournit la traduction anglaise et tout libellé absent du
+tableau retombe sur le texte français plutôt que sur un vide. `CAELESTIA_LANG=en`
+force la langue pour vérifier la traduction sans toucher aux réglages Windows.
+
 ## Prérequis
 
 | Outil | Version testée |

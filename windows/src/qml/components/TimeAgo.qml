@@ -1,7 +1,7 @@
 import QtQuick
 
 // A notification timestamp rendered as a short relative label. The tick lives
-// here so a panel that stays open does not show "à l'instant" an hour later,
+// here so a panel that stays open does not show I18n.t("à l'instant") an hour later,
 // and so every consumer does not need a timer of its own.
 StyledText {
     id: root
@@ -17,7 +17,7 @@ StyledText {
         if (root.ageSeconds < 0)
             return "";
         if (root.ageSeconds < 45)
-            return "à l’instant";
+            return I18n.t("à l’instant");
         if (root.ageSeconds < 3600)
             return "il y a " + Math.max(1, Math.round(root.ageSeconds / 60)) + " min";
         if (root.ageSeconds < 86400)

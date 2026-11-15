@@ -1,4 +1,4 @@
-﻿import QtQuick
+import QtQuick
 import QtQuick.Layouts
 import Caelestia.Platform 1.0
 import ".."
@@ -121,7 +121,7 @@ Item {
                 theme: root.theme
                 role: "bodySmall"
                 color: root.theme.onSurfaceVariantColour
-                text: "N/D"
+                text: I18n.t("N/D")
             }
         }
 
@@ -159,7 +159,7 @@ Item {
                 pointSize: 24
                 weight: Font.DemiBold
                 color: hero.accent
-                text: hero.usageAvailable ? Math.round(hero.usage) + "%" : "N/D"
+                text: hero.usageAvailable ? Math.round(hero.usage) + "%" : I18n.t("N/D")
             }
         }
     }
@@ -214,7 +214,7 @@ Item {
                         theme: root.theme
                         role: "labelSmall"
                         color: root.theme.onSurfaceVariantColour
-                        text: "Utilisé"
+                        text: I18n.t("Utilisé")
                     }
                 }
             }
@@ -305,7 +305,7 @@ Item {
                     theme: root.theme
                     role: "titleSmall"
                     weight: Font.DemiBold
-                    text: "Réseau"
+                    text: I18n.t("Réseau")
                 }
             }
 
@@ -335,7 +335,7 @@ Item {
                     theme: root.theme
                     role: "bodySmall"
                     color: root.theme.outline
-                    text: "Collecte des données…"
+                    text: I18n.t("Collecte des données…")
                 }
             }
 
@@ -351,7 +351,7 @@ Item {
                 }
 
                 StyledText {
-                    text: "Téléchargement"
+                    text: I18n.t("Téléchargement")
                     theme: root.theme
                     role: "bodySmall"
                     color: root.theme.onSurfaceVariantColour
@@ -428,7 +428,7 @@ Item {
                     theme: root.theme
                     role: "titleSmall"
                     weight: Font.DemiBold
-                    text: "Mémoire"
+                    text: I18n.t("Mémoire")
                 }
             }
 
@@ -465,7 +465,7 @@ Item {
                         theme: root.theme
                         role: "labelSmall"
                         color: root.theme.onSurfaceVariantColour
-                        text: "Utilisé"
+                        text: I18n.t("Utilisé")
                     }
                 }
             }
@@ -509,7 +509,7 @@ Item {
                 animations: root.animations
                 icon: "desktop_windows"
                 label: "GPU"
-                subLabel: System.gpuName !== "" ? System.gpuName : "Aucun GPU détecté"
+                subLabel: System.gpuName !== "" ? System.gpuName : I18n.t("Aucun GPU détecté")
                 accent: root.theme.secondary
                 usage: System.gpuUsage
                 usageAvailable: System.gpuUsageAvailable

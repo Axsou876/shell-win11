@@ -1,4 +1,4 @@
-﻿import QtQuick
+import QtQuick
 import QtQuick.Layouts
 import Caelestia.Platform 1.0
 import ".."
@@ -34,7 +34,7 @@ Item {
             role: "bodyLarge"
             pointSize: 24
             weight: Font.DemiBold
-            text: "Configurer la météo"
+            text: I18n.t("Configurer la météo")
         }
 
         StyledText {
@@ -44,7 +44,7 @@ Item {
             color: root.theme.onSurfaceVariantColour
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
-            text: "Indiquez une ville. Les données proviennent d’Open-Meteo, sans clé API."
+            text: I18n.t("Indiquez une ville. Les données proviennent d’Open-Meteo, sans clé API.")
         }
 
         Rectangle {
@@ -82,7 +82,7 @@ Item {
                     anchors.fill: parent
                     verticalAlignment: Text.AlignVCenter
                     visible: cityField.text.length === 0
-                    text: "Ex. Paris, Montréal, Tokyo…"
+                    text: I18n.t("Ex. Paris, Montréal, Tokyo…")
                     color: root.theme.onSurfaceVariantColour
                     opacity: 0.65
                     font.family: root.theme.bodyFont
@@ -249,7 +249,7 @@ Item {
                         theme: root.theme
                         role: "bodyMedium"
                         color: root.theme.onSurfaceVariantColour
-                        text: Weather.available ? Weather.description : "Données indisponibles"
+                        text: Weather.available ? Weather.description : I18n.t("Données indisponibles")
                     }
                 }
             }
@@ -262,14 +262,14 @@ Item {
 
             Repeater {
                 model: [
-                    { icon: "water_drop", label: "Humidité",
-                        value: Weather.humidity !== "" ? Weather.humidity : "N/D",
+                    { icon: "water_drop", label: I18n.t("Humidité"),
+                        value: Weather.humidity !== "" ? Weather.humidity : I18n.t("N/D"),
                         colour: root.theme.secondary },
                     { icon: "thermostat", label: "Ressenti",
-                        value: Weather.feelsLike !== "" ? Weather.feelsLike : "N/D",
+                        value: Weather.feelsLike !== "" ? Weather.feelsLike : I18n.t("N/D"),
                         colour: root.theme.primary },
-                    { icon: "air", label: "Vent",
-                        value: Weather.wind !== "" ? Weather.wind : "N/D",
+                    { icon: "air", label: I18n.t("Vent"),
+                        value: Weather.wind !== "" ? Weather.wind : I18n.t("N/D"),
                         colour: root.theme.tertiary }
                 ]
 
@@ -327,7 +327,8 @@ Item {
             weight: Font.DemiBold
             color: root.theme.onSurfaceColour
             visible: Weather.forecast.length > 0
-            text: "Prévisions " + Weather.forecast.length + " jours"
+            text: I18n.t("Prévisions") + " " + Weather.forecast.length + " "
+                + I18n.t("jours")
         }
 
         RowLayout {

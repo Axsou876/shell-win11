@@ -22,7 +22,7 @@ Item {
                 theme: root.theme
                 role: "bodyLarge"
                 weight: Font.DemiBold
-                text: "Bureau actuel"
+                text: I18n.t("Bureau actuel")
             }
 
             StyledText {
@@ -30,7 +30,7 @@ Item {
                 theme: root.theme
                 role: "labelSmall"
                 color: root.theme.onSurfaceVariantColour
-                text: " · " + AppWindows.count + " fenêtre"
+                text: " · " + AppWindows.count + I18n.t(" fenêtre")
                     + (AppWindows.count > 1 ? "s" : "")
             }
 
@@ -140,7 +140,7 @@ Item {
             theme: root.theme
             role: "bodyMedium"
             color: root.theme.onSurfaceVariantColour
-            text: "Aucune fenêtre sur le bureau actuel."
+            text: I18n.t("Aucune fenêtre sur le bureau actuel.")
         }
     }
 }

@@ -21,7 +21,7 @@ Item {
         PanelHeader {
             width: parent.width
             theme: root.theme
-            title: "Réseau"
+            title: I18n.t("Réseau")
             subtitle: Network.connected ? "Connexion active" : "Aucune connexion"
             onClose: root.controller.closePanel()
         }
@@ -57,12 +57,12 @@ Item {
                     weight: Font.DemiBold
                     text: {
                         if (!Network.known)
-                            return "État indisponible";
+                            return I18n.t("État indisponible");
                         if (Network.connectionType === "ethernet")
                             return Network.ethernetName || "Ethernet";
                         if (Network.wifiConnected)
                             return Network.wifiSsid;
-                        return Network.connected ? "Connecté" : "Déconnecté";
+                        return Network.connected ? I18n.t("Connecté") : I18n.t("Déconnecté");
                     }
                 }
 
@@ -135,7 +135,7 @@ Item {
 
             M3Button {
                 theme: root.theme
-                text: "Paramètres réseau"
+                text: I18n.t("Paramètres réseau")
                 icon: "settings"
                 variant: "text"
                 onClicked: Qt.openUrlExternally("ms-settings:network")

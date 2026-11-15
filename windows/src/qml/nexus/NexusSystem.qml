@@ -118,7 +118,7 @@ Flickable {
         StyledText {
             theme: root.theme
             role: "titleSmall"
-            text: "Profil d'alimentation"
+            text: I18n.t("Profil d'alimentation")
         }
 
         StyledText {
@@ -128,7 +128,7 @@ Flickable {
             color: root.theme.onSurfaceVariantColour
             wrapMode: Text.WordWrap
             text: PowerProfiles.available
-                ? "Appliqué immédiatement par le service d'alimentation Windows."
+                ? I18n.t("Appliqué immédiatement par le service d'alimentation Windows.")
                 : "Le service de profils d'alimentation n'est pas disponible sur cette machine."
         }
 
@@ -173,7 +173,7 @@ Flickable {
                 anchors.verticalCenter: parent.verticalCenter
                 theme: root.theme
                 role: "titleSmall"
-                text: "Luminosité"
+                text: I18n.t("Luminosité")
             }
 
             StyledText {
@@ -244,9 +244,8 @@ Flickable {
             Layout.fillWidth: true
             theme: root.theme
             icon: "speed"
-            title: "Rendu à 144 fps"
-            subtitle: "Redessine le shell au rythme de l'écran même à l'arrêt. "
-                + "Plus fluide, mais consomme la batterie."
+            title: I18n.t("Rendu à 144 fps")
+            subtitle: I18n.t("Redessine le shell au rythme de l'écran même à l'arrêt. Plus fluide, mais consomme la batterie.")
             checked: root.smoothRefresh
             onToggled: checked => Platform.setShellSetting("refresh/smooth", checked)
         }
@@ -255,7 +254,7 @@ Flickable {
             Layout.fillWidth: true
             theme: root.theme
             icon: "coffee"
-            title: "Empêcher la mise en veille"
+            title: I18n.t("Empêcher la mise en veille")
             subtitle: IdleInhibit.active
                 ? "Actif depuis " + IdleInhibit.since
                 : "La session peut se verrouiller automatiquement"
@@ -267,8 +266,8 @@ Flickable {
             Layout.fillWidth: true
             theme: root.theme
             icon: "do_not_disturb_on"
-            title: "Ne pas déranger"
-            subtitle: "Les notifications restent dans l'historique sans être affichées"
+            title: I18n.t("Ne pas déranger")
+            subtitle: I18n.t("Les notifications restent dans l'historique sans être affichées")
             checked: Notification.doNotDisturb
             onToggled: checked => Notification.doNotDisturb = checked
         }
@@ -277,8 +276,8 @@ Flickable {
             Layout.fillWidth: true
             theme: root.theme
             icon: "mic_off"
-            title: "Microphone coupé"
-            subtitle: "Coupe l'entrée par défaut, comme le bouton du panneau audio"
+            title: I18n.t("Microphone coupé")
+            subtitle: I18n.t("Coupe l'entrée par défaut, comme le bouton du panneau audio")
             checked: Audio.micMuted
             onToggled: Audio.toggleMicMute()
         }
@@ -287,8 +286,8 @@ Flickable {
             Layout.fillWidth: true
             theme: root.theme
             icon: "volume_off"
-            title: "Son coupé"
-            subtitle: Audio.deviceName === "" ? "Aucun périphérique de lecture" : Audio.deviceName
+            title: I18n.t("Son coupé")
+            subtitle: Audio.deviceName === "" ? I18n.t("Aucun périphérique de lecture") : Audio.deviceName
             checked: Audio.muted
             onToggled: Audio.toggleMute()
         }

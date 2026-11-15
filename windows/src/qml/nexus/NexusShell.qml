@@ -19,33 +19,33 @@ Flickable {
     boundsBehavior: Flickable.StopAtBounds
 
     readonly property var labels: ({
-            "focus-left": "Fenêtre à gauche",
-            "focus-right": "Fenêtre à droite",
-            "focus-up": "Fenêtre en haut",
-            "focus-down": "Fenêtre en bas",
-            "focus-next": "Fenêtre suivante",
-            "focus-prev": "Fenêtre précédente",
-            "move-left": "Déplacer à gauche",
-            "move-right": "Déplacer à droite",
-            "move-up": "Déplacer en haut",
-            "move-down": "Déplacer en bas",
-            "resize-width-dec": "Réduire la largeur",
-            "resize-width-inc": "Élargir",
-            "resize-height-dec": "Réduire la hauteur",
+            "focus-left": I18n.t("Fenêtre à gauche"),
+            "focus-right": I18n.t("Fenêtre à droite"),
+            "focus-up": I18n.t("Fenêtre en haut"),
+            "focus-down": I18n.t("Fenêtre en bas"),
+            "focus-next": I18n.t("Fenêtre suivante"),
+            "focus-prev": I18n.t("Fenêtre précédente"),
+            "move-left": I18n.t("Déplacer à gauche"),
+            "move-right": I18n.t("Déplacer à droite"),
+            "move-up": I18n.t("Déplacer en haut"),
+            "move-down": I18n.t("Déplacer en bas"),
+            "resize-width-dec": I18n.t("Réduire la largeur"),
+            "resize-width-inc": I18n.t("Élargir"),
+            "resize-height-dec": I18n.t("Réduire la hauteur"),
             "resize-height-inc": "Agrandir la hauteur",
-            "toggle-floating": "Fenêtre flottante",
-            "toggle-fullscreen": "Plein écran",
-            "close-window": "Fermer la fenêtre",
+            "toggle-floating": I18n.t("Fenêtre flottante"),
+            "toggle-fullscreen": I18n.t("Plein écran"),
+            "close-window": I18n.t("Fermer la fenêtre"),
             "layout-cycle": "Pavage suivant",
-            "layout-back": "Pavage précédent",
-            "promote-master": "Promouvoir en maître",
-            "toggle-tiling": "Activer/désactiver le pavage",
+            "layout-back": I18n.t("Pavage précédent"),
+            "promote-master": I18n.t("Promouvoir en maître"),
+            "toggle-tiling": I18n.t("Activer/désactiver le pavage"),
             "toggle-strict": "Mode strict",
-            "emergency-disable": "Désactivation d'urgence",
-            "workspace-prev": "Bureau précédent",
+            "emergency-disable": I18n.t("Désactivation d'urgence"),
+            "workspace-prev": I18n.t("Bureau précédent"),
             "workspace-next": "Bureau suivant",
             "launcher": "Lanceur",
-            "sidebar": "Barre latérale",
+            "sidebar": I18n.t("Barre latérale"),
             "session": "Menu de session",
             "lock": "Verrouiller",
             "screenshot": "Capture de zone",
@@ -53,7 +53,7 @@ Flickable {
             "terminal": "Terminal",
             "file-manager": "Explorateur",
             "browser": "Navigateur",
-            "editor": "Éditeur"
+            "editor": I18n.t("Éditeur")
         })
 
     // The service publishes one entry per default key, so filter to the keys
@@ -89,7 +89,7 @@ Flickable {
         if (action.indexOf("workspace-") === 0)
             return "Bureau " + action.substring(10);
         if (action.indexOf("move-workspace-") === 0)
-            return "Déplacer vers le bureau " + action.substring(15);
+            return I18n.t("Déplacer vers le bureau ") + action.substring(15);
         return action;
     }
 
@@ -146,7 +146,7 @@ Flickable {
         StyledText {
             theme: root.theme
             role: "titleSmall"
-            text: "Surfaces du shell"
+            text: I18n.t("Surfaces du shell")
         }
 
         Flow {
@@ -156,9 +156,9 @@ Flickable {
             Repeater {
                 model: [
                     { name: "launcher", label: "Lanceur", icon: "rocket_launch" },
-                    { name: "sidebar", label: "Barre latérale", icon: "dock_to_right" },
+                    { name: "sidebar", label: I18n.t("Barre latérale"), icon: "dock_to_right" },
                     { name: "notifications", label: "Notifications", icon: "notifications" },
-                    { name: "dashboard", label: "Tableau de bord", icon: "dashboard" },
+                    { name: "dashboard", label: I18n.t("Tableau de bord"), icon: "dashboard" },
                     { name: "power", label: "Session", icon: "power_settings_new" }
                 ]
 
@@ -191,14 +191,14 @@ Flickable {
                 Layout.fillWidth: true
                 theme: root.theme
                 role: "titleSmall"
-                text: "Raccourcis actifs"
+                text: I18n.t("Raccourcis actifs")
             }
 
             StyledText {
                 theme: root.theme
                 role: "labelSmall"
                 color: root.theme.onSurfaceVariantColour
-                text: root.shortcuts.length + " enregistrés"
+                text: root.shortcuts.length + I18n.t(" enregistrés")
             }
 
             StyledText {
@@ -216,10 +216,7 @@ Flickable {
             role: "labelSmall"
             color: root.theme.onSurfaceVariantColour
             wrapMode: Text.WordWrap
-            text: "Windows réserve certains raccourcis ; ceux qui n'ont pas pu être pris "
-                + "sont listés comme indisponibles et le shell n'a aucun moyen de les forcer. "
-                + "Les raccourcis personnalisés se déclarent dans la configuration du "
-                + "gestionnaire de fenêtres."
+            text: I18n.t("Windows réserve certains raccourcis ; ceux qui n'ont pas pu être pris sont listés comme indisponibles et le shell n'a aucun moyen de les forcer. Les raccourcis personnalisés se déclarent dans la configuration du gestionnaire de fenêtres.")
         }
 
         ColumnLayout {

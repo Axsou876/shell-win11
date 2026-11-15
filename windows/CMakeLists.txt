@@ -133,11 +133,15 @@ target_include_directories(caelestia-shell PRIVATE
     third_party/m3shapes/src/qml
 )
 
+# I18n is used by every page without an import: it has to be a QML singleton.
+set_source_files_properties(src/qml/I18n.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+
 qt_add_qml_module(caelestia-shell
     URI Caelestia.Shell
     VERSION 1.0
     QML_FILES
         src/qml/Main.qml
+        src/qml/I18n.qml
         src/qml/Theme.qml
         src/qml/RefreshDriver.qml
         src/qml/Anim.qml

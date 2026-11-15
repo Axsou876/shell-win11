@@ -229,7 +229,7 @@ Item {
                 role: "bodySmall"
                 color: root.theme.onSurfaceVariantColour
                 opacity: 0.7
-                text: "Aucune application"
+                text: I18n.t("Aucune application")
             }
         }
     }

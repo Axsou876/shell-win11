@@ -286,7 +286,7 @@ Item {
                             theme: root.theme
                             role: "bodySmall"
                             color: root.theme.onSurfaceVariantColour
-                            text: "Tout est à jour !"
+                            text: I18n.t("Tout est à jour !")
                         }
                     }
                 }
@@ -296,7 +296,7 @@ Item {
                     role: "labelSmall"
                     weight: Font.DemiBold
                     color: root.theme.onSurfaceVariantColour
-                    text: "ACCÈS RAPIDE"
+                    text: I18n.t("ACCÈS RAPIDE")
                 }
 
                 Grid {
@@ -337,7 +337,7 @@ Item {
                     M3Button {
                         width: parent.cellWidth
                         theme: root.theme
-                        text: "Paramètres"
+                        text: I18n.t("Paramètres")
                         icon: "settings"
                         variant: "text"
                         // The shell's own settings first; they hand the rest to
@@ -382,7 +382,7 @@ Item {
                         role: "labelSmall"
                         color: root.theme.onSurfaceVariantColour
                         wrapMode: Text.WordWrap
-                        text: "Ajoutez des favoris avec l'étoile dans le launcher."
+                        text: I18n.t("Ajoutez des favoris avec l'étoile dans le launcher.")
                     }
                 }
 
@@ -447,7 +447,7 @@ Item {
                     role: "labelSmall"
                     weight: Font.DemiBold
                     color: root.theme.onSurfaceVariantColour
-                    text: "ÉTAT DU SYSTÈME"
+                    text: I18n.t("ÉTAT DU SYSTÈME")
                 }
 
                 Row {
@@ -475,7 +475,7 @@ Item {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 theme: root.theme
                                 role: "labelSmall"
-                                text: Network.connected ? "Connecté" : "Hors ligne"
+                                text: Network.connected ? I18n.t("Connecté") : "Hors ligne"
                             }
                         }
 
@@ -508,7 +508,7 @@ Item {
                                 theme: root.theme
                                 role: "labelSmall"
                                 text: Bluetooth.present
-                                    ? (Bluetooth.enabled ? "Activé" : "Désactivé") : "Absent"
+                                    ? (Bluetooth.enabled ? "Activé" : I18n.t("Désactivé")) : "Absent"
                             }
                         }
 
@@ -540,7 +540,7 @@ Item {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 theme: root.theme
                                 role: "labelSmall"
-                                text: Battery.known ? Battery.level + " %" : "N/D"
+                                text: Battery.known ? Battery.level + " %" : I18n.t("N/D")
                             }
                         }
 
@@ -597,7 +597,7 @@ Item {
                                 color: IdleInhibit.active
                                     ? root.theme.onSecondaryContainerColour
                                     : root.theme.onSurfaceColour
-                                text: "Garder éveillé"
+                                text: I18n.t("Garder éveillé")
                             }
 
                             StyledText {
@@ -609,7 +609,7 @@ Item {
                                     : root.theme.onSurfaceVariantColour
                                 opacity: 0.75
                                 text: IdleInhibit.active
-                                    ? "Actif depuis " + IdleInhibit.since : "Mise en veille autorisée"
+                                    ? "Actif depuis " + IdleInhibit.since : I18n.t("Mise en veille autorisée")
                             }
                         }
 

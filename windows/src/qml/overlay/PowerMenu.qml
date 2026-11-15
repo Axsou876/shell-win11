@@ -117,7 +117,7 @@ Item {
             MenuButton {
                 theme: root.theme
                 icon: "logout"
-                onClicked: root.ask("signout", "Se déconnecter")
+                onClicked: root.ask("signout", I18n.t("Se déconnecter"))
             }
 
             MenuButton {
@@ -125,7 +125,7 @@ Item {
                 icon: "power_settings_new"
                 colour: root.theme.onPrimaryColour
                 background: root.theme.primary
-                onClicked: root.ask("shutdown", "Arrêter")
+                onClicked: root.ask("shutdown", I18n.t("Arrêter"))
             }
 
             Item {
@@ -184,7 +184,7 @@ Item {
             MenuButton {
                 theme: root.theme
                 icon: "restart_alt"
-                onClicked: root.ask("restart", "Redémarrer")
+                onClicked: root.ask("restart", I18n.t("Redémarrer"))
             }
         }
     }
@@ -218,7 +218,7 @@ Item {
                 role: "bodyMedium"
                 weight: Font.DemiBold
                 wrapMode: Text.WordWrap
-                text: "Confirmer : " + root.pendingLabel + " ?"
+                text: I18n.t("Confirmer :") + " " + root.pendingLabel + " ?"
             }
 
             StyledText {
@@ -228,7 +228,7 @@ Item {
                 color: root.theme.onSurfaceVariantColour
                 wrapMode: Text.WordWrap
                 text: root.pendingAction === "lock"
-                    ? "L’écran de verrouillage Caelestia va s’ouvrir."
+                    ? I18n.t("L’écran de verrouillage Caelestia va s’ouvrir.")
                     : "Cette action quitte la session Windows."
             }
 

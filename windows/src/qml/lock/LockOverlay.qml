@@ -103,7 +103,7 @@ Item {
         Qt.callLater(() => {
             if (!Lock.lockWindows()) {
                 Notification.addNotification("Caelestia", "Verrouillage",
-                    "Windows a refusé le verrouillage de la session.");
+                    I18n.t("Windows a refusé le verrouillage de la session."));
             }
         });
     }

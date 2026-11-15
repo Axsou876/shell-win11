@@ -19,14 +19,14 @@ Item {
         if (Audio.setDefaultOutput(id))
             root.deviceError = "";
         else
-            root.deviceError = "Windows a refusé de changer la sortie audio.";
+            root.deviceError = I18n.t("Windows a refusé de changer la sortie audio.");
     }
 
     function chooseInput(id) {
         if (Audio.setDefaultInput(id))
             root.deviceError = "";
         else
-            root.deviceError = "Windows a refusé de changer l'entrée audio.";
+            root.deviceError = I18n.t("Windows a refusé de changer l'entrée audio.");
     }
 
     Column {
@@ -71,7 +71,7 @@ Item {
                     role: "bodyLarge"
                     pointSize: 28
                     weight: Font.DemiBold
-                    text: Audio.known ? Audio.volume + " %" : "N/D"
+                    text: Audio.known ? Audio.volume + " %" : I18n.t("N/D")
                 }
 
                 StyledText {
@@ -146,7 +146,7 @@ Item {
             theme: root.theme
             role: "labelSmall"
             color: root.theme.onSurfaceVariantColour
-            text: "Périphérique de sortie"
+            text: I18n.t("Périphérique de sortie")
         }
 
         Column {
@@ -177,7 +177,7 @@ Item {
             theme: root.theme
             role: "labelSmall"
             color: root.theme.onSurfaceVariantColour
-            text: "Périphérique d'entrée"
+            text: I18n.t("Périphérique d'entrée")
         }
 
         Column {
@@ -214,7 +214,7 @@ Item {
 
         M3Button {
             theme: root.theme
-            text: "Paramètres audio"
+            text: I18n.t("Paramètres audio")
             icon: "settings"
             variant: "text"
             onClicked: Qt.openUrlExternally("ms-settings:sound")
