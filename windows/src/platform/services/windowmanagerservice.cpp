@@ -1632,6 +1632,7 @@ struct WindowManagerService::Impl {
             saveWindowState(hwnd);
             stripCaptionButtons(hwnd);
             updateRoundedRegion(hwnd);
+            clampFullscreenWindow(hwnd);
         }
 
         QHash<QString, QVector<HWND>> byMonitor;
@@ -1880,6 +1881,24 @@ struct WindowManagerService::Impl {
         // SetWindowRgn takes ownership of the region.
         SetWindowRgn(hwnd, region, TRUE);
         roundedRegions.insert(value, size);
+    }
+
+    // A window covering the whole monitor has gone fullscreen on its own — F11
+    // in a browser, a video player. The shell draws its frame and bar around the
+    // wallpaper hole, so such a window hides them entirely. Clamping it back to
+    // the work area keeps the shell visible while the app still gets the whole
+    // usable screen. Our own Win+F fullscreen already targets the work area, so
+    // it never comes through here.
+    void clampFullscreenWindow(HWND hwnd)
+    {
+        const MonitorInfo monitor = monitorFor(hwnd);
+        if (!monitor.valid || monitor.work == monitor.bounds)
+            return;
+        const QRect rect = windowRect(hwnd);
+        if (qAbs(rect.width() - monitor.bounds.width()) > 4
+            || qAbs(rect.height() - monitor.bounds.height()) > 4)
+            return;
+        setWindowRect(hwnd, monitor.work);
     }
 
     void saveWindowState(HWND hwnd)
