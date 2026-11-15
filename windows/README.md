@@ -759,13 +759,21 @@ transparentes aux clics, réservent le haut, la droite et le bas de chaque écra
 — la barre de gauche réservant déjà sa colonne. Maximiser et accrocher restent
 donc natifs, ils s'arrêtent simplement à l'intérieur du cadre.
 
-Un plein écran déclenché par l'application elle-même (F11, lecteur vidéo) pose
-la fenêtre sur tout le moniteur. Le shell **s'efface** alors : `coversMonitor`
-détecte la fenêtre qui couvre le moniteur à 4 px près, `WindowManager.appFullscreen`
-passe à vrai, et la barre, la surface et le dock se masquent le temps du plein
-écran — comme `BarWrapper.shouldBeVisible: !fullscreen && …` côté Caelestia. Ils
-reviennent dès que la fenêtre reprend sa taille. Le plein écran du shell
-(`Win+F`) vise la zone de travail, il ne déclenche jamais ce chemin.
+Un plein écran déclenché par l'application elle-même (F11, jeu, lecteur vidéo)
+recouvre tout le moniteur. Le shell **s'efface alors, sur ce moniteur
+uniquement** : `fullscreenRects` retient les moniteurs dont une fenêtre couvre
+toute la surface, `WindowManager.fullscreenScreens` les traduit en noms d'écran
+Qt (comparaison par géométrie : Windows nomme un moniteur par périphérique,
+Qt nomme le principal d'après le modèle), et la barre, la surface et le dock se
+masquent le temps du plein écran — comme `BarWrapper.shouldBeVisible:
+!fullscreen && …` côté Caelestia. Ils reviennent dès que la fenêtre reprend sa
+taille.
+
+La détection exige **deux** conditions : couvrir le moniteur *et* avoir perdu
+`WS_THICKFRAME`. Sans la seconde, une fenêtre simplement maximisée sur un écran
+dont la zone de travail égale le moniteur était prise pour du plein écran et le
+shell disparaissait pour rien. Le plein écran du shell (`Win+F`) vise la zone de
+travail, il ne déclenche jamais ce chemin.
 
 
 

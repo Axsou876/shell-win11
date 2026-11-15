@@ -183,7 +183,7 @@ Item {
             // application hides it too: the shell steps aside for the video
             // instead of drawing a bar over it.
             visible: !areaPicker.active && !lockOverlay.active && !lockOverlay.preparing
-                && !WindowManager.appFullscreen
+                && WindowManager.fullscreenScreens.indexOf(modelData.name) < 0
             visibility: Window.Windowed
             flags: Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint
             color: "transparent"
@@ -222,7 +222,7 @@ Item {
             theme: appTheme
             controller: panelController
             suspended: lockOverlay.preparing || lockOverlay.active
-                || WindowManager.appFullscreen
+                || WindowManager.fullscreenScreens.indexOf(modelData.name) >= 0
             smoothRefresh: app.smoothRefresh
         }
     }
@@ -250,7 +250,7 @@ Item {
                 Math.min(128, Math.round(modelData.geometry.height * 0.115)))
             height: dockBand
             visible: !areaPicker.active && !lockOverlay.active && !lockOverlay.preparing
-                && !WindowManager.appFullscreen
+                && WindowManager.fullscreenScreens.indexOf(modelData.name) < 0
             visibility: Window.Windowed
             flags: Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint
             color: "transparent"

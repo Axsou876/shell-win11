@@ -20,6 +20,9 @@ class WindowManagerService final : public QObject {
     // An application is presenting itself fullscreen on some monitor. The QML
     // side hides the shell while it is true, like Caelestia's bar.
     Q_PROPERTY(bool appFullscreen READ appFullscreen NOTIFY changed)
+    // Monitors holding a fullscreen application, by Qt screen name. The QML
+    // side hides the shell only on those screens.
+    Q_PROPERTY(QStringList fullscreenScreens READ fullscreenScreens NOTIFY changed)
     Q_PROPERTY(QString layout READ layout NOTIFY changed)
     Q_PROPERTY(int windowCount READ windowCount NOTIFY changed)
     // HWND ids currently detached from the tiling layouts. The window info
@@ -36,6 +39,7 @@ public:
     [[nodiscard]] bool enabled() const { return m_enabled; }
     [[nodiscard]] bool strict() const { return m_strict; }
     [[nodiscard]] bool appFullscreen() const { return m_appFullscreen; }
+    [[nodiscard]] QStringList fullscreenScreens() const { return m_fullscreenScreens; }
     [[nodiscard]] QString layout() const { return m_layout; }
     [[nodiscard]] int windowCount() const { return m_windowCount; }
     [[nodiscard]] QStringList floating() const { return m_floating; }
@@ -74,6 +78,7 @@ private:
     bool m_enabled = true;
     bool m_strict = true;
     bool m_appFullscreen = false;
+    QStringList m_fullscreenScreens;
     QString m_layout = QStringLiteral("dwindle");
     int m_windowCount = 0;
     QStringList m_floating;

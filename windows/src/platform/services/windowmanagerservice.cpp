@@ -543,6 +543,13 @@ struct WindowManagerService::Impl {
     bool animationsEnabled = true;
     // True while an application presents itself fullscreen on any monitor.
     bool appFullscreenActive = false;
+    // Scratch flag for the EnumWindows pass that looks for borderless
+    // fullscreen windows outside the tiling set.
+    bool appFullscreenFound = false;
+    // Monitors currently holding a fullscreen window, as physical rects:
+    // Windows names a monitor by device while Qt names the primary after the
+    // model ("ZOWIE XL LCD"), so the GUI thread matches them by geometry.
+    QVariantList fullscreenRects;
     // Tiling is off on this port: windows keep the size and position Windows
     // gave them. Focus, close, workspaces, the dock and the desktop slide all
     // keep working; only the automatic placement is gone. Re-enable with
@@ -1635,9 +1642,35 @@ struct WindowManagerService::Impl {
             saveWindowState(hwnd);
             stripCaptionButtons(hwnd);
             updateRoundedRegion(hwnd);
-            if (coversMonitor(hwnd))
-                appFullscreen = true;
         }
+
+        // Fullscreen means "covers its monitor *and* dropped its frame". The
+        // style check is what tells a game apart from a merely maximised
+        // window: on this machine Discord maximised on the secondary monitor
+        // has exactly the monitor's rect, and without it the shell hid for a
+        // normal window. Games and video players go borderless, so they pass.
+        appFullscreenFound = false;
+        fullscreenRects.clear();
+        EnumWindows(
+            [](HWND hwnd, LPARAM data) -> BOOL {
+                auto* self = reinterpret_cast<Impl*>(data);
+                if (!self->isExternalWindow(hwnd) || isCloaked(hwnd))
+                    return TRUE;
+                const LONG style = static_cast<LONG>(GetWindowLongPtrW(hwnd, GWL_STYLE));
+                if (style & WS_THICKFRAME)
+                    return TRUE;
+                if (self->coversMonitor(hwnd)) {
+                    self->appFullscreenFound = true;
+                    // Per screen: a game on the second monitor must not blank
+                    // the bar on the first one.
+                    const MonitorInfo monitor = monitorFor(hwnd);
+                    if (!self->fullscreenRects.contains(monitor.bounds))
+                        self->fullscreenRects.append(monitor.bounds);
+                }
+                return TRUE;
+            },
+            reinterpret_cast<LPARAM>(this));
+        appFullscreen = appFullscreenFound;
         if (appFullscreenActive != appFullscreen
             && !qEnvironmentVariableIsEmpty("CAELESTIA_DEBUG_WM")) {
             qInfo().noquote() << "WM app fullscreen" << appFullscreen;
@@ -2512,6 +2545,7 @@ struct WindowManagerService::Impl {
         const bool enabledValue = enabled;
         const bool strictValue = strictMode;
         const bool fullscreenValue = appFullscreenActive;
+        const QVariantList fullscreenRectsValue = fullscreenRects;
         const int countValue = count;
         const QString errorValue = error;
         const QVariantList bindingsValue = publishedBindings;
@@ -2523,8 +2557,8 @@ struct WindowManagerService::Impl {
 
         QMetaObject::invokeMethod(
             q,
-            [owner = q, enabledValue, strictValue, fullscreenValue, layout, countValue,
-                errorValue, bindingsValue, floatingValue]() {
+            [owner = q, enabledValue, strictValue, fullscreenValue, fullscreenRectsValue,
+                layout, countValue, errorValue, bindingsValue, floatingValue]() {
                 bool changed = false;
                 if (owner->m_enabled != enabledValue) {
                     owner->m_enabled = enabledValue;
@@ -2532,6 +2566,30 @@ struct WindowManagerService::Impl {
                 }
                 if (owner->m_appFullscreen != fullscreenValue) {
                     owner->m_appFullscreen = fullscreenValue;
+                    changed = true;
+                }
+                // Windows names a monitor by device ("\\.\DISPLAY5") while Qt
+                // names the primary after the model ("ZOWIE XL LCD"). Match by
+                // physical geometry on the GUI thread, where Qt screens live.
+                QStringList fullscreenNames;
+                for (const QVariant& value : fullscreenRectsValue) {
+                    const QRect rect = value.toRect();
+                    for (QScreen* screen : QGuiApplication::screens()) {
+                        const QRect geometry = screen->geometry();
+                        const qreal dpr = screen->devicePixelRatio();
+                        const QSize physical(qRound(geometry.width() * dpr),
+                            qRound(geometry.height() * dpr));
+                        if (qAbs(geometry.x() - rect.x()) <= 2
+                            && qAbs(geometry.y() - rect.y()) <= 2
+                            && qAbs(physical.width() - rect.width()) <= 2
+                            && qAbs(physical.height() - rect.height()) <= 2) {
+                            fullscreenNames.append(screen->name());
+                            break;
+                        }
+                    }
+                }
+                if (owner->m_fullscreenScreens != fullscreenNames) {
+                    owner->m_fullscreenScreens = fullscreenNames;
                     changed = true;
                 }
                 if (owner->m_strict != strictValue) {
