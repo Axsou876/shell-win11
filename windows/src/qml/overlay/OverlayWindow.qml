@@ -88,9 +88,19 @@ Window {
             const inZone = y >= 0 && y <= overlay.theme.borderThickness
                 && x >= surface.dashboardX - r
                 && x <= surface.dashboardX + surface.dashboardW + r;
+            // Notifications live in the top-right corner: the sidebar slides in
+            // from that edge, so the gesture points at where the panel appears.
+            // The upper bound matters: without it every screen to the left of
+            // the pointer matched too, and the two overlays kept resetting each
+            // other's hover before the intent delay could elapse.
+            const notifyZone = y >= 0 && y <= overlay.theme.borderThickness
+                && x >= overlay.width - 220 && x <= overlay.width;
             if (inZone) {
                 overlay.controller.hoverTrigger("dashboard", overlay.screenName, 0);
-            } else if (overlay.controller.hoverPanel === "dashboard"
+            } else if (notifyZone) {
+                overlay.controller.hoverTrigger("notifications", overlay.screenName, 0);
+            } else if ((overlay.controller.hoverPanel === "dashboard"
+                            || overlay.controller.hoverPanel === "notifications")
                     && overlay.controller.hoverScreenName === overlay.screenName) {
                 overlay.controller.cancelHover();
             } else if (!inBar) {
@@ -106,6 +116,16 @@ Window {
         const panel = overlay.controller.currentPanel;
         if (panel === "sidebar")
             return;
+
+        if (panel === "notifications") {
+            // The notification dock is the sidebar, so "inside the panel" means
+            // the sidebar's strip on the right (plus the bar, which never
+            // closes anything).
+            const inSidebar = x >= overlay.width - overlay.theme.sidebarWidth - r
+                && y >= 0 && y <= overlay.workHeight;
+            overlay.controller.panelHover(inSidebar || inBar);
+            return;
+        }
 
         let inPanel = false;
         if (panel === "dashboard") {
@@ -216,6 +236,16 @@ Window {
                     && overlay.controller.currentScreenName === overlay.screenName)
                 overlay.controller.closePanel();
         }
+    }
+
+    // WM_INPUT only reports real device movement, and the position it carried
+    // did not even follow the pointer, so the corner gestures are polled the
+    // same way the dock's is. It reads a variable; it never forces a repaint.
+    Timer {
+        interval: 50
+        running: !overlay.suspended
+        repeat: true
+        onTriggered: overlay.checkHover(Platform.cursorPos())
     }
 
     RefreshDriver {
