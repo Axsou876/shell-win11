@@ -221,6 +221,9 @@ QImage grabWindow(HWND hwnd)
 
 struct WindowService::Impl {
     ComPtr<IVirtualDesktopManager> desktopManager;
+    // Window ids in the order they first appeared. Keeps the dock from
+    // reshuffling every time a window takes the focus or is minimised.
+    QStringList order;
 };
 
 WindowService::WindowService(QObject* parent)
@@ -292,6 +295,38 @@ void WindowService::refresh()
         }
         result = filtered;
     }
+
+    // EnumWindows walks the Z-order, so focusing or minimising a window moved
+    // its entry to the front and the dock's icons hopped around. The order is
+    // made stable here: a window keeps the slot it appeared in until it closes.
+    QStringList order = m_impl->order;
+    QStringList seen;
+    for (const QVariant& entry : std::as_const(result))
+        seen.append(entry.toMap().value(QStringLiteral("id")).toString());
+
+    QStringList stable;
+    for (const QString& id : std::as_const(order)) {
+        if (seen.contains(id))
+            stable.append(id);
+    }
+    for (const QString& id : std::as_const(seen)) {
+        if (!stable.contains(id))
+            stable.append(id);
+    }
+    order = stable;
+
+    QVariantList ordered;
+    ordered.reserve(result.size());
+    for (const QString& id : std::as_const(order)) {
+        for (const QVariant& entry : std::as_const(result)) {
+            if (entry.toMap().value(QStringLiteral("id")).toString() == id) {
+                ordered.append(entry);
+                break;
+            }
+        }
+    }
+    result = ordered;
+    m_impl->order = order;
 
     if (m_windows == result)
         return;
