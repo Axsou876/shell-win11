@@ -179,8 +179,11 @@ Item {
             // made, and the bar would fight it for the topmost slot. The
             // frozen frame already shows the bar, so hiding it is invisible.
             // The lock screen hides it for the same reason: an AppBar raised
-            // by the shell timer must never cover the lock window.
+            // by the shell timer must never cover the lock window. A fullscreen
+            // application hides it too: the shell steps aside for the video
+            // instead of drawing a bar over it.
             visible: !areaPicker.active && !lockOverlay.active && !lockOverlay.preparing
+                && !WindowManager.appFullscreen
             visibility: Window.Windowed
             flags: Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint
             color: "transparent"
@@ -219,6 +222,7 @@ Item {
             theme: appTheme
             controller: panelController
             suspended: lockOverlay.preparing || lockOverlay.active
+                || WindowManager.appFullscreen
             smoothRefresh: app.smoothRefresh
         }
     }
@@ -241,6 +245,7 @@ Item {
             width: modelData.geometry.width
             height: 128
             visible: !areaPicker.active && !lockOverlay.active && !lockOverlay.preparing
+                && !WindowManager.appFullscreen
             visibility: Window.Windowed
             flags: Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint
             color: "transparent"

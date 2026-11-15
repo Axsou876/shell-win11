@@ -708,11 +708,12 @@ transparentes aux clics, réservent le haut, la droite et le bas de chaque écra
 donc natifs, ils s'arrêtent simplement à l'intérieur du cadre.
 
 Un plein écran déclenché par l'application elle-même (F11, lecteur vidéo) pose
-la fenêtre sur tout le moniteur et masquait barre et cadre. `clampFullscreenWindow`
-la ramène à la zone de travail dès qu'une fenêtre gérée couvre le moniteur à
-4 px près : le shell reste visible, l'application garde tout l'écran utile. Le
-plein écran du shell (`Win+F`) vise déjà la zone de travail, il n'est donc
-jamais concerné.
+la fenêtre sur tout le moniteur. Le shell **s'efface** alors : `coversMonitor`
+détecte la fenêtre qui couvre le moniteur à 4 px près, `WindowManager.appFullscreen`
+passe à vrai, et la barre, la surface et le dock se masquent le temps du plein
+écran — comme `BarWrapper.shouldBeVisible: !fullscreen && …` côté Caelestia. Ils
+reviennent dès que la fenêtre reprend sa taille. Le plein écran du shell
+(`Win+F`) vise la zone de travail, il ne déclenche jamais ce chemin.
 
 
 

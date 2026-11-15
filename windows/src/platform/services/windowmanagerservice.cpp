@@ -541,6 +541,8 @@ struct WindowManagerService::Impl {
     bool enabled = true;
     bool strictMode = true;
     bool animationsEnabled = true;
+    // True while an application presents itself fullscreen on any monitor.
+    bool appFullscreenActive = false;
     // Tiling is off on this port: windows keep the size and position Windows
     // gave them. Focus, close, workspaces, the dock and the desktop slide all
     // keep working; only the automatic placement is gone. Re-enable with
@@ -1628,12 +1630,19 @@ struct WindowManagerService::Impl {
         // Every managed window loses its caption buttons. It runs before the
         // geometry pass so the frame change is already in place when the tiler
         // measures the window.
+        bool appFullscreen = false;
         for (HWND hwnd : std::as_const(eligible)) {
             saveWindowState(hwnd);
             stripCaptionButtons(hwnd);
             updateRoundedRegion(hwnd);
-            clampFullscreenWindow(hwnd);
+            if (coversMonitor(hwnd))
+                appFullscreen = true;
         }
+        if (appFullscreenActive != appFullscreen
+            && !qEnvironmentVariableIsEmpty("CAELESTIA_DEBUG_WM")) {
+            qInfo().noquote() << "WM app fullscreen" << appFullscreen;
+        }
+        appFullscreenActive = appFullscreen;
 
         QHash<QString, QVector<HWND>> byMonitor;
         QHash<QString, QRect> workAreas;
@@ -1884,21 +1893,19 @@ struct WindowManagerService::Impl {
     }
 
     // A window covering the whole monitor has gone fullscreen on its own — F11
-    // in a browser, a video player. The shell draws its frame and bar around the
-    // wallpaper hole, so such a window hides them entirely. Clamping it back to
-    // the work area keeps the shell visible while the app still gets the whole
-    // usable screen. Our own Win+F fullscreen already targets the work area, so
-    // it never comes through here.
-    void clampFullscreenWindow(HWND hwnd)
+    // in a browser, a video player. Hyprland hides the bar in that state and so
+    // does Caelestia (`BarWrapper.shouldBeVisible: !fullscreen && …`): the shell
+    // steps aside for the video instead of fighting the app. Clamping the window
+    // back into the frame was worse — the shell stayed visible but the app could
+    // never present fullscreen, and an app that re-applies it fought the tiler.
+    bool coversMonitor(HWND hwnd) const
     {
         const MonitorInfo monitor = monitorFor(hwnd);
-        if (!monitor.valid || monitor.work == monitor.bounds)
-            return;
+        if (!monitor.valid)
+            return false;
         const QRect rect = windowRect(hwnd);
-        if (qAbs(rect.width() - monitor.bounds.width()) > 4
-            || qAbs(rect.height() - monitor.bounds.height()) > 4)
-            return;
-        setWindowRect(hwnd, monitor.work);
+        return qAbs(rect.width() - monitor.bounds.width()) <= 4
+            && qAbs(rect.height() - monitor.bounds.height()) <= 4;
     }
 
     void saveWindowState(HWND hwnd)
@@ -2504,6 +2511,7 @@ struct WindowManagerService::Impl {
         }
         const bool enabledValue = enabled;
         const bool strictValue = strictMode;
+        const bool fullscreenValue = appFullscreenActive;
         const int countValue = count;
         const QString errorValue = error;
         const QVariantList bindingsValue = publishedBindings;
@@ -2515,11 +2523,15 @@ struct WindowManagerService::Impl {
 
         QMetaObject::invokeMethod(
             q,
-            [owner = q, enabledValue, strictValue, layout, countValue, errorValue,
-                bindingsValue, floatingValue]() {
+            [owner = q, enabledValue, strictValue, fullscreenValue, layout, countValue,
+                errorValue, bindingsValue, floatingValue]() {
                 bool changed = false;
                 if (owner->m_enabled != enabledValue) {
                     owner->m_enabled = enabledValue;
+                    changed = true;
+                }
+                if (owner->m_appFullscreen != fullscreenValue) {
+                    owner->m_appFullscreen = fullscreenValue;
                     changed = true;
                 }
                 if (owner->m_strict != strictValue) {
