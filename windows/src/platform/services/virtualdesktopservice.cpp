@@ -23,8 +23,15 @@ namespace {
 // than the bar and a single wheel gesture would keep manufacturing desktops.
 constexpr int kMaxDesktops = 3;
 
-// Windows build, read from the registry. GetVersionEx lies without an app
-// manifest, and winternl.h's RTL struct clashes with the COM headers here.
+// The private interfaces below are layout snapshots. Windows changes the
+// *interface IID* whenever it changes the layout — that is the convention the
+// whole ecosystem relies on — so asking the shell service for our IID is safe:
+// on a build with a different layout the QueryService returns E_NOINTERFACE and
+// we fall back, instead of calling into a wrong vtable.
+//
+// This is why there is no build-number gate anymore: a hand-maintained list of
+// "supported builds" would disable virtual desktops on any Windows release we
+// had not seen yet, while the IID already answers the question exactly.
 DWORD windowsBuildNumber()
 {
     QSettings settings(
@@ -32,17 +39,6 @@ DWORD windowsBuildNumber()
         QSettings::NativeFormat);
     return static_cast<DWORD>(
         settings.value(QStringLiteral("CurrentBuildNumber")).toUInt());
-}
-
-// The private interfaces below are layout snapshots: their vtable order changes
-// between Windows builds, and calling the wrong slot is an access violation
-// rather than an error code. They were validated on 24H2 and 26H2 (26100 and
-// 26300). Any other build gets the service marked unavailable instead of
-// risking the process — the workspace column simply stays hidden.
-bool virtualDesktopLayoutSupported()
-{
-    const DWORD build = windowsBuildNumber();
-    return build >= 26100 && build < 27000;
 }
 
 const CLSID kImmersiveShell
@@ -489,13 +485,6 @@ void VirtualDesktopService::publish(QVariantList desktops, const QString& curren
 
 void VirtualDesktopService::run()
 {
-    if (!virtualDesktopLayoutSupported()) {
-        publish({}, {}, false,
-            QStringLiteral("Bureaux virtuels : Windows build %1 non prise en charge")
-                .arg(windowsBuildNumber()));
-        return;
-    }
-
     const HRESULT com = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     if (FAILED(com)) {
         publish({}, {}, false, QStringLiteral("COM bureaux virtuels indisponible"));
@@ -650,7 +639,9 @@ void VirtualDesktopService::run()
         }
 
         if (!ensureManager()) {
-            publish({}, {}, false, QStringLiteral("Bureaux virtuels Windows indisponibles"));
+            publish({}, {}, false,
+                QStringLiteral("Bureaux virtuels indisponibles sur cette build Windows (%1)")
+                    .arg(windowsBuildNumber()));
             continue;
         }
 

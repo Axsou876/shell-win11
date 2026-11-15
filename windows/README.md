@@ -43,13 +43,15 @@ termine immédiatement avec le code 0.
 Ce qui rend le shell dépendant de la machine, et ce qui a été fait pour que ça
 tienne ailleurs :
 
-- **Windows 11 24H2 ou plus récent.** Les bureaux virtuels passent par des
-  interfaces COM privées : leur ordre de vtable change d'une build à l'autre, et
-  appeler le mauvais slot est une violation d'accès, pas un code d'erreur. Elles
-  ont été validées sur 26100 (24H2) et 26300 (26H2). `virtualDesktopLayoutSupported`
-  lit la build dans le registre et marque le service indisponible hors de cette
-  plage : la colonne de bureaux disparaît, le reste du shell continue. Un
-  `Win+Ctrl+D` reste possible par Windows lui-même.
+- **Bureaux virtuels.** Ils passent par une interface COM privée dont l'ordre
+  de vtable change d'une build à l'autre. Windows change alors aussi l'**IID**
+  de l'interface — c'est la convention sur laquelle s'appuient tous les outils
+  du domaine — donc le shell demande son IID et laisse le service répondre :
+  sur une build au layout différent, `QueryService` renvoie `E_NOINTERFACE` et
+  la colonne de bureaux se masque, au lieu d'appeler une vtable incorrecte et de
+  planter. Il n'y a volontairement plus de liste de builds « supportées » : elle
+  désactiverait les bureaux sur toute version non encore vue, alors que l'IID
+  répond exactement à la question. Le message d'erreur cite la build détectée.
 - **Runtime Visual C++.** `vcruntime140*.dll`, `msvcp140*.dll` et `concrt140.dll`
   sont copiés à côté de l'exécutable : aucune installation de la redistribuable
   n'est nécessaire sur la machine cible.
