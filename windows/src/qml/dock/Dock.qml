@@ -5,31 +5,90 @@ import ".."
 import "../components"
 import "../components/WindowIcons.js" as WindowIcons
 
-// Application dock. One entry per window of the current desktop, drawn as a
-// floating pill inside the strip the AppBar reserved at the bottom of the
-// screen — so maximized windows stop above it instead of sliding under.
+// Application dock, ported from the behaviour of Caelestia's bar wrapper
+// (`modules/bar/BarWrapper.qml`): the surface stays collapsed against the
+// screen edge and is revealed by hovering that edge, animated with the same
+// spatial/emphasized transitions.
 //
-// Styling follows the shell rather than the Windows taskbar: the surface
-// colour with the opacity configured in Nexus, full rounding, the same soft
-// shadow as the blob, and a halo on hover.
+// Caelestia has no separate bottom dock — its dock *is* the bar, and the part
+// worth porting is the reveal gesture: `shouldBeVisible` whenever the bar is
+// hovered, an expanding `implicitWidth` with an `Anim` on show and an
+// `Anim.Emphasized` on hide. This is the horizontal equivalent for the bottom
+// edge.
 Item {
     id: root
 
     required property var theme
+    // Monitor geometry in logical coordinates, so the edge test matches the
+    // pointer position Platform reports.
+    required property var screenGeometry
 
     readonly property var windows: AppWindows.windows
     readonly property int pillHeight: 64
     readonly property int entityWidth: 52
+    readonly property int bandHeight: 128
+    readonly property real edgeThickness: 8
+
+    // Revealed when the pointer touches the bottom edge, and kept open while
+    // it stays anywhere in the dock's band.
+    property bool revealed: false
+
+    readonly property rect edgeZone: Qt.rect(screenGeometry.x,
+        screenGeometry.y + screenGeometry.height - edgeThickness,
+        screenGeometry.width, edgeThickness)
+    readonly property rect bandZone: Qt.rect(screenGeometry.x,
+        screenGeometry.y + screenGeometry.height - bandHeight,
+        screenGeometry.width, bandHeight)
+
+    function inside(position, rect) {
+        return position.x >= rect.x && position.x <= rect.x + rect.width
+            && position.y >= rect.y && position.y <= rect.y + rect.height;
+    }
+
+    // 0 = shown, 1 = collapsed against the edge, exactly the two states of the
+    // bar wrapper.
+    property real collapse: revealed ? 0 : 1
+
+    Behavior on collapse {
+        Anim {
+            type: root.revealed ? Anim.DefaultSpatial : Anim.Emphasized
+        }
+    }
+
+    onRevealedChanged: {
+        if (Window.window)
+            Platform.setWindowInputState(Window.window, !root.revealed, false);
+    }
+
+    Component.onCompleted: {
+        if (Window.window)
+            Platform.setWindowInputState(Window.window, true, false);
+    }
+
+    // QCursor::pos() polling rather than WM_INPUT: the raw-input path only
+    // reports real device movement (the position it delivered did not even
+    // follow the pointer), so the reveal felt tied to a physical mouse and
+    // could not be driven at all by a script. 50 ms costs nothing — the timer
+    // reads a variable, it does not render.
+    Timer {
+        interval: 50
+        running: true
+        repeat: true
+        onTriggered: root.updatePointer(Platform.cursorPos())
+    }
+
+    function updatePointer(position) {
+        if (root.inside(position, root.edgeZone))
+            root.revealed = true;
+        else if (!(root.revealed && root.inside(position, root.bandZone)))
+            root.revealed = false;
+    }
 
     Rectangle {
         id: pill
 
         anchors.horizontalCenter: parent.horizontalCenter
-        // Pinned to the top of the reserved band, not to the screen edge: the
-        // pill floats just under the windows and the empty space falls below
-        // it, which is what stops it reading as a glued-on taskbar.
-        anchors.top: parent.top
-        anchors.topMargin: 10
+        y: 10 + root.collapse * (root.pillHeight + 24)
         width: Math.max(row.implicitWidth, emptyHint.implicitWidth + hintSpacing)
             + root.theme.paddingLarge * 2
         height: root.pillHeight
@@ -37,6 +96,7 @@ Item {
         color: root.theme.surface
         border.width: 1
         border.color: Qt.alpha(root.theme.outlineVariant, 0.35)
+        opacity: 1 - root.collapse
 
         Behavior on width {
             Anim { type: Anim.DefaultSpatial }

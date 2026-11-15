@@ -643,23 +643,50 @@ Limites assumées :
 
 ## Dock d'applications
 
-Pastille flottante en bas de chaque écran (`src/qml/dock/Dock.qml`), une entrée
-par fenêtre du bureau courant. Clic : la fenêtre passe au premier plan.
-L'icône est celle de l'exécutable, extraite par `Platform.windowIcon`
-(`WM_GETICON`, repli `SHGetFileInfo`), encodée en data: URL et mise en cache par
-handle — l'extraction est trop chère pour un rafraîchissement à 1 Hz. À défaut,
-le glyphe de catégorie de `WindowIcons.js`. La fenêtre active porte une barre
-sous son icône, les autres un point.
+Pastille en bas de chaque écran (`src/qml/dock/Dock.qml`), une entrée par
+fenêtre du bureau courant. Clic : la fenêtre passe au premier plan. L'icône est
+celle de l'exécutable, extraite par `Platform.windowIcon` (`WM_GETICON`, repli
+`SHGetFileInfo`), encodée en data: URL et mise en cache par handle —
+l'extraction est trop chère pour un rafraîchissement à 1 Hz. À défaut, le glyphe
+de catégorie de `WindowIcons.js`. La fenêtre active porte une barre sous son
+icône, les autres un point.
 
-Le bas de l'écran est **réservé** par un AppBar (`ABE_BOTTOM`) : les fenêtres
-maximisées s'arrêtent au-dessus du dock au lieu de glisser dessous. La bande fait
-128 px et la pastille (64 px) est ancrée **en haut** de cette bande, juste sous
-les fenêtres, l'espace vide restant en dessous — collée au bord de l'écran, elle
-chevauchait le cadre de 10 px du shell et se lisait comme une barre écrasée.
-`AppBarEntry` porte désormais une arête (`Left`/`Bottom`) et une taille ; le
-suivi de `m_appBarWidth`/`m_appBarHeight` ne se fait que pour l'arête possédée
-par chaque barre, sinon le dock (large de tout l'écran) écrasait la largeur
-annoncée par la barre de gauche.
+**Caelestia n'a pas de dock séparé** : son dock *est* la barre, et la partie qui
+se porte est le geste de révélation de `modules/bar/BarWrapper.qml` —
+`shouldBeVisible` au survol du bord, `implicitWidth` animé en `Anim` à
+l'apparition et en `Anim.Emphasized` à la disparition. Le dock reprend cette
+logique sur le bord inférieur : replié contre l'écran, il se déplie quand le
+pointeur touche les 8 derniers pixels, reste ouvert tant qu'il est dans la bande
+de 128 px, et se referme en glissant avec les mêmes courbes.
+
+Il n'y a **pas de zone réservée** : le dock flotte au-dessus des fenêtres quand
+il est ouvert et la fenêtre est `WS_EX_TRANSPARENT` quand il est replié, donc les
+clics traversent. C'est le comportement d'une barre des tâches en masquage
+automatique — réserver une bande obligerait à replanifier le tiling à chaque
+survol, ce que Hyprland peut faire mais pas un gestionnaire Windows.
+
+La position du pointeur est **lue par un `Timer` de 50 ms** (`QCursor::pos()` via
+`Platform.cursorPos()`) et non par le `WM_INPUT` déjà utilisé pour le survol du
+tableau de bord : le chemin raw-input ne rapporte que du mouvement matériel, la
+position qu'il livrait ne suivait même pas le curseur, et rien ne pouvait le
+piloter depuis un script. Un timer qui lit une variable ne déclenche aucun rendu.
+
+### Conflit avec la barre des tâches
+
+`Platform::hideTaskbar` met la barre en masquage automatique (`ABS_AUTOHIDE`,
+ce qui libère la zone de travail) puis la cache (`SW_HIDE`). Le masquage
+automatique seul ne suffisait pas : quand le pointeur atteint le bord inférieur,
+Explorer **ré-affiche** la barre à la place du dock, et le minuteur de secours de
+500 ms ne la recachait qu'après un flash visible. Un `SetWinEventHook` sur
+`EVENT_OBJECT_SHOW` la cache de nouveau dans le même tour de boucle, avant
+peinture. Reversibilité : l'état précédent (`ABM_GETSTATE`) est sauvegardé dans
+`QSettings` sous `shell/taskbarState`, restauré par `restoreTaskbar` à la
+fermeture normale **et** au prochain démarrage si le shell a été tué
+(`shell/taskbarHeld`). Aucun composant Windows n'est tué ni désactivé.
+
+`AppBarEntry` porte une arête (`Left`/`Bottom`) et une taille ;
+`registerBottomAppBar` reste disponible, mais le dock ne l'utilise plus.
+
 
 ## Dock de notifications (sidebar)
 

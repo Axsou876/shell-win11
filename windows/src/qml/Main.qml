@@ -220,8 +220,10 @@ Item {
         }
     }
 
-    // Application dock. Each screen reserves a strip along its bottom edge, so
-    // maximized windows stop above the pill instead of sliding under it.
+    // Application dock. It occupies the bottom band of the screen but stays
+    // collapsed against the edge until the pointer touches it, like Caelestia's
+    // bar wrapper: nothing is reserved, the surface floats over the windows
+    // while it is shown.
     Instantiator {
         model: Platform.screens
 
@@ -241,12 +243,10 @@ Item {
             color: "transparent"
             title: "Caelestia Dock — Windows"
 
-            Component.onCompleted: Platform.registerBottomAppBar(dockWindow, 128)
-            Component.onDestruction: Platform.unregisterAppBar(dockWindow)
-
             Dock {
                 anchors.fill: parent
                 theme: appTheme
+                screenGeometry: dockWindow.modelData.geometry
             }
         }
     }

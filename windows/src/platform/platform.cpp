@@ -56,6 +56,24 @@ bool isShellWindowClass(const QString& name)
         || name == QStringLiteral("Windows.UI.Core.CoreWindow");
 }
 
+// Auto-hide alone still reveals the taskbar when the pointer reaches the
+// bottom edge: that reveal is what the user sees when the dock's trigger strip
+// is meant to be the only thing down there. A show hook hides the bar again in
+// the same event turn, before it is painted, so the flash is one frame at
+// worst instead of the 500 ms the polling timer needed.
+void CALLBACK taskbarShowProc(HWINEVENTHOOK, DWORD event, HWND hwnd, LONG, LONG, DWORD, DWORD)
+{
+    if (event != EVENT_OBJECT_SHOW || !hwnd)
+        return;
+    wchar_t name[64] = {};
+    if (GetClassNameW(hwnd, name, 64) <= 0)
+        return;
+    if (wcscmp(name, L"Shell_TrayWnd") == 0
+        || wcscmp(name, L"Shell_SecondaryTrayWnd") == 0) {
+        ShowWindow(hwnd, SW_HIDE);
+    }
+}
+
 QList<HWND> taskbarWindows()
 {
     QList<HWND> result;
@@ -276,6 +294,11 @@ QString Platform::activeWindowTitle() const
     return m_activeWindowTitle;
 }
 
+QPoint Platform::cursorPos() const
+{
+    return QCursor::pos();
+}
+
 QString Platform::windowIcon(const QString& windowId)
 {
     bool ok = false;
@@ -407,6 +430,10 @@ void Platform::hideTaskbar()
     }
 
     m_taskbarHidden = true;
+    // Hide the window again the instant Explorer reveals it on the bottom edge.
+    if (!m_taskbarHook)
+        m_taskbarHook = SetWinEventHook(EVENT_OBJECT_SHOW, EVENT_OBJECT_SHOW, nullptr,
+            &taskbarShowProc, 0, 0, WINEVENT_OUTOFCONTEXT);
     m_taskbarTimer.start();
 }
 
@@ -436,6 +463,10 @@ void Platform::enforceTaskbarHidden()
 void Platform::restoreTaskbar()
 {
     m_taskbarTimer.stop();
+    if (m_taskbarHook) {
+        UnhookWinEvent(static_cast<HWINEVENTHOOK>(m_taskbarHook));
+        m_taskbarHook = nullptr;
+    }
     if (!m_taskbarHidden)
         return;
 

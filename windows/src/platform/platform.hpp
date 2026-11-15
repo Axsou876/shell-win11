@@ -68,6 +68,11 @@ public:
     // encode, which is too much to repeat on every refresh.
     Q_INVOKABLE QString windowIcon(const QString& windowId);
 
+    // Pointer position in global logical coordinates. Polled by the dock's
+    // edge test: WM_INPUT only reports real device movement, so a synthetic or
+    // scripted pointer move never reached it.
+    Q_INVOKABLE QPoint cursorPos() const;
+
     Q_INVOKABLE bool registerLeftAppBar(QWindow* window, int logicalWidth = 60);
     // Reserves the bottom edge for the application dock, the same way the left
     // bar reserves its column: maximized windows stop above the dock.
@@ -210,6 +215,10 @@ private:
     bool m_appBarUpdating = false;
     int m_appBarWidth = 60;
     int m_appBarHeight = 0;
+    // WinEvent hook that hides the taskbar again the moment Explorer reveals
+    // it on the bottom edge. Stored as void* so the header stays free of
+    // windows.h.
+    void* m_taskbarHook = nullptr;
     QHash<quintptr, QString> m_windowIconCache;
 
     quintptr m_rawInputHwnd = 0;
