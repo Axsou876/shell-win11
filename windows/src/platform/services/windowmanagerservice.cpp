@@ -240,6 +240,8 @@ enum class WmAction {
     FocusPrev,
     ToggleFloating,
     ToggleFullscreen,
+    MaximizeWindow,
+    RestoreWindow,
     CloseWindow,
     CycleLayout,
     CycleLayoutBack,
@@ -352,6 +354,11 @@ QVector<BindingSpec> defaultBindingSpecs(bool tiling)
     add(WmAction::ToggleFloating, 0, QStringLiteral("toggle-floating"), QStringLiteral("Ctrl+Alt+V"), false);
     add(WmAction::ToggleFullscreen, 0, QStringLiteral("toggle-fullscreen"), QStringLiteral("Win+F"), true);
     add(WmAction::ToggleFullscreen, 0, QStringLiteral("toggle-fullscreen"), QStringLiteral("Ctrl+Alt+F"), false);
+    // The shell owns the Windows key, so Explorer never sees Win+Up/Win+Down.
+    // These two rebind them to the system commands instead of leaving them
+    // dead: maximise, restore, minimise.
+    add(WmAction::MaximizeWindow, 0, QStringLiteral("window-maximize"), QStringLiteral("Win+Up"), true);
+    add(WmAction::RestoreWindow, 0, QStringLiteral("window-restore"), QStringLiteral("Win+Down"), true);
     // Hyprland muscle memory as requested: Super+C closes the active window,
     // Super+Q opens the terminal. This intentionally swaps Caelestia's own
     // SUPER+Q (close) / SUPER+C (editor) defaults; those actions stay
@@ -1826,17 +1833,16 @@ struct WindowManagerService::Impl {
             SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER);
     }
 
-    // The shell closes windows with Win+C and tiles them itself, so the three
-    // caption buttons are dead weight and a way to fight the layout. Clearing
-    // the matching style bits removes them from the title bar; WS_CAPTION
-    // stays (the title bar still drags) and so does WS_THICKFRAME, which the
-    // window needs to stay resizable and eligible. The original style is kept
-    // in savedWindows, so disabling the manager gives the buttons back.
+    // Only the close button is stripped. Removing WS_MAXIMIZEBOX looked like a
+    // cosmetic detail, but it also broke maximising: Win+Up did nothing and
+    // SW_MAXIMIZE parked the window over the whole *monitor* instead of the
+    // work area, so the shell's frame and the rounded corner got covered. The
+    // minimise and maximise boxes are added back, which also repairs windows
+    // stripped by an earlier build.
     void stripCaptionButtons(HWND hwnd)
     {
         const LONG style = static_cast<LONG>(GetWindowLongPtrW(hwnd, GWL_STYLE));
-        const LONG wanted = style
-            & ~(WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU);
+        const LONG wanted = (style & ~WS_SYSMENU) | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
         if (wanted == style)
             return;
         SetWindowLongPtrW(hwnd, GWL_STYLE, wanted);
@@ -2330,6 +2336,19 @@ struct WindowManagerService::Impl {
         }
         if (action == WmAction::ToggleFullscreen) {
             toggleFullscreen();
+            return;
+        }
+        if (action == WmAction::MaximizeWindow) {
+            // Windows' own command, not a tiling layout: the window maximises
+            // to the work area, which is the shell's wallpaper hole.
+            SendMessageW(activeWindow, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+            return;
+        }
+        if (action == WmAction::RestoreWindow) {
+            // Win+Down restores a maximised window and minimises the others,
+            // exactly like the Windows shortcut it replaces.
+            SendMessageW(activeWindow, WM_SYSCOMMAND,
+                IsZoomed(activeWindow) ? SC_RESTORE : SC_MINIMIZE, 0);
             return;
         }
         if (action == WmAction::CloseWindow) {
