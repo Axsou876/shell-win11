@@ -49,6 +49,8 @@ Item {
             }
         }
 
+        // The sidebar button is gone: the panel it opened is the notification
+        // dock, which the right edge now reveals on hover.
         Column {
             Layout.alignment: Qt.AlignHCenter
             spacing: root.theme.spacingExtraSmall
@@ -68,26 +70,6 @@ Item {
                     anchors.centerIn: parent
                     theme: root.theme
                     text: "settings"
-                    iconSize: 18
-                    color: root.theme.onSurfaceVariantColour
-                }
-            }
-
-            Item {
-                width: 30
-                height: 30
-
-                StateLayer {
-                    anchors.fill: parent
-                    theme: root.theme
-                    radius: width / 2
-                    onClicked: root.panelController.togglePanel("sidebar", root.screenName, 0)
-                }
-
-                MaterialIcon {
-                    anchors.centerIn: parent
-                    theme: root.theme
-                    text: "dock_to_right"
                     iconSize: 18
                     color: root.theme.onSurfaceVariantColour
                 }

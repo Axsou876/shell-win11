@@ -88,13 +88,14 @@ Window {
             const inZone = y >= 0 && y <= overlay.theme.borderThickness
                 && x >= surface.dashboardX - r
                 && x <= surface.dashboardX + surface.dashboardW + r;
-            // Notifications live in the top-right corner: the sidebar slides in
-            // from that edge, so the gesture points at where the panel appears.
-            // The upper bound matters: without it every screen to the left of
-            // the pointer matched too, and the two overlays kept resetting each
+            // Notifications live on the right edge: the sidebar slides in from
+            // there, so the whole strip triggers, not just the top corner. The
+            // upper bound matters — without it every screen to the left of the
+            // pointer matched too, and the two overlays kept resetting each
             // other's hover before the intent delay could elapse.
-            const notifyZone = y >= 0 && y <= overlay.theme.borderThickness
-                && x >= overlay.width - 220 && x <= overlay.width;
+            const notifyZone = x >= overlay.width - overlay.theme.borderThickness
+                && x <= overlay.width
+                && y >= 0 && y <= overlay.workHeight;
             if (inZone) {
                 overlay.controller.hoverTrigger("dashboard", overlay.screenName, 0);
             } else if (notifyZone) {
