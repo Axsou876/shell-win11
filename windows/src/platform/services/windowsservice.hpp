@@ -39,6 +39,9 @@ public:
 
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void focusWindow(const QString& id);
+    // Clicking the icon of a window that already has the focus minimises it,
+    // the way a taskbar button toggles.
+    Q_INVOKABLE void minimizeWindow(const QString& id);
 
     // The window info panel lives only while it is open: the fast poll and the
     // PrintWindow capture are both too expensive to run for the whole session.

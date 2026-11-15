@@ -191,7 +191,15 @@ Item {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: AppWindows.focusWindow(entry.modelData.id)
+                        // A taskbar button toggles: the focused window goes
+                        // down, any other comes up. Focusing twice did nothing,
+                        // which made the dock feel dead on the second click.
+                        onClicked: {
+                            if (entry.active)
+                                AppWindows.minimizeWindow(entry.modelData.id);
+                            else
+                                AppWindows.focusWindow(entry.modelData.id);
+                        }
                     }
                 }
             }

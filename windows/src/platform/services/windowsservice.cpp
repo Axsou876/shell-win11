@@ -310,6 +310,17 @@ void WindowService::focusWindow(const QString& id)
     refresh();
 }
 
+void WindowService::minimizeWindow(const QString& id)
+{
+    const HWND hwnd = reinterpret_cast<HWND>(id.toULongLong());
+    if (!hwnd || !IsWindow(hwnd))
+        return;
+    // SC_MINIMIZE rather than SW_MINIMIZE: apps with their own frame handling
+    // (Electron, WinUI) hook the system command and animate it properly.
+    PostMessageW(hwnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
+    refresh();
+}
+
 quintptr WindowService::focusedHwnd() const
 {
     if (QDateTime::currentMSecsSinceEpoch() < m_pinnedUntil)
