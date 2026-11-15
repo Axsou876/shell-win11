@@ -251,6 +251,81 @@ Item {
         }
     }
 
+    // The shell draws a 10 px frame around the wallpaper hole, and native
+    // maximised windows know nothing about it: they slid under the frame (and
+    // under the dock band). Thin app bars reserve the three edges the left bar
+    // does not own, so maximise and snap stay native — they simply stop inside
+    // the frame. Click-through, so the frame keeps behaving like glass.
+    Instantiator {
+        model: Platform.screens
+
+        delegate: Item {
+            id: guardHost
+
+            required property var modelData
+
+            Window {
+                id: topGuard
+
+                screen: guardHost.modelData
+                x: guardHost.modelData.geometry.x
+                y: guardHost.modelData.geometry.y
+                width: guardHost.modelData.geometry.width
+                height: 10
+                visibility: Window.Windowed
+                flags: Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint
+                color: "transparent"
+                title: "Caelestia Frame Top"
+
+                Component.onCompleted: {
+                    Platform.registerTopAppBar(topGuard, 10);
+                    Platform.setWindowInputState(topGuard, true, false);
+                }
+                Component.onDestruction: Platform.unregisterAppBar(topGuard)
+            }
+
+            Window {
+                id: rightGuard
+
+                screen: guardHost.modelData
+                x: guardHost.modelData.geometry.x + guardHost.modelData.geometry.width - 10
+                y: guardHost.modelData.geometry.y
+                width: 10
+                height: guardHost.modelData.geometry.height
+                visibility: Window.Windowed
+                flags: Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint
+                color: "transparent"
+                title: "Caelestia Frame Right"
+
+                Component.onCompleted: {
+                    Platform.registerRightAppBar(rightGuard, 10);
+                    Platform.setWindowInputState(rightGuard, true, false);
+                }
+                Component.onDestruction: Platform.unregisterAppBar(rightGuard)
+            }
+
+            Window {
+                id: bottomGuard
+
+                screen: guardHost.modelData
+                x: guardHost.modelData.geometry.x
+                y: guardHost.modelData.geometry.y + guardHost.modelData.geometry.height - 10
+                width: guardHost.modelData.geometry.width
+                height: 10
+                visibility: Window.Windowed
+                flags: Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint
+                color: "transparent"
+                title: "Caelestia Frame Bottom"
+
+                Component.onCompleted: {
+                    Platform.registerBottomAppBar(bottomGuard, 10);
+                    Platform.setWindowInputState(bottomGuard, true, false);
+                }
+                Component.onDestruction: Platform.unregisterAppBar(bottomGuard)
+            }
+        }
+    }
+
     // Screenshot area selection (Ctrl+Alt+S saves, Ctrl+Alt+X copies).
     AreaPicker {
         id: areaPicker

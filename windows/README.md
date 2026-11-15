@@ -169,6 +169,16 @@ notification Windows native**. La barre Caelestia n'en affiche pas de copies.
 
 ## Tiling Windows
 
+**Le tiling est désactivé sur ce port** (`tilingEnabled = false` dans
+`WindowManagerService`) : les fenêtres gardent la taille et la position que
+Windows leur a données. Ce qui reste actif : focus, `Win+C`, les bureaux, le
+dock, le glissement au changement de bureau et le plein écran. Ce qui disparaît
+avec lui : les raccourcis propres au tiling (`Win+Flèches`, `Win+Shift+Flèches`,
+`Win+±`, layouts, resize) ne sont plus enregistrés ni avalés, donc **Windows
+reprend ses propres accrochages** (`Win+←/→`, `Win+↑` maximiser, `Win+↓`,
+loupe `Win+±`). Réactivation possible en écrivant `tiling=true` dans le fichier
+INI `Caelestia/window-manager`.
+
 Le shell inclut un gestionnaire de fenêtres réel inspiré de Hyprland :
 layout Dwindle par défaut, Master, Split horizontal/vertical, tiling strict,
 floating, focus directionnel, déplacement entre bureaux et coupe-circuit.
@@ -684,8 +694,19 @@ peinture. Reversibilité : l'état précédent (`ABM_GETSTATE`) est sauvegardé 
 fermeture normale **et** au prochain démarrage si le shell a été tué
 (`shell/taskbarHeld`). Aucun composant Windows n'est tué ni désactivé.
 
-`AppBarEntry` porte une arête (`Left`/`Bottom`) et une taille ;
+`AppBarEntry` porte une arête (`Left`/`Top`/`Right`/`Bottom`) et une taille ;
 `registerBottomAppBar` reste disponible, mais le dock ne l'utilise plus.
+
+### Cadre du shell et fenêtres natives
+
+Le shell dessine un cadre de 10 px autour du trou du fond d'écran. Avec le
+tiling désactivé, ce sont les fenêtres natives qui maximisent : elles ne
+connaissaient pas ce cadre et glissaient dessous (bord droit, bas, haut coupés
+par la surface). Trois fines barres d'application de 10 px, invisibles et
+transparentes aux clics, réservent le haut, la droite et le bas de chaque écran
+— la barre de gauche réservant déjà sa colonne. Maximiser et accrocher restent
+donc natifs, ils s'arrêtent simplement à l'intérieur du cadre.
+
 
 
 ## Dock de notifications (sidebar)

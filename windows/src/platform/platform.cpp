@@ -553,6 +553,16 @@ bool Platform::registerBottomAppBar(QWindow* window, int logicalHeight)
     return registerAppBar(window, qMax(1, logicalHeight), BarEdge::Bottom);
 }
 
+bool Platform::registerTopAppBar(QWindow* window, int logicalHeight)
+{
+    return registerAppBar(window, qMax(1, logicalHeight), BarEdge::Top);
+}
+
+bool Platform::registerRightAppBar(QWindow* window, int logicalWidth)
+{
+    return registerAppBar(window, qMax(1, logicalWidth), BarEdge::Right);
+}
+
 bool Platform::registerAppBar(QWindow* window, int logicalSize, BarEdge edge)
 {
     if (!window)
@@ -635,7 +645,10 @@ bool Platform::registerAppBar(QWindow* window, int logicalSize, BarEdge edge)
     if (!monitor)
         monitor = MonitorFromWindow(barHwnd, MONITOR_DEFAULTTONEAREST);
     qInfo().noquote() << "Caelestia AppBar screen:" << screen->name() << screen->geometry()
-                      << (it->edge == BarEdge::Left ? "left" : "bottom")
+                      << (it->edge == BarEdge::Left ? "left"
+                              : it->edge == BarEdge::Top ? "top"
+                              : it->edge == BarEdge::Right ? "right"
+                                                           : "bottom")
                       << "logical" << it->logicalSize << "x" << m_appBarHeight
                       << "dpi" << dpiForMonitor(monitor, barHwnd)
                       << "dpr" << screen->devicePixelRatio();
@@ -854,25 +867,43 @@ void Platform::refreshAppBarEntry(AppBarEntry& entry)
     const UINT dpi = dpiForMonitor(monitor, hwnd);
     const qreal scale = static_cast<qreal>(dpi) / 96.0;
     const int physicalSize = qMax(1, qRound(entry.logicalSize * scale));
-    const bool bottom = entry.edge == BarEdge::Bottom;
 
     RECT desired = monitorInfo.rcMonitor;
-    if (bottom) {
+    UINT appBarEdge = ABE_LEFT;
+    switch (entry.edge) {
+    case BarEdge::Top:
+        // Spans the work area horizontally and hangs off the physical top.
+        desired.left = monitorInfo.rcWork.left;
+        desired.right = monitorInfo.rcWork.right;
+        desired.bottom = desired.top + physicalSize;
+        appBarEdge = ABE_TOP;
+        break;
+    case BarEdge::Right:
+        desired.top = monitorInfo.rcWork.top;
+        desired.bottom = monitorInfo.rcWork.bottom;
+        desired.left = desired.right - physicalSize;
+        appBarEdge = ABE_RIGHT;
+        break;
+    case BarEdge::Bottom:
         // A bottom bar spans the work area horizontally and hangs off the
         // physical bottom edge, exactly like the left bar hangs off the left.
         desired.left = monitorInfo.rcWork.left;
         desired.right = monitorInfo.rcWork.right;
         desired.top = desired.bottom - physicalSize;
-    } else {
+        appBarEdge = ABE_BOTTOM;
+        break;
+    case BarEdge::Left:
         desired.top = monitorInfo.rcWork.top;
         desired.bottom = monitorInfo.rcWork.bottom;
         desired.right = desired.left + physicalSize;
+        appBarEdge = ABE_LEFT;
+        break;
     }
 
     APPBARDATA abd = {};
     abd.cbSize = sizeof(APPBARDATA);
     abd.hWnd = hwnd;
-    abd.uEdge = bottom ? ABE_BOTTOM : ABE_LEFT;
+    abd.uEdge = appBarEdge;
     abd.rc = desired;
 
     SHAppBarMessage(ABM_QUERYPOS, &abd);

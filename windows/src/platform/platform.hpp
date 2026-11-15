@@ -77,6 +77,12 @@ public:
     // Reserves the bottom edge for the application dock, the same way the left
     // bar reserves its column: maximized windows stop above the dock.
     Q_INVOKABLE bool registerBottomAppBar(QWindow* window, int logicalHeight = 76);
+    // The shell's frame is a real border around the wallpaper hole. Native
+    // maximised windows know nothing about it, so the top, right and bottom
+    // 10 px are reserved by thin app bars: maximise and snap stay native, they
+    // just stop inside the frame.
+    Q_INVOKABLE bool registerTopAppBar(QWindow* window, int logicalHeight = 10);
+    Q_INVOKABLE bool registerRightAppBar(QWindow* window, int logicalWidth = 10);
     Q_INVOKABLE void unregisterAppBar();
     Q_INVOKABLE void unregisterAppBar(QWindow* window);
     Q_INVOKABLE void refreshAppBar();
@@ -155,7 +161,7 @@ signals:
 private:
     void refresh();
 
-    enum class BarEdge { Left, Bottom };
+    enum class BarEdge { Left, Top, Right, Bottom };
 
     struct AppBarEntry {
         QWindow* window = nullptr;

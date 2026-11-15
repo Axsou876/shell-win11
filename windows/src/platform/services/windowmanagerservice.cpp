@@ -276,11 +276,47 @@ struct BindingSpec {
     bool custom = false;
 };
 
-QVector<BindingSpec> defaultBindingSpecs()
+// Keys that only make sense while the tiling layouts run. Tiling is disabled
+// on this port: leaving these bound would keep swallowing Win+arrows,
+// Win+Minus and Win+Equal, which Windows itself uses (snap, maximise,
+// minimise, magnifier). Everything else — close, workspaces, launcher,
+// sidebar, session, lock, capture — stays bound.
+bool isTilingAction(WmAction action)
+{
+    switch (action) {
+    case WmAction::FocusLeft:
+    case WmAction::FocusRight:
+    case WmAction::FocusUp:
+    case WmAction::FocusDown:
+    case WmAction::MoveLeft:
+    case WmAction::MoveRight:
+    case WmAction::MoveUp:
+    case WmAction::MoveDown:
+    case WmAction::FocusNext:
+    case WmAction::FocusPrev:
+    case WmAction::ToggleFloating:
+    case WmAction::CycleLayout:
+    case WmAction::CycleLayoutBack:
+    case WmAction::PromoteMaster:
+    case WmAction::ToggleTiling:
+    case WmAction::ToggleStrict:
+    case WmAction::ResizeWidthDecrease:
+    case WmAction::ResizeWidthIncrease:
+    case WmAction::ResizeHeightDecrease:
+    case WmAction::ResizeHeightIncrease:
+        return true;
+    default:
+        return false;
+    }
+}
+
+QVector<BindingSpec> defaultBindingSpecs(bool tiling)
 {
     QVector<BindingSpec> specs;
-    const auto add = [&specs](WmAction action, int argument, const QString& name,
+    const auto add = [&specs, tiling](WmAction action, int argument, const QString& name,
                           const QString& key, bool original, bool custom = false) {
+        if (!tiling && isTilingAction(action))
+            return;
         specs.append({ action, argument, name, key, original, custom });
     };
 
@@ -498,6 +534,11 @@ struct WindowManagerService::Impl {
     bool enabled = true;
     bool strictMode = true;
     bool animationsEnabled = true;
+    // Tiling is off on this port: windows keep the size and position Windows
+    // gave them. Focus, close, workspaces, the dock and the desktop slide all
+    // keep working; only the automatic placement is gone. Re-enable with
+    // `tiling=true` in the window-manager INI.
+    bool tilingEnabled = false;
     bool interacting = false;
     bool animationTimerRunning = false;
     QString defaultLayout = QStringLiteral("dwindle");
@@ -958,8 +999,10 @@ struct WindowManagerService::Impl {
             animationsEnabled = settings.value(QStringLiteral("animations"), true).toBool();
         if (settings.contains(QStringLiteral("strict")))
             strictMode = settings.value(QStringLiteral("strict"), true).toBool();
+        if (settings.contains(QStringLiteral("tiling")))
+            tilingEnabled = settings.value(QStringLiteral("tiling"), false).toBool();
 
-        QVector<BindingSpec> specs = defaultBindingSpecs();
+        QVector<BindingSpec> specs = defaultBindingSpecs(tilingEnabled);
         QVector<BindingSpec> customSpecs;
         for (const BindingSpec& spec : std::as_const(specs)) {
             if (spec.original)
@@ -1656,7 +1699,7 @@ struct WindowManagerService::Impl {
         if (!enabled || state.engine.empty())
             return;
         const QRect content = contentRect(state.work, state.engine.count());
-        const QHash<quintptr, QRect> targets = state.engine.geometry(content);
+        const QHash<quintptr, QRect> planned = state.engine.geometry(content);
         // A pending desktop slide starts every window one screen to the side
         // of its tile and lets the animation sweep it in, even when the tile
         // itself did not change. Forward means the incoming desktop arrives
@@ -1665,7 +1708,7 @@ struct WindowManagerService::Impl {
         const bool slide = slidePending;
         const int slideOffset = slide
             ? slideDirection * (state.work.width() + 40) : 0;
-        for (auto it = targets.constBegin(); it != targets.constEnd(); ++it) {
+        for (auto it = planned.constBegin(); it != planned.constEnd(); ++it) {
             HWND hwnd = reinterpret_cast<HWND>(it.key());
             if (!hwnd || !IsWindow(hwnd) || IsIconic(hwnd))
                 continue;
@@ -1682,11 +1725,17 @@ struct WindowManagerService::Impl {
             if (slide && isCloaked(hwnd))
                 continue;
             saveWindowState(hwnd);
-            if (IsZoomed(hwnd))
+            // Un-maximising is part of tiling: it hands the window to the
+            // layout. Without tiling the window must keep the state Windows
+            // gave it.
+            if (tilingEnabled && IsZoomed(hwnd))
                 ShowWindow(hwnd, SW_RESTORE);
 
             const QRect actual = windowRect(hwnd);
-            const QRect target = it.value();
+            // Without tiling the layout is never applied: each window's own
+            // rect is its target, so the desktop slide is the only movement
+            // this pass can produce.
+            const QRect target = tilingEnabled ? it.value() : actual;
             if (!slide && qAbs(actual.x() - target.x()) <= 1
                 && qAbs(actual.y() - target.y()) <= 1
                 && qAbs(actual.width() - target.width()) <= 1
