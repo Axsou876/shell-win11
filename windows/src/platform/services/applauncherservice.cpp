@@ -86,21 +86,11 @@ QImage iconImage(const QString& path)
             if (lines != bitmap.bmHeight)
                 image = {};
 
-            bool hasAlpha = false;
-            if (!image.isNull()) {
-                for (int y = 0; y < image.height() && !hasAlpha; ++y) {
-                    const auto* line = reinterpret_cast<const QRgb*>(image.constScanLine(y));
-                    for (int x = 0; x < image.width(); ++x) {
-                        if (qAlpha(line[x]) != 0) {
-                            hasAlpha = true;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // Legacy 24-bit icons carry transparency in the AND mask.
-            if (!image.isNull() && !hasAlpha && iconInfo.hbmMask) {
+            // Legacy 24-bit icons carry transparency in the AND mask, and some
+            // 32-bit ones keep an opaque alpha channel while the real shape
+            // lives in the mask. Apply it whenever it is there: requiring an
+            // empty alpha channel left those icons on a solid black square.
+            if (!image.isNull() && iconInfo.hbmMask) {
                 BITMAP maskBitmap = {};
                 if (GetObjectW(iconInfo.hbmMask, sizeof(maskBitmap), &maskBitmap) == sizeof(maskBitmap)
                     && maskBitmap.bmWidth == bitmap.bmWidth
@@ -226,7 +216,7 @@ void scanShortcutDir(const QString& root, QHash<QString, AppEntry>* byName)
         const QString base = QFileInfo(path).completeBaseName();
         const QString lower = base.toLower();
         if (lower.startsWith(QStringLiteral("uninstall"))
-            || lower.startsWith(QStringLiteral("dÃ©sinstaller"))
+            || lower.startsWith(QStringLiteral("désinstaller"))
             || lower.startsWith(QStringLiteral("desinstaller"))
             || lower.startsWith(QStringLiteral("remove "))) {
             continue;
@@ -295,8 +285,20 @@ QList<AppEntry> scanStartMenu()
 
     QList<AppEntry> entries;
     entries.reserve(byName.size());
-    for (const auto& entry : std::as_const(byName))
+    for (const auto& entry : std::as_const(byName)) {
+        // The shortcut scan drops uninstallers by file name, but the packaged
+        // (AppsFolder) enumeration exposes them under their display name, which
+        // is why they used to reach the launcher. One filter over the merged
+        // list covers both sources.
+        const QString lower = entry.name.toLower();
+        if (lower.startsWith(QStringLiteral("uninstall"))
+            || lower.startsWith(QStringLiteral("désinstaller"))
+            || lower.startsWith(QStringLiteral("desinstaller"))
+            || lower.startsWith(QStringLiteral("remove "))) {
+            continue;
+        }
         entries.append(entry);
+    }
     std::sort(entries.begin(), entries.end(), [](const AppEntry& a, const AppEntry& b) {
         return QString::localeAwareCompare(a.name, b.name) < 0;
     });
@@ -336,8 +338,11 @@ int fuzzyScore(const QString& query, const AppEntry& entry)
 
 QString iconCachePath(const QString& id)
 {
+    // Versioned directory: bumping the folder invalidates every cached icon
+    // when the extraction changes, without having to delete anything. "2" is
+    // the IShellItemImageFactory-first extraction with the mask always applied.
     const QString dir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation)
-        + QStringLiteral("/app-icons");
+        + QStringLiteral("/app-icons/2");
     QDir().mkpath(dir);
     return dir + QLatin1Char('/') + id + QStringLiteral(".png");
 }
@@ -679,11 +684,17 @@ void AppLauncherService::extractNextIcons()
             continue;
 
         const QString source = found->iconSource.isEmpty() ? found->launchPath : found->iconSource;
-        QImage image = iconImage(source);
-        if (image.isNull() && !found->target.isEmpty())
-            image = iconImage(found->target);
+        // IShellItemImageFactory first: it resolves shortcuts, returns a real
+        // bitmap with an alpha channel at the requested size, and handles
+        // packaged apps. SHGetFileInfo only knows the 32 px large icon, so
+        // using it first is what produced blurry or wrongly-cropped entries.
+        QImage image = shellItemImage(source);
+        if (image.isNull())
+            image = iconImage(source);
         if (image.isNull() && !found->target.isEmpty())
             image = shellItemImage(found->target);
+        if (image.isNull() && !found->target.isEmpty())
+            image = iconImage(found->target);
         if (image.isNull() && found->launchPath.startsWith(QStringLiteral("shell:AppsFolder")))
             image = shellItemImage(found->launchPath);
         if (image.isNull())
@@ -702,7 +713,7 @@ void AppLauncherService::launch(int searchRow)
 {
     const QString id = m_search->idAt(searchRow);
     if (id.isEmpty()) {
-        emit launchFailed({}, QStringLiteral("Aucune application sÃ©lectionnÃ©e"));
+        emit launchFailed({}, QStringLiteral("Aucune application sélectionnée"));
         return;
     }
 
