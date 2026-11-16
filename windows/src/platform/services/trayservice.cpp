@@ -2,10 +2,12 @@
 
 #include <QCoreApplication>
 #include <QDebug>
+#include <QDir>
 #include <QFile>
 #include <QGuiApplication>
 #include <QImage>
 #include <QPainter>
+#include <QSettings>
 #include <QTimer>
 #include <QWindow>
 
@@ -18,6 +20,34 @@ namespace {
 constexpr UINT kTrayIconId = 1;
 constexpr GUID kTrayGuid
     = { 0x6a0f2a7e, 0x3a1b, 0x4f2c, { 0x9e, 0x2d, 0x51, 0x7a, 0x8f, 0x30, 0x44, 0x21 } };
+
+// Autostart lives in the per-user Run key, which is what the Task Manager's
+// "Startup apps" tab shows. No shortcut, no scheduled task, and removing the
+// value is all it takes to undo it.
+QSettings autostartSettings()
+{
+    return QSettings(QStringLiteral("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\"
+                                    "CurrentVersion\\Run"),
+        QSettings::NativeFormat);
+}
+
+bool autostartEnabled()
+{
+    return !autostartSettings().value(QStringLiteral("CaelestiaShell")).toString().isEmpty();
+}
+
+void setAutostart(bool enabled)
+{
+    QSettings settings = autostartSettings();
+    if (enabled) {
+        const QString exe = QDir::toNativeSeparators(QCoreApplication::applicationFilePath());
+        settings.setValue(QStringLiteral("CaelestiaShell"),
+            QStringLiteral("\"%1\"").arg(exe));
+    } else {
+        settings.remove(QStringLiteral("CaelestiaShell"));
+    }
+    settings.sync();
+}
 
 HICON createTrayIcon()
 {
@@ -213,6 +243,9 @@ void TrayService::showMenu()
     HMENU menu = CreatePopupMenu();
     AppendMenuW(menu, MF_STRING, 1, L"Ouvrir la zone de notification");
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(menu, MF_STRING | (autostartEnabled() ? MF_CHECKED : MF_UNCHECKED), 3,
+        L"Démarrer avec Windows");
+    AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, 2, L"Quitter Caelestia");
 
     POINT point = {};
@@ -230,6 +263,8 @@ void TrayService::showMenu()
         focusNotificationArea();
     else if (command == 2)
         QCoreApplication::quit();
+    else if (command == 3)
+        setAutostart(!autostartEnabled());
 }
 
 void TrayService::focusNotificationArea()

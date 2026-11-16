@@ -59,6 +59,21 @@ fermeture de la fenêtre.
 Un second lancement ne crée ni AppBar ni icône tray supplémentaire : il se
 termine immédiatement avec le code 0.
 
+L'exécutable est lié en **sous-système GUI** : le lancer depuis l'Explorateur ou
+au démarrage n'ouvre aucune fenêtre de console. Lancé depuis un terminal, il
+s'attache à ce terminal (`AttachConsole`) et les modes ligne de commande
+(`--smoke-test`, `--lyrics`, `--list-apps`, …) continuent d'écrire là où on les
+lance. Un flux redirigé (script, test) est laissé intact : rouvrir `CONOUT$`
+jetterait la redirection. `QT_FORCE_STDERR_LOGGING` est forcé à 1 dans le
+processus, sinon Qt n'envoie ses journaux qu'au débogueur quand il n'y a pas de
+console.
+
+**Démarrage avec Windows** : menu de l'icône tray → « Démarrer avec Windows »
+(coché = actif). Il écrit la valeur `CaelestiaShell` dans
+`HKCU\Software\Microsoft\Windows\CurrentVersion\Run` — celle que l'onglet
+« Applications de démarrage » du Gestionnaire des tâches affiche — et la
+supprime au décochage. Aucun raccourci, aucune tâche planifiée à nettoyer.
+
 ## Portabilité
 
 Ce qui rend le shell dépendant de la machine, et ce qui a été fait pour que ça

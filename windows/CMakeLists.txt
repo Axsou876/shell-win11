@@ -104,6 +104,12 @@ target_link_libraries(caelestia-shell PRIVATE
     winmm
 )
 
+# A GUI executable: launching from Explorer, or from the startup entry, must not
+# open a console window. The command-line modes (`--smoke-test`, `--lyrics`, …)
+# attach to the parent console at runtime in main.cpp, so redirecting stdout and
+# stderr from a shell keeps working.
+set_target_properties(caelestia-shell PROPERTIES WIN32_EXECUTABLE TRUE)
+
 target_compile_definitions(caelestia-shell PRIVATE
     NOMINMAX
     WIN32_LEAN_AND_MEAN

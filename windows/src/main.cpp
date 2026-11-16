@@ -70,6 +70,30 @@ QString graphicsApiName(QSGRendererInterface::GraphicsApi api)
 
 int main(int argc, char* argv[])
 {
+    // A GUI-subsystem process has no console for most launches, so Qt's default
+    // policy on Windows is to send qInfo/qWarning to the debugger only. Keep
+    // them on stderr: redirected runs (scripts, smoke tests) depend on it, and
+    // with no console attached the writes go nowhere, which is what a shell
+    // launched at logon wants.
+    if (qEnvironmentVariableIsEmpty("QT_FORCE_STDERR_LOGGING"))
+        qputenv("QT_FORCE_STDERR_LOGGING", "1");
+
+    // The executable is a GUI one, so double-clicking it never opens a console.
+    // Started from a terminal, it attaches to that console instead: the CLI
+    // modes and the diagnostic logs keep printing where the user launched them.
+    // A redirected handle (a script, a smoke test) is left alone — reopening
+    // CONOUT$ would throw the redirection away.
+    const HANDLE stdoutHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (!stdoutHandle || stdoutHandle == INVALID_HANDLE_VALUE
+        || GetFileType(stdoutHandle) == FILE_TYPE_UNKNOWN) {
+        if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+            FILE* stream = nullptr;
+            freopen_s(&stream, "CONOUT$", "w", stdout);
+            freopen_s(&stream, "CONOUT$", "w", stderr);
+            freopen_s(&stream, "CONIN$", "r", stdin);
+        }
+    }
+
     // Phase 1 explicitly exercises the Direct3D 11 RHI path so the HLSL
     // variants of the QSB shaders are loaded. The environment variable can
     // still be overridden for comparison runs.
