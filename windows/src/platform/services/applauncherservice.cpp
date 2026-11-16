@@ -17,6 +17,8 @@
 #include <algorithm>
 
 #include <windows.h>
+#include <commctrl.h>
+#include <commoncontrols.h>
 #include <objbase.h>
 #include <ole2.h>
 #include <shellapi.h>
@@ -52,85 +54,160 @@ QString winError(DWORD code)
     return message.isEmpty() ? QStringLiteral("Windows error %1").arg(code) : message;
 }
 
+// Lossy icons: the launcher draws at 48 px, so 64 px leaves room for a
+// fractional scale factor without ever looking like a stretched bitmap.
+constexpr int kIconSize = 64;
+
+QImage scaledIcon(QImage image)
+{
+    if (image.isNull())
+        return {};
+    return image.scaled(kIconSize, kIconSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+}
+
+// Decode a 32 bpp DIB plus its optional AND mask into an ARGB image carrying
+// the transparency the icon really has. Windows icons come in three shapes:
+// 32 bpp with a real alpha channel, 32 bpp that is fully opaque, and legacy
+// images whose shape only lives in the mask. Applying the mask unconditionally
+// turns the first kind into an opaque black square; ignoring it loses the
+// third. The pixels decide which one this is.
+QImage decodeIconDib(HBITMAP colour, HBITMAP mask)
+{
+    BITMAP bitmap = {};
+    if (!colour || GetObjectW(colour, sizeof(bitmap), &bitmap) != sizeof(bitmap)
+        || bitmap.bmWidth <= 0 || bitmap.bmHeight <= 0) {
+        return {};
+    }
+
+    BITMAPINFO bmi = {};
+    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = bitmap.bmWidth;
+    bmi.bmiHeader.biHeight = -bitmap.bmHeight; // negative: rows come top-down
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+
+    QImage image(bitmap.bmWidth, bitmap.bmHeight, QImage::Format_ARGB32);
+    HDC dc = GetDC(nullptr);
+    const int lines = GetDIBits(dc, colour, 0, static_cast<UINT>(bitmap.bmHeight),
+        image.bits(), &bmi, DIB_RGB_COLORS);
+    ReleaseDC(nullptr, dc);
+    if (lines != bitmap.bmHeight)
+        return {};
+
+    bool carryAlpha = false; // at least one pixel is not fully opaque
+    bool allClear = true;    // every pixel is fully transparent
+    for (int y = 0; y < image.height() && (!carryAlpha || allClear); ++y) {
+        const auto* line = reinterpret_cast<const QRgb*>(image.constScanLine(y));
+        for (int x = 0; x < image.width(); ++x) {
+            const int alpha = qAlpha(line[x]);
+            if (alpha != 255)
+                carryAlpha = true;
+            if (alpha != 0)
+                allClear = false;
+            if (carryAlpha && !allClear)
+                break;
+        }
+    }
+
+    // Only fall back to the AND mask when the colour bitmap says nothing: no
+    // alpha at all, or an empty one. Anything else keeps its own alpha.
+    if (mask && (!carryAlpha || allClear)) {
+        BITMAP maskBitmap = {};
+        if (GetObjectW(mask, sizeof(maskBitmap), &maskBitmap) == sizeof(maskBitmap)
+            && maskBitmap.bmWidth == bitmap.bmWidth
+            && maskBitmap.bmHeight >= bitmap.bmHeight) {
+            QImage bits(bitmap.bmWidth, bitmap.bmHeight, QImage::Format_Mono);
+            BITMAPINFO maskInfo = {};
+            maskInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+            maskInfo.bmiHeader.biWidth = bitmap.bmWidth;
+            maskInfo.bmiHeader.biHeight = -bitmap.bmHeight;
+            maskInfo.bmiHeader.biPlanes = 1;
+            maskInfo.bmiHeader.biBitCount = 1;
+            HDC maskDc = GetDC(nullptr);
+            const int maskLines = GetDIBits(maskDc, mask, 0,
+                static_cast<UINT>(bitmap.bmHeight), bits.bits(), &maskInfo, DIB_RGB_COLORS);
+            ReleaseDC(nullptr, maskDc);
+            if (maskLines == bitmap.bmHeight) {
+                for (int y = 0; y < image.height(); ++y) {
+                    auto* line = reinterpret_cast<QRgb*>(image.scanLine(y));
+                    const auto* maskLine = bits.constScanLine(y);
+                    for (int x = 0; x < image.width(); ++x) {
+                        // A set bit means "show the screen behind", i.e.
+                        // transparent.
+                        line[x] = qRgba(0, 0, 0, (maskLine[x / 8] & (0x80 >> (x % 8))) ? 0 : 255);
+                    }
+                }
+            }
+        }
+    }
+
+    return image;
+}
+
+// Take a copy of an icon handle; the caller keeps ownership of the HICON.
+QImage iconFromHandle(HICON icon)
+{
+    if (!icon)
+        return {};
+
+    ICONINFO info = {};
+    QImage image;
+    if (GetIconInfo(icon, &info)) {
+        image = decodeIconDib(info.hbmColor, info.hbmMask);
+        if (info.hbmColor)
+            DeleteObject(info.hbmColor);
+        if (info.hbmMask)
+            DeleteObject(info.hbmMask);
+    }
+    return scaledIcon(std::move(image));
+}
+
+// The icon Explorer itself shows, at 256 px when the shell has one. Working
+// from the system image list also replaces the old IShellItemImageFactory
+// probe: that one returned bitmaps without an alpha channel, which is what
+// left every launcher icon sitting on an opaque black tile.
 QImage iconImage(const QString& path)
 {
     if (path.isEmpty())
         return {};
 
     SHFILEINFOW info = {};
-    if (!SHGetFileInfoW(reinterpret_cast<LPCWSTR>(path.utf16()), 0, &info, sizeof(info),
-            SHGFI_ICON | SHGFI_LARGEICON)
-        || !info.hIcon) {
-        return {};
-    }
-
-    ICONINFO iconInfo = {};
-    QImage image;
-    if (GetIconInfo(info.hIcon, &iconInfo)) {
-        BITMAP bitmap = {};
-        if (GetObjectW(iconInfo.hbmColor, sizeof(bitmap), &bitmap) == sizeof(bitmap)
-            && bitmap.bmWidth > 0 && bitmap.bmHeight > 0) {
-            BITMAPINFO bmi = {};
-            bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-            bmi.bmiHeader.biWidth = bitmap.bmWidth;
-            bmi.bmiHeader.biHeight = -bitmap.bmHeight;
-            bmi.bmiHeader.biPlanes = 1;
-            bmi.bmiHeader.biBitCount = 32;
-            bmi.bmiHeader.biCompression = BI_RGB;
-
-            image = QImage(bitmap.bmWidth, bitmap.bmHeight, QImage::Format_ARGB32);
-            HDC dc = GetDC(nullptr);
-            const int lines = GetDIBits(dc, iconInfo.hbmColor, 0,
-                static_cast<UINT>(bitmap.bmHeight), image.bits(), &bmi, DIB_RGB_COLORS);
-            ReleaseDC(nullptr, dc);
-            if (lines != bitmap.bmHeight)
-                image = {};
-
-            // Legacy 24-bit icons carry transparency in the AND mask, and some
-            // 32-bit ones keep an opaque alpha channel while the real shape
-            // lives in the mask. Apply it whenever it is there: requiring an
-            // empty alpha channel left those icons on a solid black square.
-            if (!image.isNull() && iconInfo.hbmMask) {
-                BITMAP maskBitmap = {};
-                if (GetObjectW(iconInfo.hbmMask, sizeof(maskBitmap), &maskBitmap) == sizeof(maskBitmap)
-                    && maskBitmap.bmWidth == bitmap.bmWidth
-                    && maskBitmap.bmHeight >= bitmap.bmHeight) {
-                    QImage mask(bitmap.bmWidth, bitmap.bmHeight, QImage::Format_Mono);
-                    HDC maskDc = GetDC(nullptr);
-                    BITMAPINFO maskInfo = {};
-                    maskInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-                    maskInfo.bmiHeader.biWidth = bitmap.bmWidth;
-                    maskInfo.bmiHeader.biHeight = -bitmap.bmHeight;
-                    maskInfo.bmiHeader.biPlanes = 1;
-                    maskInfo.bmiHeader.biBitCount = 1;
-                    const int maskLines = GetDIBits(maskDc, iconInfo.hbmMask, 0,
-                        static_cast<UINT>(bitmap.bmHeight), mask.bits(), &maskInfo, DIB_RGB_COLORS);
-                    ReleaseDC(nullptr, maskDc);
-                    if (maskLines == bitmap.bmHeight) {
-                        for (int y = 0; y < image.height(); ++y) {
-                            auto* line = reinterpret_cast<QRgb*>(image.scanLine(y));
-                            for (int x = 0; x < image.width(); ++x) {
-                                if (mask.constScanLine(y)[x / 8] & (0x80 >> (x % 8)))
-                                    line[x] = qRgba(0, 0, 0, 0);
-                            }
-                        }
-                    }
+    if (SHGetFileInfoW(reinterpret_cast<LPCWSTR>(path.utf16()), 0, &info, sizeof(info),
+            SHGFI_SYSICONINDEX)) {
+        IImageList* list = nullptr;
+        if (SUCCEEDED(SHGetImageList(SHIL_EXTRALARGE, IID_IImageList,
+                reinterpret_cast<void**>(&list)))
+            && list) {
+            HICON icon = nullptr;
+            if (SUCCEEDED(list->GetIcon(info.iIcon, ILD_TRANSPARENT, &icon)) && icon) {
+                QImage image = iconFromHandle(icon);
+                DestroyIcon(icon);
+                if (!image.isNull()) {
+                    list->Release();
+                    return image;
                 }
             }
+            list->Release();
         }
-
-        if (iconInfo.hbmColor)
-            DeleteObject(iconInfo.hbmColor);
-        if (iconInfo.hbmMask)
-            DeleteObject(iconInfo.hbmMask);
     }
 
-    DestroyIcon(info.hIcon);
-    if (image.isNull())
+    // No 256 px rendition: the classic 32 px large icon still beats nothing.
+    SHFILEINFOW fallback = {};
+    if (!SHGetFileInfoW(reinterpret_cast<LPCWSTR>(path.utf16()), 0, &fallback, sizeof(fallback),
+            SHGFI_ICON | SHGFI_LARGEICON)
+        || !fallback.hIcon) {
         return {};
-    return image.scaled(64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    }
+    QImage image = iconFromHandle(fallback.hIcon);
+    DestroyIcon(fallback.hIcon);
+    return image;
 }
 
+// Packaged (Microsoft Store) applications have no file system path, only an
+// AppUserModelID, so they are resolved through the shell item factory. The
+// bitmap is decoded here rather than with QImage::fromHBITMAP, which drops the
+// alpha channel of shell bitmaps.
 QImage shellItemImage(const QString& parsingName)
 {
     if (parsingName.isEmpty())
@@ -147,17 +224,60 @@ QImage shellItemImage(const QString& parsingName)
         return {};
 
     HBITMAP bitmap = nullptr;
-    const SIZE size { 64, 64 };
+    const SIZE size { 256, 256 };
     if (FAILED(factory->GetImage(size, SIIGBF_ICONONLY | SIIGBF_BIGGERSIZEOK, &bitmap))
         || !bitmap) {
         return {};
     }
 
-    QImage image = QImage::fromHBITMAP(bitmap);
+    QImage image = decodeIconDib(bitmap, nullptr);
     DeleteObject(bitmap);
     if (image.isNull())
         return {};
-    return image.scaled(64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+    // Reject the opaque rectangles the factory returns for some entries: on
+    // the shell's dark surface they read as black tiles around the logo.
+    bool transparent = false;
+    for (int y = 0; y < image.height() && !transparent; ++y) {
+        const auto* line = reinterpret_cast<const QRgb*>(image.constScanLine(y));
+        for (int x = 0; x < image.width(); ++x) {
+            if (qAlpha(line[x]) != 255) {
+                transparent = true;
+                break;
+            }
+        }
+    }
+    if (!transparent)
+        return {};
+    return scaledIcon(std::move(image));
+}
+
+bool isFilePath(const QString& path)
+{
+    if (path.startsWith(QStringLiteral("\\\\")))
+        return true;
+    return path.size() > 3 && path.at(0).isLetter() && path.at(1) == QLatin1Char(':')
+        && (path.at(2) == QLatin1Char('\\') || path.at(2) == QLatin1Char('/'));
+}
+
+// A fully opaque, almost black square is never an icon: it is what the shell
+// hands back for a shortcut whose icon it could not resolve. On the dark
+// launcher it reads as a dead black tile, so it is treated as no icon at all
+// and the next source — or the material glyph — gets a turn.
+bool isBlankIcon(const QImage& image)
+{
+    if (image.isNull())
+        return true;
+    qint64 luma = 0;
+    for (int y = 0; y < image.height(); ++y) {
+        const auto* line = reinterpret_cast<const QRgb*>(image.constScanLine(y));
+        for (int x = 0; x < image.width(); ++x) {
+            if (qAlpha(line[x]) != 255)
+                return false;
+            luma += qGray(line[x]);
+        }
+    }
+    return luma / (image.width() * image.height()) < 16;
 }
 
 AppEntry resolveShortcut(const QString& path)
@@ -339,10 +459,11 @@ int fuzzyScore(const QString& query, const AppEntry& entry)
 QString iconCachePath(const QString& id)
 {
     // Versioned directory: bumping the folder invalidates every cached icon
-    // when the extraction changes, without having to delete anything. "2" is
-    // the IShellItemImageFactory-first extraction with the mask always applied.
+    // when the extraction changes, without having to delete anything. "4" is
+    // the 256 px system image list extraction that keeps the alpha channel and
+    // discards the black tiles the shell returns for unresolved shortcuts.
     const QString dir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation)
-        + QStringLiteral("/app-icons/2");
+        + QStringLiteral("/app-icons/4");
     QDir().mkpath(dir);
     return dir + QLatin1Char('/') + id + QStringLiteral(".png");
 }
@@ -683,22 +804,35 @@ void AppLauncherService::extractNextIcons()
         if (found == entries.end())
             continue;
 
-        const QString source = found->iconSource.isEmpty() ? found->launchPath : found->iconSource;
-        // IShellItemImageFactory first: it resolves shortcuts, returns a real
-        // bitmap with an alpha channel at the requested size, and handles
-        // packaged apps. SHGetFileInfo only knows the 32 px large icon, so
-        // using it first is what produced blurry or wrongly-cropped entries.
-        QImage image = shellItemImage(source);
+        // Start from the shortcut itself: the shell resolves its icon
+        // location *and* icon index, which is how a Steam game gets its own
+        // logo instead of the Steam one. Only fall back to the icon source and
+        // the target for entries whose shortcut carries no icon at all.
+        const auto usable = [](QImage image) {
+            return isBlankIcon(image) ? QImage() : image;
+        };
+        QImage image = usable(iconImage(found->launchPath));
+        if (image.isNull() && isFilePath(found->iconSource))
+            image = usable(iconImage(found->iconSource));
+        if (image.isNull() && isFilePath(found->target))
+            image = usable(iconImage(found->target));
         if (image.isNull())
-            image = iconImage(source);
+            image = shellItemImage(found->launchPath);
         if (image.isNull() && !found->target.isEmpty())
             image = shellItemImage(found->target);
-        if (image.isNull() && !found->target.isEmpty())
-            image = iconImage(found->target);
-        if (image.isNull() && found->launchPath.startsWith(QStringLiteral("shell:AppsFolder")))
-            image = shellItemImage(found->launchPath);
-        if (image.isNull())
+        if (isBlankIcon(image))
             continue;
+        if (!qEnvironmentVariableIsEmpty("CAELESTIA_DEBUG_ICONS")) {
+            int clear = 0;
+            for (int y = 0; y < image.height(); ++y) {
+                const auto* line = reinterpret_cast<const QRgb*>(image.constScanLine(y));
+                for (int x = 0; x < image.width(); ++x)
+                    clear += qAlpha(line[x]) == 0 ? 1 : 0;
+            }
+            qInfo().noquote() << "icon" << found->name << image.size()
+                              << QStringLiteral("%1% transparent")
+                                     .arg(100 * clear / (image.width() * image.height()));
+        }
         const QString path = iconCachePath(id);
         if (image.save(path, "PNG"))
             m_apps->setIconPath(id, path);
