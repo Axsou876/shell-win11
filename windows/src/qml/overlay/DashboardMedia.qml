@@ -285,20 +285,6 @@ Item {
                         color: root.theme.onSurfaceVariantColour
                     }
                 }
-
-                StyledText {
-                    anchors.top: cover.bottom
-                    anchors.topMargin: root.theme.spacingMedium
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    theme: root.theme
-                    role: "labelSmall"
-                    color: root.theme.onSurfaceVariantColour
-                    text: AudioCapture.error !== ""
-                        ? "Visualiseur indisponible"
-                        : !AudioCapture.available
-                            ? "Capture audio indisponible"
-                            : Media.playing ? I18n.t("Visualiseur temps réel") : "En pause"
-                }
             }
 
             // Details, fills the centre column.
