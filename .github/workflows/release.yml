@@ -60,6 +60,7 @@ jobs:
         with:
           version: "6.9.3"
           arch: win64_msvc2022_64
+          modules: "qtshadertools"
           cache: true
 
       - name: Install Inno Setup
