@@ -38,6 +38,20 @@ Quick — no Electron, no scripting runtime, one process.
 | `Win+Alt+L` | lock the session |
 | `Win+←` / `Win+→` | Windows' own snap, left unbound on purpose |
 
+## Install
+
+Download `Caelestia-Shell-<version>-Setup.exe` from
+[Releases](https://github.com/Axsou876/shell-win11/releases/latest) and run it.
+It installs for the current user in `%LOCALAPPDATA%\Programs\Caelestia Shell`
+(no administrator rights) with the Qt runtime included, adds a Start Menu entry,
+and starts the shell on sign-in unless you clear that box. Uninstall it from
+Settings > Apps.
+
+The shell hides the taskbar while it runs, so quit it from its tray icon
+**before** installing, upgrading or uninstalling — Setup waits for it to exit
+instead of killing it. Your settings under `HKCU\Software\Caelestia` survive an
+uninstall.
+
 ## Requirements
 
 - Windows 11. Virtual desktops need **24H2 or newer** (the private COM interface
@@ -58,6 +72,15 @@ cmake -S windows -B windows\build-release -G Ninja `
   -DCMAKE_PREFIX_PATH=C:/Qt/6.9.3/msvc2022_64 -DCMAKE_BUILD_TYPE=Release
 cmake --build windows\build-release
 ```
+
+To build the installer as well, install Inno Setup 6 and run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File windows\scripts\installer.ps1
+```
+
+It produces `windows\dist\Caelestia-Shell-<version>-Setup.exe`; tagged releases
+are built and published by GitHub Actions.
 
 ## Run
 

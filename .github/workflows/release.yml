@@ -39,3 +39,37 @@ jobs:
         run: |
           git branch -f stable "$GITHUB_SHA"
           git push origin stable --force
+
+  windows-installer:
+    needs: build-and-release
+    runs-on: windows-2022
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.9.3"
+          arch: win64_msvc2022_64
+          cache: true
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Build installer
+        shell: pwsh
+        run: ./windows/scripts/installer.ps1 -QtDir $env:QT_ROOT_DIR
+
+      - name: Attach installer to release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: windows/dist/*.exe

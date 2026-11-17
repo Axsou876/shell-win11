@@ -7,3 +7,4 @@ logs
 backups/
 windows/caelestia-*.png
 build-release/
+windows/dist/
